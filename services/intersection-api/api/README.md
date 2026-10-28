@@ -239,6 +239,49 @@ also available through this API and the Firmware tab.
   Automatic cleanup expires stale uploads and removes old failed/expired records;
   it does not delete cloud files or verified firmware.
 
+## OBU OTA Request History
+
+The OBU OTA server (`services/addons/images/obu_ota_server`) records every OBU
+firmware download attempt in the PostgreSQL `obu_ota_requests` table. The API
+exposes that history read-only at `GET /admin/obu-ota-requests` for admins and
+superusers. Requests are not tied to an organization, so admins of any
+organization can view the full history.
+
+Query parameters (all optional):
+
+<!-- prettier-ignore -->
+| Parameter | Description |
+| --- | --- |
+| `page`, `size` | Zero-based page number and page size (1-200, default 100) |
+| `serial` | Case-insensitive substring of the OBU serial number |
+| `manufacturer` | Manufacturer name (case-insensitive exact match) |
+| `status` | `success` or `error` |
+| `start`, `end` | Inclusive ISO-8601 instants, for example `2026-06-01T00:00:00Z` |
+| `sort` | `request_datetime`, `obu_sn`, `obu_firmware_version`, or `requested_firmware_version`, followed by `,asc` or `,desc` (default `request_datetime,desc`) |
+
+The response contains `items` and `total_elements`. Each item includes the
+request ID, OBU serial number, UTC request time, origin IP, the OBU's current
+firmware version, the requested firmware file, `status`, error message, and
+manufacturer name. The OTA server keeps only the newest `MAX_COUNT` successful
+requests per serial number.
+
+## RSU reboot
+
+- Supports Commsignia RSUs only.
+- Send `POST /devices/rsus/reboot/{rsuIp}` with the RSU's IPv4 address.
+- Requires operator access in the organization that owns the RSU's SSH credentials, or superuser access.
+- Uses SSH credentials stored in PostgreSQL. Non-root accounts need sudo access with the same password.
+- Returns `202` with a `requestId` and `status: ACCEPTED`. The command runs in the background; acceptance does not confirm a reboot.
+- Check logs using the request ID or RSU IP. A disconnect or `UNKNOWN` outcome does not confirm a restart. Check the device before retrying.
+- Commands are never retried automatically. Pending requests are not saved across API restarts.
+
+### Limits and SSH settings
+
+- Each API instance runs up to four commands at once, with no waiting queue. A request for a busy RSU returns `409`; full capacity returns `503`.
+- `RSU_REBOOT_CONCURRENCY` sets the command limit (default: `4`, range: 1?32).
+- `RSU_REBOOT_TIMEOUT` limits SSH setup and command execution (default: `60s`, range: 1?120 seconds). It does not wait for the RSU to restart.
+- Unknown or changed SSH host keys are accepted. No `known_hosts` file is required; SSH server identity is not verified.
+
 ## Local SNMP library dependency
 
 The API consumes the repository's standalone [JPO SNMP library](../snmp/README.md).
@@ -252,7 +295,6 @@ For IDE runs or an API-only Maven build, first run `mvn -f services/intersection
 The API Docker build installs this library automatically. SNMP4J is the library's
 production backend; Net-SNMP executables and runtime MIB files are not required.
 The message-forwarding create/delete endpoints use this library.
-
 
 ## RSU message forwarding
 
@@ -277,13 +319,13 @@ must be refreshed rather than blindly retried. RSU 4.1 remains cached-view only.
 
 All forwarding operations live in one controller:
 
-| Method | Path | Purpose | Minimum role |
-| --- | --- | --- | --- |
-| GET | `/devices/rsus/message-forwarding/{rsuIp}` | Cached PostgreSQL view | USER |
-| GET | `/devices/rsus/message-forwarding/{rsuIp}/live` | Complete direct RSU read | USER |
-| POST | `/devices/rsus/message-forwarding` | Create forwarding rows | OPERATOR |
-| DELETE | `/devices/rsus/message-forwarding` | Delete forwarding rows using message presets | OPERATOR |
-| DELETE | `/devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}` | Delete one existing row by its actual table/index | OPERATOR |
+| Method | Path                                                            | Purpose                                           | Minimum role |
+| ------ | --------------------------------------------------------------- | ------------------------------------------------- | ------------ |
+| GET    | `/devices/rsus/message-forwarding/{rsuIp}`                      | Cached PostgreSQL view                            | USER         |
+| GET    | `/devices/rsus/message-forwarding/{rsuIp}/live`                 | Complete direct RSU read                          | USER         |
+| POST   | `/devices/rsus/message-forwarding`                              | Create forwarding rows                            | OPERATOR     |
+| DELETE | `/devices/rsus/message-forwarding`                              | Delete forwarding rows using message presets      | OPERATOR     |
+| DELETE | `/devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}` | Delete one existing row by its actual table/index | OPERATOR     |
 
 Every route enforces RSU ownership using the existing selected-organization rules;
 super users retain their existing access. Cached reads require no SNMP credentials
@@ -296,22 +338,23 @@ snapshot returns `[]`.
 Both read routes return the same row list:
 
 ```json
-[{
-  "table": "TRANSMIT",
-  "index": 1,
-  "messageType": "MAP",
-  "destinationIp": "198.51.100.3",
-  "destinationPort": 44920,
-  "startDatetime": "2026-10-15T10:00:00-06:00",
-  "endDatetime": "2036-10-15T10:00:00-06:00",
-  "active": true,
-  "includeSecurity": true
-}]
+[
+  {
+    "table": "TRANSMIT",
+    "index": 1,
+    "messageType": "MAP",
+    "destinationIp": "198.51.100.3",
+    "destinationPort": 44920,
+    "startDatetime": "2026-10-15T16:00:00Z",
+    "endDatetime": "2036-10-15T16:00:00Z",
+    "active": true,
+    "includeSecurity": true
+  }
+]
 ```
 
-`table` is `RECEIVE`, `TRANSMIT`, or cached `DSRC`. Dates use
-`snmp.display-time-zone`, which defaults to the existing `TIMEZONE` environment
-setting or `America/Denver`. The response includes security/active flags and
+`table` is `RECEIVE`, `TRANSMIT`, or cached `DSRC`. Dates are returned in UTC;
+clients handle local-time display. The response includes security/active flags and
 RECEIVE/TRANSMIT table names for clients to display.
 
 `POST /devices/rsus/message-forwarding` creates an NTCIP 1218 UDP forwarding row
@@ -357,9 +400,9 @@ success:
       "step": null,
       "elapsedMs": 250,
       "steps": [
-        {"name": "configure-forwarding", "status": "SUCCEEDED"},
-        {"name": "read-current-forwarding", "status": "SUCCEEDED"},
-        {"name": "sync-database", "status": "SUCCEEDED"}
+        { "name": "configure-forwarding", "status": "SUCCEEDED" },
+        { "name": "read-current-forwarding", "status": "SUCCEEDED" },
+        { "name": "sync-database", "status": "SUCCEEDED" }
       ]
     },
     "writeState": "VERIFIED",
@@ -394,6 +437,12 @@ coordination. Responses are synchronous and task histories are not durable jobs;
 configure upstream HTTP timeouts to cover queue plus execution budgets. Webapp
 migration and removal of the Python forwarding routes belong to the next stacked PR.
 
+Set `SNMP_REQUEST_TIMEOUT` in the deployment environment (or `.env` for Docker Compose)
+to adjust the timeout per SNMP attempt; the default is `5s`. For example, use
+`SNMP_REQUEST_TIMEOUT=10s` for a slower network. Recreate the API container after
+changing it; no image rebuild is needed. The 60-second execution limit still
+applies, including retries and all task steps.
+
 Optional Spring configuration (defaults shown):
 
 ```yaml
@@ -406,11 +455,10 @@ snmp:
   read-retries: 1
   max-bulk-repetitions: 0 # GETNEXT default; opt into 1–64 values per bulk response after device benchmarking
   rediscover-on-timeout: true
-  display-time-zone: America/Denver
 ```
 
 Forwarding schedules are always encoded and interpreted in UTC, as required by
-NTCIP 1218. `display-time-zone` controls their presentation only.
+NTCIP 1218.
 Request retries and rediscovery are bounded by the shared execution
 budget; SET retries remain disabled. The API closes its shared executor and
 transport on shutdown. Scheduled fleet monitoring is not started by these beans.

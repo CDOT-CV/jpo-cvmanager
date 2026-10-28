@@ -129,7 +129,7 @@ class MessageForwardingControllerTest {
     @Test void viewerCanReadCachedAndLiveForwardingForOwnedRsu() throws Exception {
         when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(permissionService.findUnauthorizedRsus(anyList(), eq("USER"))).thenReturn(List.of());
-        var date = java.time.OffsetDateTime.parse("2026-10-15T10:00:00-06:00");
+        var date = java.time.OffsetDateTime.parse("2026-10-15T16:00:00Z");
         var row = new us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingConfiguration(
                 us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingConfiguration.Table.TRANSMIT,
                 1, "MAP", "198.51.100.3", 44920, date, date.plusYears(10), true, false);
@@ -139,7 +139,7 @@ class MessageForwardingControllerTest {
             mvc.perform(get(PATH + suffix).with(user("viewer")).header("Organization", "Org 1"))
                     .andExpect(status().isOk()).andExpect(jsonPath("$[0].table").value("TRANSMIT"))
                     .andExpect(jsonPath("$[0].destinationPort").value(44920))
-                    .andExpect(jsonPath("$[0].startDatetime").value("2026-10-15T10:00:00-06:00"))
+                    .andExpect(jsonPath("$[0].startDatetime").value("2026-10-15T16:00:00Z"))
                     .andExpect(jsonPath("$[0].includeSecurity").value(false));
         }
         verifyNoInteractions(forwardingService);

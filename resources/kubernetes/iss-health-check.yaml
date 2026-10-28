@@ -1,4 +1,8 @@
-# If GCP is being used to store keys, this deployment will only be usable in a GCP environment due to the GCP Secret Manager dependency
+# Create the secret before applying this deployment:
+#   kubectl create secret generic iss-health-check-secrets \
+#     --from-literal=ISS_TOKEN_ENCRYPTION_KEY='<fernet-key>' \
+#     --from-literal=ISS_API_KEY='<initial-iss-api-key>' \
+#     --from-literal=PG_DB_PASS='<postgres-password>'
 apiVersion: 'apps/v1'
 kind: 'Deployment'
 metadata:
@@ -24,17 +28,18 @@ spec:
             requests:
               memory: '1Gi'
               cpu: '0.5'
-          ports:
-            - containerPort: 8080
           env:
-            - name: STORAGE_TYPE
-              value: GCP
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: '/home/secret/cv_credentials.json'
-            - name: PROJECT_ID
-              value: ''
+            - name: ISS_TOKEN_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: iss-health-check-secrets
+                  key: ISS_TOKEN_ENCRYPTION_KEY
             - name: ISS_API_KEY
-              value: ''
+              valueFrom:
+                secretKeyRef:
+                  name: iss-health-check-secrets
+                  key: ISS_API_KEY
+                  optional: true
             - name: ISS_API_KEY_NAME
               value: ''
             - name: ISS_PROJECT_ID
@@ -43,24 +48,16 @@ spec:
               value: ''
             - name: ISS_SCMS_VEHICLE_REST_ENDPOINT
               value: ''
-            - name: ISS_KEY_TABLE_NAME
+            - name: PG_DB_USER
               value: ''
-            - name: DB_USER
+            - name: PG_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: iss-health-check-secrets
+                  key: PG_DB_PASS
+            - name: PG_DB_NAME
               value: ''
-            - name: DB_PASS
-              value: ''
-            - name: DB_NAME
-              value: ''
-            - name: DB_HOST
+            - name: PG_DB_HOST
               value: ''
             - name: LOGGING_LEVEL
               value: 'INFO'
-          volumeMounts:
-            - name: cv-manager-service-key
-              mountPath: /home/secret
-          tty: true
-          stdin: true
-      volumes:
-        - name: cv-manager-service-key
-          secret:
-            secretName: cv-manager-service-key

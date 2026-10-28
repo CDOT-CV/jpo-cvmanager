@@ -57,7 +57,7 @@ export type IssScmsStatus = {
 }
 
 export type RsuCommandPostBody = {
-  command: 'reboot' | 'upgrade-rsu' | 'upgrade-check'
+  command: 'upgrade-rsu' | 'upgrade-check'
   rsu_ip: string[]
   args: object
 }

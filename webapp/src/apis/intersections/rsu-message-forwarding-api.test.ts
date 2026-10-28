@@ -50,13 +50,13 @@ describe.each(['cached', 'live'] as const)('%s forwarding read', (source) => {
     messageType: 'MAP',
     destinationIp: '198.51.100.3',
     destinationPort: 44920,
-    startDatetime: '2026-10-15T10:00:00-06:00',
-    endDatetime: '2036-10-15T10:00:00-06:00',
+    startDatetime: '2026-10-15T16:00:00Z',
+    endDatetime: '2036-10-15T16:00:00Z',
     active: true,
     includeSecurity: false,
   }
 
-  it('uses the new GET route and preserves the existing RX/TX display shape and dates', async () => {
+  it('uses the new GET route and preserves the RX/TX display shape and UTC timestamps', async () => {
     fetchMock.mockResponseOnce(JSON.stringify([row]))
     const result = await RsuMessageForwardingApi[source]('fixture-token', 'Org 1', '192.0.2.10')
     expect(fetchMock.mock.calls[0][0]).toBe(
@@ -120,8 +120,8 @@ it('keeps cached DSRC rows viewable without turning them into NTCIP tables', asy
         messageType: 'BSM',
         destinationIp: '198.51.100.3',
         destinationPort: 46800,
-        startDatetime: '2026-10-15T10:00:00-06:00',
-        endDatetime: '2036-10-15T10:00:00-06:00',
+        startDatetime: '2026-10-15T16:00:00Z',
+        endDatetime: '2036-10-15T16:00:00Z',
         active: false,
         includeSecurity: true,
       },

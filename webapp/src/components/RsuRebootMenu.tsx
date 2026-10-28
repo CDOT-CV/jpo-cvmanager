@@ -6,6 +6,7 @@ import { RootState } from '../store'
 
 import {
   selectRebootChangeSuccess,
+  selectRebootRequestedIp,
 
   // Actions
   rebootRsu,
@@ -16,11 +17,13 @@ import { selectRsuIpv4 } from '../generalSlices/rsuSlice'
 import './css/SnmpwalkMenu.css'
 import { Button, Typography, useTheme } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import toast from 'react-hot-toast'
 
 const RsuRebootMenu = () => {
   const theme = useTheme()
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const changeSuccess = useSelector(selectRebootChangeSuccess)
+  const requestedIp = useSelector(selectRebootRequestedIp)
 
   const rsuIp = useSelector(selectRsuIpv4)
 
@@ -30,7 +33,13 @@ const RsuRebootMenu = () => {
     buttons: [
       {
         label: 'Yes',
-        onClick: () => dispatch(rebootRsu([rsuIp])),
+        onClick: () => {
+          dispatch(rebootRsu(rsuIp)).then((result) => {
+            if (rebootRsu.rejected.match(result)) {
+              toast.error(result.error.message || 'Reboot request was not accepted')
+            }
+          })
+        },
       },
       {
         label: 'No',
@@ -49,10 +58,10 @@ const RsuRebootMenu = () => {
 
   return (
     <div>
-      {changeSuccess ? (
+      {changeSuccess && requestedIp === rsuIp ? (
         <div>
           <Typography color={theme.palette.success.light} role="status">
-            Successful reboot, the RSU will now be offline for a brief time
+            Reboot requested. The RSU may be offline briefly.
           </Typography>
         </div>
       ) : (

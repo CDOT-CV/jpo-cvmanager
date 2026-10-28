@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.config;
 
 import java.time.Duration;
 import java.time.Clock;
-import java.time.ZoneId;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -26,10 +25,8 @@ import us.dot.its.jpo.snmp.rsu.ntcip1218.Ntcip1218ForwardingTasks;
 public class SnmpConfig {
     @Bean(destroyMethod = "close")
     public SnmpClient snmpClient(SnmpProperties properties) {
-        // Reject invalid request policies and timezones during startup, before
-        // accepting commands.
+        // Reject invalid request policies during startup, before accepting commands.
         properties.taskOptions();
-        ZoneId.of(properties.getDisplayTimeZone());
         var defaults = Snmp4jOptions.defaults();
         int concurrency = properties.getMaxConcurrentTasks();
         // A batch may contain distinct credentials for every RSU. Session capacity must

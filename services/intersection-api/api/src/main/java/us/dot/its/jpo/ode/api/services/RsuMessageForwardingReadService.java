@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.services;
 
 import java.net.InetAddress;
 import java.time.Clock;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
@@ -44,7 +43,6 @@ public class RsuMessageForwardingReadService {
         if (rsuRepository.findByIpv4Address(address) == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found: " + rsuIp);
         }
-        var displayZone = ZoneId.of(properties.getDisplayTimeZone());
         return configRepository.findForwardingByIpv4Address(address).stream().map(row -> {
             var table = switch (row.getMsgfwdType().getName()) {
                 case "rsuReceivedMsg" -> Table.RECEIVE;
@@ -54,8 +52,8 @@ public class RsuMessageForwardingReadService {
             };
             return new MessageForwardingConfiguration(table, row.getId().getSnmpIndex(),
                     row.getMessageType().toUpperCase(Locale.ROOT), row.getDestIpv4().getHostAddress(), row.getDestPort(),
-                    row.getStartDatetime().atZone(displayZone).toOffsetDateTime(),
-                    row.getEndDatetime().atZone(displayZone).toOffsetDateTime(),
+                    row.getStartDatetime().atOffset(ZoneOffset.UTC),
+                    row.getEndDatetime().atOffset(ZoneOffset.UTC),
                     Boolean.TRUE.equals(row.getActive()), Boolean.TRUE.equals(row.getSecurity()));
         }).toList();
     }
@@ -88,12 +86,11 @@ public class RsuMessageForwardingReadService {
     }
 
     private MessageForwardingConfiguration liveConfiguration(ForwardingRow row) {
-        var displayZone = ZoneId.of(properties.getDisplayTimeZone());
         var messageType = Arrays.stream(MessageType.values()).filter(type -> type.psid().equals(row.psid()))
                 .map(Enum::name).findFirst().orElse("OTHER");
         return new MessageForwardingConfiguration(Table.valueOf(row.table().name()), row.index(), messageType,
-                row.destination(), row.port(), row.start().atZone(ZoneOffset.UTC).withZoneSameInstant(displayZone).toOffsetDateTime(),
-                row.stop().atZone(ZoneOffset.UTC).withZoneSameInstant(displayZone).toOffsetDateTime(),
+                row.destination(), row.port(), row.start().atOffset(ZoneOffset.UTC),
+                row.stop().atOffset(ZoneOffset.UTC),
                 row.status() == 1, row.includeSecurity());
     }
 
