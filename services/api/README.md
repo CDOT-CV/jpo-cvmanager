@@ -38,8 +38,15 @@ Returns the message counts for a single, selected RSU from a BigQuery table. It 
 2. Provided RSU data is plugged into the appropriate data structure depending upon the RSU REST endpoint.
    - HTTP GET URL arguments
    - HTTP POST body data
-3. Directly hit RSUs with SNMP commands or trigger the RSU REST endpoint for SSH commands.
+3. Dispatch the selected SSH or firmware command.
 4. Return response, varies depending upon request.
+
+Message forwarding is served by the [Intersection API](../intersection-api/api/README.md).
+Use `POST` and `DELETE /devices/rsus/message-forwarding` to configure forwarding,
+`GET /devices/rsus/message-forwarding/{rsuIp}` for cached PostgreSQL configurations,
+and `GET /devices/rsus/message-forwarding/{rsuIp}/live` to read the RSU.
+The Python `/rsu-msgfwd-query` and `/rsu-msgfwd-fetch` routes and the
+`rsufwdsnmpset` / `rsufwdsnmpset-del` commands have been removed.
 
 ### <b>/rsu-map-info</b> <b>(GET)</b>
 
