@@ -22,8 +22,8 @@ public class RebootController {
     private final RsuRebootService service;
 
     @PostMapping(path = "/{rsuIp}", produces = "application/json")
-    @PreAuthorize("(@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR'))"
-            + " && @PermissionService.isRsuOwner(#rsuIp, 'OPERATOR')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR')"
+            + " && @PermissionService.isRsuOwner(#rsuIp, 'OPERATOR'))")
     @Operation(summary = "Request a Commsignia RSU reboot", description = "Supports Commsignia devices only; other manufacturers are rejected before admission. Requires OPERATOR access and ownership. Returns 202 after admission, without waiting for SSH or device restart. Final command outcomes are logged using requestId; requests are not retried or persisted across API restarts.")
     public ResponseEntity<RebootAccepted> reboot(@PathVariable String rsuIp) {
         var address = RsuManagementService.toIpv4Address(rsuIp);

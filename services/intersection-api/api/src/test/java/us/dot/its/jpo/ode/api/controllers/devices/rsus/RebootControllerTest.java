@@ -78,14 +78,15 @@ class RebootControllerTest {
     }
 
     @Test
-    void superUserCanRebootWithoutOperatorRole() throws Exception {
+    void superUserCanRebootWithoutOperatorRoleOrOwnership() throws Exception {
         when(permissions.isSuperUser()).thenReturn(true);
         when(permissions.hasRole(UserRole.OPERATOR)).thenReturn(false);
         when(service.requestReboot(any())).thenReturn(UUID.randomUUID());
 
         mvc.perform(post("/devices/rsus/reboot/192.0.2.10").with(jwt()))
                 .andExpect(status().isAccepted());
-        verify(permissions).isRsuOwner("192.0.2.10", "OPERATOR");
+        verify(permissions, never()).hasRole(UserRole.OPERATOR);
+        verify(permissions, never()).isRsuOwner(anyString(), anyString());
     }
 
     @Test
