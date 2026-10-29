@@ -46,7 +46,7 @@ import {
   changeGeoMsgType,
   selectGeoMsgType,
 } from '../generalSlices/rsuSlice'
-import { selectWzdxData, getWzdxData } from '../generalSlices/wzdxSlice'
+import { useGetWzdxFeedQuery } from '../features/api/wzdxFeedApi'
 import { selectIsAdminOrAbove, selectOrganizationName } from '../generalSlices/userSlice'
 import {
   selectConfigCoordinates,
@@ -308,10 +308,6 @@ function MapPage() {
   const filterStep = useSelector(selectGeoMsgFilterStep)
   const filterOffset = useSelector(selectGeoMsgFilterOffset)
 
-  const wzdxData = useSelector(selectWzdxData)
-  const wzdxFeatures = wzdxData?.features ?? EMPTY_WZDX_FEATURES
-  const safeWzdxData = wzdxData?.features ? wzdxData : EMPTY_WZDX_DATA
-
   const haasLocationData = useSelector(selectHaasLocationData)
   const [selectedHaasIncident, setSelectedHaasIncident] = useState<Feature<Point, HaasLocationProperties> | null>(null)
 
@@ -323,6 +319,13 @@ function MapPage() {
   const [lastClickTime, setLastClickTime] = useState<number>(0)
   const menuSelection = useSelector(selectMenuSelection)
   const activeLayers = useSelector(selectActiveLayers)
+
+  // WZDx feed is only fetched when ENABLE_WZDX_FEATURE is true/enabled
+  const { data: wzdxData } = useGetWzdxFeedQuery(undefined, {
+    skip: !EnvironmentVars.ENABLE_WZDX_FEATURES
+  })
+  const wzdxFeatures = wzdxData?.features ?? EMPTY_WZDX_FEATURES
+  const safeWzdxData = wzdxData?.features ? wzdxData : EMPTY_WZDX_DATA
 
   // RSU layer local state variables
   const [displayType, setDisplayType] = useState('online')
@@ -495,9 +498,6 @@ function MapPage() {
     }
     if (!endGeoMsgDate) {
       dateChanged(new Date(), 'end')
-    }
-    if (wzdxFeatures.length === 0) {
-      dispatch(getWzdxData())
     }
   }, [dispatch])
 
@@ -930,9 +930,6 @@ function MapPage() {
       }
     } else {
       switch (id) {
-        case MAP_LAYERS.WZDX.id:
-          dispatch(getWzdxData())
-          break
         case MAP_LAYERS.HEATMAP.id:
         case MAP_LAYERS.HEATMAP_CLUSTER.id:
           if (!menuSelection.includes('Display Message Counts')) {
