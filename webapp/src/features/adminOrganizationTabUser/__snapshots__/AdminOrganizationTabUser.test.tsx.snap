@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`should take a snapshot 1`] = `
+exports[`AdminOrganizationTabUser > should take a snapshot 1`] = `
 <div>
   <div>
     <div
@@ -62,7 +62,11 @@ exports[`should take a snapshot 1`] = `
             >
               <div
                 class="MuiAccordionDetails-root css-mocked-MuiAccordionDetails-root"
-              />
+              >
+                <div
+                  data-testid="admin-table"
+                />
+              </div>
             </div>
           </div>
         </div>

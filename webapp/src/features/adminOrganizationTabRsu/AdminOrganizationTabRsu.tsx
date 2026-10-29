@@ -298,7 +298,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
       {
         label: 'Yes',
         onClick: async () => {
-          const loadingToast = toast.loading(`${actionLabel}ing TIM Deposit...`)
+          const loadingToast = toast.loading(`${newValue ? 'Enabling' : 'Disabling'} TIM Deposit...`)
           try {
             await patchOrganization({
               id: selectedOrgId,
@@ -328,7 +328,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
       {
         label: 'Yes',
         onClick: async () => {
-          const loadingToast = toast.loading(`${actionLabel}ing SNMP Monitoring...`)
+          const loadingToast = toast.loading(`${newValue ? 'Enabling' : 'Disabling'} SNMP Monitoring...`)
           try {
             await patchOrganization({
               id: selectedOrgId,
