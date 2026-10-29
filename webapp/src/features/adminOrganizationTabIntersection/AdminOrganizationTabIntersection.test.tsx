@@ -41,7 +41,7 @@ vi.mock('../api/organizationApiSlice', async (importOriginal) => ({
 vi.mock('../api/adminIntersectionApiSlice', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/adminIntersectionApiSlice')>()),
   useGetIntersectionsNotInOrganizationQuery: () => ({
-    data: {
+    currentData: {
       intersection_data: [
         { intersection_id: '30', intersection_name: 'Thirty' },
         { intersection_id: '40', intersection_name: 'Forty' },
@@ -49,7 +49,7 @@ vi.mock('../api/adminIntersectionApiSlice', async (importOriginal) => ({
     },
   }),
   useGetIntersectionsQuery: () => ({
-    data: {
+    currentData: {
       intersection_data: [
         { intersection_id: '10', intersection_name: 'Ten' },
         { intersection_id: '20', intersection_name: 'Twenty' },

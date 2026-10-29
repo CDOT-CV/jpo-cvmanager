@@ -46,7 +46,7 @@ vi.mock('../../generalSlices/userSlice', async (importOriginal) => ({
 vi.mock('../api/organizationApiSlice', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/organizationApiSlice')>()),
   useGetAllUsersNotInOrganizationQuery: () => ({
-    data: [{ id: 'u1', email: 'a@test.com', first_name: 'A', last_name: 'A', role: '' }],
+    currentData: [{ id: 'u1', email: 'a@test.com', first_name: 'A', last_name: 'A', role: '' }],
   }),
   usePatchOrganizationMutation: () => [mocks.patch],
   useLazyGetUserOrganizationsQuery: () => [mocks.getUserOrgs],
@@ -54,14 +54,14 @@ vi.mock('../api/organizationApiSlice', async (importOriginal) => ({
 vi.mock('../api/userApiSlice', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/userApiSlice')>()),
   useGetUsersQuery: () => ({
-    data: {
+    currentData: {
       content: [
         { email: 'me@test.com', first_name: 'Me', last_name: 'X', organizations: [{ organization: 'Org', role: 'ADMIN' }] },
         { email: 'b@test.com', first_name: 'B', last_name: 'B', organizations: [] },
       ],
     },
   }),
-  useGetUserAllowedSelectionsQuery: () => ({ data: { roles: ['user', 'operator', 'admin'] } }),
+  useGetUserAllowedSelectionsQuery: () => ({ currentData: { roles: ['user', 'operator', 'admin'] } }),
 }))
 
 const ok = (value: any = undefined) => ({ unwrap: () => Promise.resolve(value) })

@@ -37,13 +37,13 @@ vi.mock('../../generalSlices/userSlice', async (importOriginal) => ({
 }))
 vi.mock('../api/organizationApiSlice', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/organizationApiSlice')>()),
-  useGetAllRsusNotInOrganizationQuery: () => ({ data: [{ id: 1, ip: '10.0.0.9' }] }),
+  useGetAllRsusNotInOrganizationQuery: () => ({ currentData: [{ id: 1, ip: '10.0.0.9' }] }),
   usePatchOrganizationMutation: () => [mocks.patch],
   useLazyGetRsuOrganizationsQuery: () => [mocks.getRsuOrgs],
 }))
 vi.mock('../api/rsuApiSlice', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/rsuApiSlice')>()),
-  useGetAllRsusQuery: () => ({ data: { content: mocks.rsus.value } }),
+  useGetAllRsusQuery: () => ({ currentData: { content: mocks.rsus.value } }),
 }))
 
 const ok = (value: any = undefined) => ({ unwrap: () => Promise.resolve(value) })
