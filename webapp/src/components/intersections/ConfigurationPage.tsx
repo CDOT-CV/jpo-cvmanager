@@ -85,7 +85,7 @@ const Page = () => {
   const [currentTab, setCurrentTab] = useState('GENERAL')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
-  const [currentDescription, setCurrentDescription] = useState('')
+  const [currentDescription, setCurrentDescription] = useState('General configuration parameters')
   const intersectionId = useSelector(selectSelectedIntersectionId)
   const [filter, setFilter] = useState({
     query: '',
