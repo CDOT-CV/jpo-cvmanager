@@ -33,8 +33,8 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const { selectedOrgId, selectedOrgName } = props
   const theme = useTheme()
 
-  const { data: availableRsuList } = useGetAllRsusNotInOrganizationQuery(selectedOrgId)
-  const { data: rsuTableData } = useGetAllRsusQuery({ organization: selectedOrgId })
+  const { currentData: availableRsuList } = useGetAllRsusNotInOrganizationQuery(selectedOrgId)
+  const { currentData: rsuTableData } = useGetAllRsusQuery({ organization: selectedOrgId })
 
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getRsuOrganizations] = useLazyGetRsuOrganizationsQuery()

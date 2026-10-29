@@ -34,8 +34,8 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
   const [fetchIntersection] = useLazyGetIntersectionQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
 
-  const { data: availableIntersectionsResponse } = useGetIntersectionsNotInOrganizationQuery(selectedOrgId)
-  const { data: intersectionTableData } = useGetIntersectionsQuery(selectedOrgId)
+  const { currentData: availableIntersectionsResponse } = useGetIntersectionsNotInOrganizationQuery(selectedOrgId)
+  const { currentData: intersectionTableData } = useGetIntersectionsQuery(selectedOrgId)
   const availableIntersectionList = availableIntersectionsResponse?.intersection_data ?? []
 
   const [selectedIntersectionList, setSelectedIntersectionList] = useState<AdminIntersection[]>([])

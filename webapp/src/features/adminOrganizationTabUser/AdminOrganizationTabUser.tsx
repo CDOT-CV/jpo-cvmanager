@@ -42,11 +42,11 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
 
-  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgId, {
+  const { currentData: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgId, {
     skip: !selectedOrgId,
   })
-  const { data: userTableData } = useGetUsersQuery({ organization: selectedOrgId })
-  const { data: allowedSelections } = useGetUserAllowedSelectionsQuery()
+  const { currentData: userTableData } = useGetUsersQuery({ organization: selectedOrgId })
+  const { currentData: allowedSelections } = useGetUserAllowedSelectionsQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getUserOrganizations] = useLazyGetUserOrganizationsQuery()
 
