@@ -89,6 +89,26 @@ class PermissionServiceTest {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
     }
 
+    // ==================== getOrganizationById Tests ====================
+
+    @Test
+    void testGetOrganizationById_Found() {
+        testOrg.setId(123);
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+
+        assertSame(testOrg, permissionService.getOrganizationById(123));
+    }
+
+    @Test
+    void testGetOrganizationById_NotFound() {
+        testOrg.setId(123);
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+
+        assertThrows(AccessDeniedException.class, () -> permissionService.getOrganizationById(456));
+    }
+
     // ==================== getAllowedIntersectionIds Tests ====================
 
     @Test
@@ -229,6 +249,68 @@ class PermissionServiceTest {
         assertFalse(permissionService.hasRoleInOrg("TestOrg", "USER"));
     }
 
+    // ==================== hasRoleInOrgIds Tests ====================
+
+    @Test
+    void testHasRoleInOrgIds_SuperUser() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(true);
+
+        assertTrue(permissionService.hasRoleInOrgIds(UserRole.USER, List.of(123)));
+    }
+
+    @Test
+    void testHasRoleInOrgIds_NoQualifiedOrganizations() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(null, List.of());
+
+        assertFalse(permissionService.hasRoleInOrgIds(UserRole.USER, List.of(123)));
+        assertFalse(permissionService.hasRoleInOrgIds(UserRole.USER, List.of(123)));
+    }
+
+    @Test
+    void testHasRoleInOrgIds_QualifiedOrganizationsMatchRequestedIds() {
+        Organization organization = new Organization();
+        organization.setId(123);
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(organization));
+
+        assertTrue(permissionService.hasRoleInOrgIds(UserRole.USER, List.of(123)));
+        assertFalse(permissionService.hasRoleInOrgIds("USER", List.of(123, 456)));
+    }
+
+    // ==================== hasRoleInOrgNames Tests ====================
+
+    @Test
+    void testHasRoleInOrgNames_SuperUser() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(true);
+
+        assertTrue(permissionService.hasRoleInOrgNames(UserRole.USER, List.of("TestOrg")));
+    }
+
+    @Test
+    void testHasRoleInOrgNames_NoQualifiedOrganizations() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(null, List.of());
+
+        assertFalse(permissionService.hasRoleInOrgNames(UserRole.USER, List.of("TestOrg")));
+        assertFalse(permissionService.hasRoleInOrgNames(UserRole.USER, List.of("TestOrg")));
+    }
+
+    @Test
+    void testHasRoleInOrgNames_QualifiedOrganizationsMatchRequestedNames() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+
+        assertTrue(permissionService.hasRoleInOrgNames(UserRole.USER, List.of("TestOrg")));
+        assertFalse(permissionService.hasRoleInOrgNames("USER", List.of("TestOrg", "OtherOrg")));
+    }
+
     // ==================== hasIntersection Tests ====================
 
     @Test
@@ -301,6 +383,32 @@ class PermissionServiceTest {
                 List.of("TestOrg")))
                 .thenReturn(true);
         assertTrue(permissionService.hasIntersection(123, "OPERATOR"));
+    }
+
+    @Test
+    void testHasIntersection_WithQualifiedOrganizationIdHeader() {
+        testOrg.setId(123);
+        setupRequestWithHeaders(tokenString, "123");
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+        when(intersectionRepository.existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn(
+                "123", List.of("TestOrg"))).thenReturn(true);
+
+        assertTrue(permissionService.hasIntersection(123, "USER"));
+    }
+
+    @Test
+    void testHasIntersection_WithUnqualifiedOrganizationIdHeader() {
+        testOrg.setId(123);
+        setupRequestWithHeaders(tokenString, "456");
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+
+        assertFalse(permissionService.hasIntersection(123, "USER"));
+        verify(intersectionRepository, never())
+                .existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn(anyString(), anyList());
     }
 
     // ==================== hasRsu Tests ====================
@@ -496,6 +604,36 @@ class PermissionServiceTest {
                 List.of("192.168.1.1", "192.168.1.2"), "OPERATOR");
 
         assertEquals(List.of("192.168.1.1", "192.168.1.2"), unauthorized);
+        verify(rsuRepository, never()).findOwnedRsuIpsInOrganizations(anyList(), anyList());
+    }
+
+    @Test
+    void testFindUnauthorizedRsus_WithQualifiedOrganizationIdHeader() throws UnknownHostException {
+        testOrg.setId(123);
+        setupRequestWithHeaders(tokenString, "123");
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+        when(rsuRepository.findOwnedRsuIpsInOrganizations(
+                List.of(testOrg), List.of(RsuManagementService.toIpv4Address("192.168.1.1"))))
+                .thenReturn(List.of());
+
+        assertEquals(List.of("192.168.1.1"),
+                permissionService.findUnauthorizedRsus(List.of("192.168.1.1"), "OPERATOR"));
+        verify(rsuRepository).findOwnedRsuIpsInOrganizations(
+                List.of(testOrg), List.of(RsuManagementService.toIpv4Address("192.168.1.1")));
+    }
+
+    @Test
+    void testFindUnauthorizedRsus_WithUnqualifiedOrganizationIdHeader() {
+        testOrg.setId(123);
+        setupRequestWithHeaders(tokenString, "456");
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+
+        List<String> requestedIps = List.of("192.168.1.1");
+        assertEquals(requestedIps, permissionService.findUnauthorizedRsus(requestedIps, "OPERATOR"));
         verify(rsuRepository, never()).findOwnedRsuIpsInOrganizations(anyList(), anyList());
     }
 
