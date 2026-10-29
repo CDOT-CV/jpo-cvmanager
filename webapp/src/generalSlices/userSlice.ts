@@ -145,6 +145,8 @@ export const userSlice = createSlice({
       )
       if (index > -1) {
         state.value.authLoginData.data.organizations[index].name = action.payload.newName
+        state.value.organization = state.value.authLoginData.data.organizations[index]
+        SecureStorageManager.setUserRole(state.value.organization)
       }
     },
     setLoading: (state, action) => {
