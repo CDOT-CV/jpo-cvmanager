@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,7 @@ import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleImpactExc
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
+import us.dot.its.jpo.ode.api.services.OrganizationManagementService;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
@@ -82,6 +84,13 @@ public class GlobalExceptionHandler {
         return errorRes.build();
     }
 
+    @ExceptionHandler()
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ProblemDetail handleEmptyResult(EmptyResultDataAccessException ex) {
+        log.warn("Resource not found: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "The requested resource was not found");
+    }
+
     @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler()
     public ProblemDetail handleRsuCredentialAlreadyExistsException(
@@ -106,6 +115,15 @@ public class GlobalExceptionHandler {
             UserManagementService.UserEmailAlreadyExistsException e) {
         String message = e.getMessage();
         log.error(message);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler()
+    public ProblemDetail handleOrganizationHasDependentsException(
+            OrganizationManagementService.OrganizationHasDependentsException e) {
+        String message = e.getMessage();
+        log.warn(message);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
     }
 
