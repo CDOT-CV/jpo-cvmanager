@@ -1,3 +1,7 @@
+import { vi } from 'vitest'
+
+vi.mock('../apis/auth-api')
+vi.mock('../managers')
 import reducer, {
   addOrModifyOrgAssociationByOrgName,
   selectIsAdminOrAbove,
@@ -37,7 +41,7 @@ import { UserManager, LocalStorageManager } from '../managers'
 import { setupJestCanvasMock } from 'jest-canvas-mock'
 
 beforeEach(() => {
-  jest.resetAllMocks()
+  vi.resetAllMocks()
   setupJestCanvasMock()
 })
 import { RootState } from '../store'
@@ -69,27 +73,18 @@ describe('async thunks', () => {
     },
   }
 
-  beforeAll(() => {
-    jest.mock('../apis/auth-api')
-    jest.mock('../managers')
-  })
-
-  afterAll(() => {
-    jest.unmock('../apis/auth-api')
-    jest.unmock('../managers')
-  })
 
   describe('login', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn()
+      const dispatch = vi.fn()
+      const getState = vi.fn()
       const kcToken = 'token'
       const action = keycloakLogin(kcToken)
-      Date.now = jest.fn(() => new Date(Date.UTC(2022, 1, 1)).valueOf())
+      Date.now = vi.fn(() => new Date(Date.UTC(2022, 1, 1)).valueOf())
       const testData = { data: 'testingData' }
       const userData = { ...testData, name: 'undefined undefined' }
       const data = { data: userData, token: kcToken, expires_at: Date.now() + 590000 }
-      AuthApi.logIn = jest.fn().mockReturnValue(data)
+      AuthApi.logIn = vi.fn().mockReturnValue(data)
       try {
         const resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({
@@ -123,7 +118,7 @@ describe('async thunks', () => {
       const loginFailure = false
       const organization = { name: 'organizationName' }
       const authLoginData = { data: { organizations: [organization] } }
-      LocalStorageManager.setAuthData = jest.fn()
+      LocalStorageManager.setAuthData = vi.fn()
       const state = reducer(initialState, {
         type: 'user/login/fulfilled',
         payload: authLoginData,
@@ -141,7 +136,7 @@ describe('async thunks', () => {
       const loading = false
       const loginFailure = true
       const loginMessage = 'error message'
-      LocalStorageManager.removeAuthData = jest.fn()
+      LocalStorageManager.removeAuthData = vi.fn()
       const state = reducer(initialState, {
         type: 'user/login/rejected',
         payload: loginMessage,
@@ -154,8 +149,8 @@ describe('async thunks', () => {
 
 describe('addOrModifyOrgAssociationByOrgName', () => {
   it('returns null when there is no token or auth data', async () => {
-    const dispatch = jest.fn()
-    const getState = jest.fn(() => ({
+    const dispatch = vi.fn()
+    const getState = vi.fn(() => ({
       user: {
         value: {
           authLoginData: null,
@@ -173,8 +168,8 @@ describe('addOrModifyOrgAssociationByOrgName', () => {
   })
 
   it('updates the role when the organization already exists', async () => {
-    const dispatch = jest.fn()
-    const getState = jest.fn(() => ({
+    const dispatch = vi.fn()
+    const getState = vi.fn(() => ({
       user: {
         value: {
           authLoginData: {
@@ -197,8 +192,8 @@ describe('addOrModifyOrgAssociationByOrgName', () => {
   })
 
   it('fetches the organization id and adds a brand new association', async () => {
-    const dispatch = jest.fn()
-    const getState = jest.fn(() => ({
+    const dispatch = vi.fn()
+    const getState = vi.fn(() => ({
       user: {
         value: {
           authLoginData: {
@@ -210,7 +205,7 @@ describe('addOrModifyOrgAssociationByOrgName', () => {
         },
       },
     }))
-    apiHelper._getDataWithCodes = jest.fn().mockResolvedValue({ status: 200, body: { organization_id: 'org-2' } })
+    apiHelper._getDataWithCodes = vi.fn().mockResolvedValue({ status: 200, body: { organization_id: 'org-2' } })
 
     const action = await addOrModifyOrgAssociationByOrgName({ name: 'Beta', role: 'ADMIN' })(
       dispatch,
@@ -243,7 +238,7 @@ describe('reducers', () => {
   it('logout reducer updates state correctly', async () => {
     const authLoginData = null as any
     const organization = null as any
-    LocalStorageManager.removeAuthData = jest.fn()
+    LocalStorageManager.removeAuthData = vi.fn()
     expect(
       reducer(
         {
@@ -261,7 +256,7 @@ describe('reducers', () => {
 
   it('changeOrganization reducer updates state correctly', async () => {
     const organization = 'organization'
-    UserManager.getOrganization = jest.fn().mockReturnValue(organization)
+    UserManager.getOrganization = vi.fn().mockReturnValue(organization)
     expect(
       reducer(
         {
@@ -276,7 +271,7 @@ describe('reducers', () => {
     })
     expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 1)
 
-    UserManager.getOrganization = jest.fn().mockReturnValue(null)
+    UserManager.getOrganization = vi.fn().mockReturnValue(null)
     expect(
       reducer(
         {
@@ -294,7 +289,7 @@ describe('reducers', () => {
 
   it('changeOrganizationName reducer updates state correctly', async () => {
     const organization = 'organization'
-    UserManager.getOrganizationByName = jest.fn().mockReturnValue(organization)
+    UserManager.getOrganizationByName = vi.fn().mockReturnValue(organization)
     expect(
       reducer(
         {
@@ -309,7 +304,7 @@ describe('reducers', () => {
     })
     expect(UserManager.getOrganizationByName).toHaveBeenCalledWith('authLoginData', 'organizationName')
 
-    UserManager.getOrganizationByName = jest.fn().mockReturnValue(null)
+    UserManager.getOrganizationByName = vi.fn().mockReturnValue(null)
     expect(
       reducer(
         {

@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import userReducer from '../../generalSlices/userSlice'
-import { vi } from 'vitest'
+import { vi , type Mock } from 'vitest'
 
 vi.doMock('../../EnvironmentVars', () => ({
   EnvironmentVars: {
@@ -52,12 +52,12 @@ const mockJsonResponse = (body: unknown, status = 200) =>
 
 describe('userApiSlice', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-    global.fetch = jest.fn()
+    vi.clearAllMocks()
+    global.fetch = vi.fn()
   })
 
   test('getUsers', async () => {
-    ;(global.fetch as jest.Mock).mockImplementationOnce(() =>
+    ;(global.fetch as Mock).mockImplementationOnce(() =>
       mockJsonResponse({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 })
     )
     const store = makeStore()
@@ -73,7 +73,7 @@ describe('userApiSlice', () => {
     )
     await action.unwrap()
 
-    const req = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+    const req = (global.fetch as Mock).mock.calls[0][0] as Request
     expect(req.url).toBe('http://localhost:8080/users?page=0&size=100&sort=first_name%2Casc&search=')
     expect(req.method).toBe('GET')
     expect(req.headers.get('Authorization')).toBe('Bearer mock-token')
@@ -82,59 +82,59 @@ describe('userApiSlice', () => {
   })
 
   test('getUser', async () => {
-    ;(global.fetch as jest.Mock).mockImplementationOnce(() => mockJsonResponse({ email: 'a@b.com' }))
+    ;(global.fetch as Mock).mockImplementationOnce(() => mockJsonResponse({ email: 'a@b.com' }))
     const store = makeStore()
 
     const action = store.dispatch(userApiSlice.endpoints.getUser.initiate('a@b.com'))
     await action.unwrap()
 
-    const req = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+    const req = (global.fetch as Mock).mock.calls[0][0] as Request
     expect(req.url).toBe('http://localhost:8080/users/a@b.com')
     expect(req.method).toBe('GET')
     action.unsubscribe()
   })
 
   test('getUserAllowedSelections', async () => {
-    ;(global.fetch as jest.Mock).mockImplementationOnce(() => mockJsonResponse({ organizations: [], roles: [] }))
+    ;(global.fetch as Mock).mockImplementationOnce(() => mockJsonResponse({ organizations: [], roles: [] }))
     const store = makeStore()
 
     const action = store.dispatch(userApiSlice.endpoints.getUserAllowedSelections.initiate())
     await action.unwrap()
 
-    const req = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+    const req = (global.fetch as Mock).mock.calls[0][0] as Request
     expect(req.url).toBe('http://localhost:8080/users/allowed-selections')
     expect(req.method).toBe('GET')
     action.unsubscribe()
   })
 
   test('getRoles', async () => {
-    ;(global.fetch as jest.Mock).mockImplementationOnce(() => mockJsonResponse(['USER', 'ADMIN']))
+    ;(global.fetch as Mock).mockImplementationOnce(() => mockJsonResponse(['USER', 'ADMIN']))
     const store = makeStore()
 
     const action = store.dispatch(userApiSlice.endpoints.getRoles.initiate())
     await action.unwrap()
 
-    const req = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+    const req = (global.fetch as Mock).mock.calls[0][0] as Request
     expect(req.url).toBe('http://localhost:8080/users/roles')
     expect(req.method).toBe('GET')
     action.unsubscribe()
   })
 
   test('createUser', async () => {
-    ;(global.fetch as jest.Mock).mockImplementationOnce(() => mockJsonResponse({}))
+    ;(global.fetch as Mock).mockImplementationOnce(() => mockJsonResponse({}))
     const store = makeStore()
     const body = { email: 'new@user.com', first_name: 'New' } as any
 
     await store.dispatch(userApiSlice.endpoints.createUser.initiate(body)).unwrap()
 
-    const req = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+    const req = (global.fetch as Mock).mock.calls[0][0] as Request
     expect(req.url).toBe('http://localhost:8080/users')
     expect(req.method).toBe('POST')
     expect(await req.clone().json()).toEqual(body)
   })
 
   test('patchUser', async () => {
-    ;(global.fetch as jest.Mock).mockImplementationOnce(() => mockJsonResponse({}))
+    ;(global.fetch as Mock).mockImplementationOnce(() => mockJsonResponse({}))
     const store = makeStore()
 
     await store
@@ -146,31 +146,31 @@ describe('userApiSlice', () => {
       )
       .unwrap()
 
-    const req = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+    const req = (global.fetch as Mock).mock.calls[0][0] as Request
     expect(req.url).toBe('http://localhost:8080/users/u@x.com')
     expect(req.method).toBe('PATCH')
     expect(await req.clone().json()).toEqual({ email: 'u@x.com', first_name: 'Updated' })
   })
 
   test('deleteUser', async () => {
-    ;(global.fetch as jest.Mock).mockImplementationOnce(() => mockJsonResponse({}))
+    ;(global.fetch as Mock).mockImplementationOnce(() => mockJsonResponse({}))
     const store = makeStore()
 
     await store.dispatch(userApiSlice.endpoints.deleteUser.initiate('gone@x.com')).unwrap()
 
-    const req = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+    const req = (global.fetch as Mock).mock.calls[0][0] as Request
     expect(req.url).toBe('http://localhost:8080/users/gone@x.com')
     expect(req.method).toBe('DELETE')
   })
 
   test('deleteMultipleUsers', async () => {
-    ;(global.fetch as jest.Mock).mockImplementationOnce(() => mockJsonResponse({}))
+    ;(global.fetch as Mock).mockImplementationOnce(() => mockJsonResponse({}))
     const store = makeStore()
     const emails = ['a@x.com', 'b@x.com']
 
     await store.dispatch(userApiSlice.endpoints.deleteMultipleUsers.initiate(emails)).unwrap()
 
-    const req = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+    const req = (global.fetch as Mock).mock.calls[0][0] as Request
     expect(req.url).toBe('http://localhost:8080/users/batch')
     expect(req.method).toBe('DELETE')
     expect(await req.clone().json()).toEqual(emails)

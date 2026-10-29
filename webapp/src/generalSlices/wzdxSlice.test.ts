@@ -1,3 +1,6 @@
+import { vi } from 'vitest'
+
+vi.mock('../apis/rsu-api')
 import reducer from './wzdxSlice'
 import {
   // async thunks
@@ -25,18 +28,11 @@ describe('async thunks', () => {
     value: null,
   }
 
-  beforeAll(() => {
-    jest.mock('../apis/rsu-api')
-  })
-
-  afterAll(() => {
-    jest.unmock('../apis/rsu-api')
-  })
 
   describe('getWzdxData', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -46,7 +42,7 @@ describe('async thunks', () => {
       const action = getWzdxData()
 
       const data = 'data'
-      RsuApi.getWzdxData = jest.fn().mockReturnValue(data)
+      RsuApi.getWzdxData = vi.fn().mockReturnValue(data)
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(data)
       expect(RsuApi.getWzdxData).toHaveBeenCalledWith('token')
