@@ -53,13 +53,19 @@ export const getUserInvalidationTags = (patch: OrganizationPatch) => {
 
 /**
  * Builds the rsuApi cache tags to invalidate for a patch (the RSU list plus each added or
- * Returns an empty array when no RSUs changed.
+ * removed RSU's ip). Returns an empty array when no RSUs changed.
  *
- * This handles the case where RSUs are added to or removed from an organization.
+ * This handles the case where RSUs are added to or removed from an organization. A tim_deposit or
+ * snmp_monitoring change applies to every RSU in the organization, whose ips are not in the patch,
+ * so all cached RSU entries (list and per-RSU info) are invalidated.
  */
 export const getRsuInvalidationTags = (patch: OrganizationPatch) => {
   if (!hasItems(patch.rsus_to_add) && !hasItems(patch.rsus_to_remove)) {
-    return []
+    if (patch.tim_deposit !== undefined || patch.snmp_monitoring !== undefined) {
+      return [RSU_API_RSU_TAG]
+    } else {
+      return []
+    }
   }
   return [
     { type: RSU_API_RSU_TAG, id: RSU_API_RSU_LIST_ID },

@@ -133,6 +133,11 @@ export const organizationApiSlice = createApi({
             ]
           : []),
 
+        // TIM deposit / SNMP monitoring flags apply to all of the organization's RSUs, so refresh the org RSU list.
+        ...(vars.tim_deposit !== undefined || vars.snmp_monitoring !== undefined
+          ? [ORGANIZATION_API_RSU_LIST_TAG]
+          : []),
+
         // If users list it changed, change org user list and available user list accordingly.
         ...(hasItems(vars.users_to_add) || hasItems(vars.users_to_remove) || hasItems(vars.users_to_modify)
           ? [

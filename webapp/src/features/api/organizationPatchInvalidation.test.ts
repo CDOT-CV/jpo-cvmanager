@@ -114,6 +114,21 @@ describe('getRsuInvalidationTags', () => {
     expect(tags.map((t) => t.id)).toEqual(expect.arrayContaining(['10.0.0.1', '10.0.0.2']))
     expect(tags).toHaveLength(3)
   })
+
+  it.each([
+    ['tim_deposit true', { tim_deposit: true }],
+    ['tim_deposit false', { tim_deposit: false }],
+    ['snmp_monitoring true', { snmp_monitoring: true }],
+    ['snmp_monitoring false', { snmp_monitoring: false }],
+  ])('invalidates all RSU entries when %s', (_name, overrides) => {
+    expect(getRsuInvalidationTags(patch(overrides))).toEqual(['Rsu'])
+  })
+
+  it('returns the specific rsu tags when flags and rsu lists change together', () => {
+    const tags = getRsuInvalidationTags(patch({ tim_deposit: true, rsus_to_add: ['10.0.0.1'] }))
+    expect(tags.map((t) => t.id)).toContain('10.0.0.1')
+    expect(tags).toHaveLength(2)
+  })
 })
 
 describe('invalidateCachesForOrganizationPatch', () => {
