@@ -38,6 +38,7 @@ import {
   useDeleteOrganizationMutation,
   useGetOrganizationsQuery,
 } from '../api/organizationApiSlice'
+import { invalidateCachesForOrganizationDelete } from '../api/organizationPatchInvalidation'
 import { RSU_API_RSU_LIST_ID, RSU_API_RSU_TAG, rsuApiSlice } from '../api/rsuApiSlice'
 import { USER_API_USER_LIST_ID, USER_API_USER_TAG, userApiSlice } from '../api/userApiSlice'
 
@@ -101,6 +102,7 @@ const AdminOrganizationTab = () => {
     const loadingToast = toast.loading(`Deleting organization ${orgName}...`)
     try {
       await deleteOrganization(orgId).unwrap()
+      invalidateCachesForOrganizationDelete(dispatch)
       dispatch(deleteOrgAssociationByOrgId(orgId))
       const next = orgList.find((o) => o.id !== orgId) ?? orgList[0]
       if (next) {

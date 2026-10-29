@@ -91,6 +91,17 @@ export const invalidateCachesForOrganizationPatch = (dispatch: Dispatch<AnyActio
 }
 
 /**
+ * Invalidates every cached intersection, user, and RSU entry after an organization is deleted.
+ * The deleted organization's members are unknown to the client, so all entries of each tag type
+ * (lists, available lists, and per-item organization info) are invalidated, not specific ids.
+ */
+export const invalidateCachesForOrganizationDelete = (dispatch: Dispatch<AnyAction>) => {
+  dispatch(adminIntersectionApiSlice.util.invalidateTags([ADMIN_INTERSECTION_TAG]))
+  dispatch(userApiSlice.util.invalidateTags([USER_API_USER_TAG]))
+  dispatch(rsuApiSlice.util.invalidateTags([RSU_API_RSU_TAG]))
+}
+
+/**
  * Redux middleware that, after a fulfilled patchOrganization mutation, invalidates the related
  * API caches. Always forwards the action and returns the downstream result.
  */

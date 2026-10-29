@@ -4,6 +4,7 @@ import {
   getIntersectionInvalidationTags,
   getRsuInvalidationTags,
   getUserInvalidationTags,
+  invalidateCachesForOrganizationDelete,
   invalidateCachesForOrganizationPatch,
   organizationPatchInvalidationMiddleware,
 } from './organizationPatchInvalidation'
@@ -154,6 +155,17 @@ describe('invalidateCachesForOrganizationPatch', () => {
       patch({ intersections_to_add: [1], users_to_modify: [{ email: 'a@x.com', role: 'USER' }], rsus_to_remove: ['x'] })
     )
     expect(dispatch).toHaveBeenCalledTimes(3)
+  })
+})
+
+describe('invalidateCachesForOrganizationDelete', () => {
+  it('invalidates every intersection, user, and rsu tag', () => {
+    const dispatch = vi.fn()
+    invalidateCachesForOrganizationDelete(dispatch)
+    expect(dispatch).toHaveBeenCalledTimes(3)
+    expect(dispatch).toHaveBeenCalledWith(adminIntersectionApiSlice.util.invalidateTags(['AdminIntersection']))
+    expect(dispatch).toHaveBeenCalledWith(userApiSlice.util.invalidateTags(['User']))
+    expect(dispatch).toHaveBeenCalledWith(rsuApiSlice.util.invalidateTags(['Rsu']))
   })
 })
 
