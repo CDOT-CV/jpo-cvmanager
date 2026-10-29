@@ -1,5 +1,8 @@
 package us.dot.its.jpo.ode.api.repositories;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,10 +13,6 @@ import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
-
-import java.net.InetAddress;
-import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface UserOrganizationRepository extends JpaRepository<UserOrganization, Integer> {
@@ -30,8 +29,6 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
 
     @Query("SELECT uo FROM UserOrganization uo WHERE uo.user.email = :email")
     List<UserOrganization> findAllByEmail(@Param("email") String email);
-
-    Optional<UserOrganization> findByOrganization_Name(String organizationName);
 
     Optional<UserOrganization> findByUserAndOrganization(User user, Organization organization);
 

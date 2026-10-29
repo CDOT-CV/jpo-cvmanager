@@ -1,5 +1,8 @@
 package us.dot.its.jpo.ode.api.repositories;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -8,10 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
-
-import java.net.InetAddress;
-import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface SnmpCredentialRepository extends JpaRepository<SnmpCredential, Integer> {
