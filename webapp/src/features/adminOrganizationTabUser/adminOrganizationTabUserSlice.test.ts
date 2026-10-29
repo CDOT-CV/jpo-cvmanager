@@ -1,5 +1,6 @@
 import { vi } from 'vitest'
 import { RootState } from '../../store'
+import apiHelper from '../../apis/api-helper'
 import reducer, {
   refresh,
   // selectors
@@ -238,12 +239,17 @@ describe('async thunks', () => {
         return Promise.resolve({ payload: { success: true } })
       })
 
+      vi.mocked(apiHelper._patchData).mockResolvedValueOnce({ status: 200, message: '', body: {} } as any)
+
       const action = userAddMultiple({ userList, selectedOrg, selectedOrgEmail, updateTableData })
 
-      await action(dispatch, getState, undefined)
+      const result = await action(dispatch, getState, undefined)
 
-      // Should dispatch editOrg and refresh
-      expect(dispatch).toHaveBeenCalledTimes(2 + 7)
+      expect(apiHelper._patchData).toHaveBeenCalledTimes(1)
+      expect(result.type).toBe(userAddMultiple.fulfilled.type)
+      expect(result.payload).toEqual({ success: true, message: 'User(s) added successfully' })
+      expect(mockInvalidateTags).toHaveBeenCalledTimes(1)
+      expect(dispatch).toHaveBeenCalledTimes(2 + 8)
     })
   })
 
