@@ -49,7 +49,6 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
-import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
 import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
@@ -67,9 +66,6 @@ import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 @ExtendWith(MockitoExtension.class)
 class RsuManagementServiceTest {
-
-    @Mock
-    private ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
 
     @Mock
     private MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;

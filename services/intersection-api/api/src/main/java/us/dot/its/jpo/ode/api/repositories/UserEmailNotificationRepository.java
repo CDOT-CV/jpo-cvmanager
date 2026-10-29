@@ -1,16 +1,14 @@
 package us.dot.its.jpo.ode.api.repositories;
 
+import java.net.InetAddress;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserEmailNotification;
-
-import java.net.InetAddress;
-import java.util.List;
 
 /**
  * Frequency filter strings must match {@link us.dot.its.jpo.ode.api.models.emails.EmailFrequency#toQueryValue()}.
@@ -62,11 +60,4 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
             "FROM UserEmailNotification uen " +
             "WHERE uen.user.email = :userEmail")
     List<UserEmailNotification> findNotificationsByUser(@Param("userEmail") String userEmail);
-
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM UserEmailNotification uen " +
-            "WHERE uen.emailType.emailType IN :emailType " +
-            "AND uen.user.email = :userEmail")
-    void deleteByTypeAndUserEmail(@Param("emailType") List<String> emailTypes, @Param("userEmail") String userEmail);
 }
