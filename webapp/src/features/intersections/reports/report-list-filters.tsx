@@ -7,8 +7,8 @@ import PropTypes from 'prop-types'
 import React, { useEffect, useState } from 'react'
 
 export type ReportListFilter = {
-  startDate: Date | null
-  endDate: Date | null
+  startDate: Date | undefined
+  endDate: Date | undefined
 }
 
 interface ReportListFiltersProps {
@@ -25,34 +25,34 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
   const [filtersValid, setFiltersValid] = useState([true, ''])
 
   useEffect(() => {
-    setCurrentFilters(filters)
-    updateFiltersValid()
+    handleUpdatedFilters(filters)
   }, [filters])
 
-  const startDateChange = (date: Date | null) => {
-    setCurrentFilters({ ...currentFilters, startDate: date })
-    updateFiltersValid()
+  const startDateChange = (date: Date | undefined) => {
+    handleUpdatedFilters({ ...currentFilters, startDate: date })
   }
 
-  const endDateChange = (date: Date | null) => {
-    setCurrentFilters({ ...currentFilters, endDate: date })
-    updateFiltersValid()
+  const endDateChange = (date: Date | undefined) => {
+    handleUpdatedFilters({ ...currentFilters, endDate: date })
   }
 
-  const updateFiltersValid = () => {
+  const handleUpdatedFilters = (filters: ReportListFilter) => {
+    setCurrentFilters(filters)
+
+    // Validate the updated filters and update the state accordingly
     let filtersValidLocal = true
     const reasons: string[] = []
-    if (currentFilters.startDate === null || currentFilters.endDate === null) {
+    if (filters.startDate === undefined || filters.endDate === undefined) {
       filtersValidLocal = false
       reasons.push('Start Date and End Date must be set')
-    } else if (currentFilters.startDate >= currentFilters.endDate) {
+    } else if (filters.startDate >= filters.endDate) {
       filtersValidLocal = false
       reasons.push('Start Date must be before End Date')
     }
     // TODO: validate dates
     setFiltersValid([filtersValidLocal, reasons.join('\n')])
     if (filtersValidLocal) {
-      onChange?.(currentFilters)
+      onChange?.(filters)
     }
   }
 

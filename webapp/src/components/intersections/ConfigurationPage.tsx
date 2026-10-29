@@ -99,7 +99,7 @@ const Page = () => {
   const handleTabsChange = (event, value) => {
     const updatedFilter = { ...filter, tab: value }
     setCurrentTab(value)
-    updateDescription()
+    updateDescription(value)
     setFilter(updatedFilter)
     setPage(0)
   }
@@ -119,9 +119,9 @@ const Page = () => {
     setRowsPerPage(parseInt(event.target.value, 10))
   }
 
-  const updateDescription = () => {
+  const updateDescription = (currentTabValue: string) => {
     for (let i = 0; i < tabs.length; i++) {
-      if (tabs[i].value === currentTab) {
+      if (tabs[i].value === currentTabValue) {
         setCurrentDescription(tabs[i].description)
       }
     }
