@@ -214,17 +214,18 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires OPERATOR role, intersection access, or org restriction violation"),
             @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
-    @PatchMapping(produces = "application/json", consumes = "application/json")
+    @PatchMapping(path = "{intersection_number}", produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && " +
-            "@PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR') && " +
+            "@PermissionService.hasIntersection(#intersection_number, 'OPERATOR') && " +
             "@PermissionService.hasRoleInOrgIds('ADMIN', #patch.organizationsToAdd) && " +
             "@PermissionService.hasRoleInOrgIds('ADMIN', #patch.organizationsToRemove) && " +
             "@PermissionService.hasRsus(#patch.rsusToAdd, 'OPERATOR') && " +
             "@PermissionService.hasRsus(#patch.rsusToRemove, 'OPERATOR'))")
-    public void patchIntersection(@RequestBody @Validated IntersectionPatch patch) {
+    public void patchIntersection(@PathVariable("intersection_number") Integer intersectionNumber,
+            @RequestBody @Validated IntersectionPatch patch) {
         List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
                 .getQualifiedOrgList(UserRole.ADMIN);
-        adminIntersectionService.patchIntersection(patch, qualifiedOrgs);
+        adminIntersectionService.patchIntersection(intersectionNumber, patch, qualifiedOrgs);
     }
 
     /**

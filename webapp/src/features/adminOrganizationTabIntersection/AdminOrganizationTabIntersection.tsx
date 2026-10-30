@@ -16,9 +16,9 @@ import AdminTable from '../../components/AdminTable'
 import { selectLoadingGlobal } from '../../generalSlices/userSlice'
 import { AdminIntersection } from '../../models/Intersection'
 import {
-  useGetIntersectionsNotInOrganizationQuery,
-  useGetIntersectionsQuery,
-  useLazyGetIntersectionQuery,
+    useGetIntersectionsNotInOrganizationQuery,
+    useGetIntersectionsQuery,
+    useLazyGetIntersectionQuery,
 } from '../api/adminIntersectionApiSlice'
 import { usePatchOrganizationMutation } from '../api/organizationApiSlice'
 import '../css/multiselect.css'
@@ -154,7 +154,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     const loadingToast = toast.loading(`Deleting Intersection ${intersection.intersection_id}...`)
     try {
       const result = await fetchIntersection(intersection.intersection_id).unwrap()
-      if (result?.intersection_data?.organizations?.length > 1) {
+      if (result?.organizations?.length > 1) {
         await patchOrganization({
           id: selectedOrgId,
           intersections_to_remove: [Number(intersection.intersection_id)],
@@ -200,7 +200,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
       const validIntersectionIds: number[] = []
       for (const row of rows) {
         const result = await fetchIntersection(row.intersection_id).unwrap()
-        if (result?.intersection_data?.organizations?.length > 1) {
+        if (result?.organizations?.length > 1) {
           validIntersectionIds.push(Number(row.intersection_id))
         } else {
           invalidIntersections.push(row.intersection_id)

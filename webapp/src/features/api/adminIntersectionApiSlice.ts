@@ -1,16 +1,12 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
 import { selectToken } from '../../generalSlices/userSlice'
-import { AdminIntersection } from '../../models/Intersection'
+import { AdminIntersection, AdminIntersectionPatch } from '../../models/Intersection'
 import { RootState } from '../../store'
 import {
-    AdminIntersectionCreationBody,
-    AdminIntersectionCreationInfo,
+  AdminIntersectionCreationBody,
+  AdminIntersectionCreationInfo,
 } from '../adminAddIntersection/adminAddIntersectionSlice'
-import {
-    AdminEditIntersectionBody,
-    adminEditIntersectionData,
-} from '../adminEditIntersection/adminEditIntersectionSlice'
 
 // Tag type constants
 export const ADMIN_INTERSECTION_TAG = 'AdminIntersection' as const
@@ -67,7 +63,7 @@ export const adminIntersectionApiSlice = createApi({
       },
       providesTags: [{ type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_AVAILABLE_LIST_ID }],
     }),
-    getIntersection: builder.query<adminEditIntersectionData, string>({
+    getIntersection: builder.query<AdminIntersection, string>({
       query: (intersectionId) => {
         return {
           url: `${intersectionId}`,
@@ -93,9 +89,12 @@ export const adminIntersectionApiSlice = createApi({
         { type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_AVAILABLE_LIST_ID },
       ],
     }),
-    patchIntersection: builder.mutation<{ success: boolean; message: string }, AdminEditIntersectionBody>({
-      query: (body) => ({
-        url: '',
+    patchIntersection: builder.mutation<
+      { success: boolean; message: string },
+      { intersection_id: string; patch: AdminIntersectionPatch }
+    >({
+      query: ({ intersection_id, patch: body }) => ({
+        url: `/${intersection_id}`,
         method: 'PATCH',
         body,
       }),

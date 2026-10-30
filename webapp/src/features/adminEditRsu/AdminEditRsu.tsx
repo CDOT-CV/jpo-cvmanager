@@ -1,15 +1,11 @@
+import { ErrorMessage } from '@hookform/error-message'
 import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
-import { ErrorMessage } from '@hookform/error-message'
 
-import '../adminRsuTab/Admin.css'
-import '../../styles/fonts/museo-slab.css'
-import { AdminRsuPatch } from '../../models/Rsu'
-import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
-  Checkbox,
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
@@ -23,8 +19,12 @@ import {
   Typography,
 } from '@mui/material'
 import toast from 'react-hot-toast'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { AdminRsuPatch } from '../../models/Rsu'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
+import '../../styles/fonts/museo-slab.css'
+import '../adminRsuTab/Admin.css'
 import { useGetRsuAllowedSelectionsQuery, useGetRsuQuery, usePatchRsuMutation } from '../api/rsuApiSlice'
 
 export type AdminEditRsuFormType = {
@@ -43,7 +43,7 @@ export type AdminEditRsuFormType = {
   ssh_credential_group: string
   snmp_credential_group: string
   snmp_version_group: string
-  organizations: string[]
+  organizations: number[]
   tim_deposit: boolean
   snmp_monitoring: boolean
 }
@@ -638,7 +638,7 @@ const AdminEditRsu = () => {
                     value={watchedOrganizations || []}
                     {...register('organizations', { required: true })}
                     onChange={(event) => {
-                      const value = event.target.value as string[]
+                      const value = event.target.value as number[]
                       setValue('organizations', value)
                     }}
                   >
