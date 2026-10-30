@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.services;
+package us.dot.its.jpo.ode.api.services.firmware;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -12,8 +12,8 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.storage.StoredObjectMetadata;
 import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
 import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 
 /**
  * Commits verification and image registration together, without cloud calls in
@@ -57,10 +57,7 @@ public class FirmwareRegistrationService {
         // Completion is idempotent. An upload not yet verified needs its observed storage
         // metadata checked and its verification state updated
         if (upload.getStatus() != FirmwareUploadStatus.VERIFIED) {
-            if (metadata == null || metadata.contentLength() != upload.getExpectedSize()
-                    || metadata.checksum() == null
-                    || !upload.getChecksumAlgorithm().equalsIgnoreCase(metadata.checksum().algorithm())
-                    || !upload.getExpectedChecksum().equals(metadata.checksum().value())) {
+            if (!FirmwareUploadSupport.matches(upload, metadata)) {
                 throw new FirmwareUploadVerificationException("Firmware metadata does not match the upload intent");
             }
             upload.setStatus(FirmwareUploadStatus.VERIFIED);

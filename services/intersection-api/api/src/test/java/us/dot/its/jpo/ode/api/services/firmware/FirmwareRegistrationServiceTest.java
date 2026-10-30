@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.services;
+package us.dot.its.jpo.ode.api.services.firmware;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,8 +20,8 @@ import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.postgres.tables.*;
 import us.dot.its.jpo.ode.api.models.storage.*;
 import us.dot.its.jpo.ode.api.repositories.*;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 
 @SpringBootTest(properties = "firmware-upload.cleanup.enabled=false")
 @ActiveProfiles("integration-test")
