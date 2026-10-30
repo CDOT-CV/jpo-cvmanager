@@ -39,6 +39,11 @@
             <version>2.20.0</version>
         </dependency>
 		<dependency>
+			<groupId>usdot.jpo.ode</groupId>
+			<artifactId>jpo-snmp</artifactId>
+			<version>1.0.0-alpha1</version>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka-streams-test-utils</artifactId>
 			<scope>test</scope>
