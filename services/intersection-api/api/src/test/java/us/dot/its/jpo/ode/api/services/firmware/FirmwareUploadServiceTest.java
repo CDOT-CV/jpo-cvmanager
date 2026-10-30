@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.services;
+package us.dot.its.jpo.ode.api.services.firmware;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,9 +48,9 @@ import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageProperties;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageService;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadConfigurationException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 
 class FirmwareUploadServiceTest {
     private static final Instant EXPIRES_AT = Instant.parse("2026-09-02T12:15:00Z");
@@ -186,6 +186,21 @@ class FirmwareUploadServiceTest {
                 .hasMessageContaining("ITS-RS4-M")
                 .hasMessageContaining("Unknown");
         verify(objectStorageService, never()).createSignedUploadUrl(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "ota", "OTA" })
+    void rejectsVendorReservedForObuFirmware(String vendor) {
+        // A manufacturer named "ota" would write into the OBU firmware hierarchy
+        when(rsuModelRepository.findByNameAndManufacturerName("ITS-RS4-M", vendor))
+                .thenReturn(Optional.of(model));
+        request.setVendorName(vendor);
+
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("vendor_name is reserved for OBU firmware");
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
     }
 
     @Test

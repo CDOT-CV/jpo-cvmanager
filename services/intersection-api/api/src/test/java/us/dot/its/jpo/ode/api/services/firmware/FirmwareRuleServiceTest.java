@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.services;
+package us.dot.its.jpo.ode.api.services.firmware;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -25,7 +25,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.*;
 import us.dot.its.jpo.ode.api.models.storage.*;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareRuleModels.*;
 import us.dot.its.jpo.ode.api.repositories.*;
-import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleConflictException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService.FirmwareRuleConflictException;
 import us.dot.its.jpo.ode.api.storage.*;
 
 @SpringBootTest(properties = "firmware-upload.cleanup.enabled=false")

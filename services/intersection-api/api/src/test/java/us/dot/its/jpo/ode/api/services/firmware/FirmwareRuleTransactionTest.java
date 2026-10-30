@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.services;
+package us.dot.its.jpo.ode.api.services.firmware;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,7 +49,7 @@ import us.dot.its.jpo.ode.api.repositories.FirmwareUpgradeRuleRepository;
 import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
 import us.dot.its.jpo.ode.api.repositories.ManufacturerRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
-import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleConflictException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService.FirmwareRuleConflictException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageService;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 
