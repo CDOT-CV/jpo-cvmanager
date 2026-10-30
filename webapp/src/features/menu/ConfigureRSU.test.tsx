@@ -142,6 +142,38 @@ it('shows counts for all configured message types, not just the selected type', 
   expect(screen.queryByText('BSM Input')).not.toBeInTheDocument()
 })
 
+it.each(['41', '1218'])('shows forwarding controls only for NTCIP 1218 without a duplicate notice (%s)', (protocol) => {
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider
+        store={setupStore({
+          rsu: {
+            value: {
+              selectedRsu: {
+                ...selectedRsu,
+                properties: { ...selectedRsu.properties, snmp_protocol_code: protocol, owner_organization_id: 1 },
+              },
+            },
+          },
+          user: { value: { organization: { name: 'Test Org', organization: 1, role: 'OPERATOR' } } },
+        })}
+      >
+        <ConfigureRSU />
+      </Provider>
+    </ThemeProvider>
+  )
+
+  expect(screen.getByRole('button', { name: 'View Forwarding' })).toBeInTheDocument()
+  if (protocol === '1218') {
+    expect(screen.getByRole('button', { name: 'Configure Forwarding' })).toBeInTheDocument()
+  } else {
+    expect(screen.queryByRole('button', { name: 'Configure Forwarding' })).not.toBeInTheDocument()
+  }
+  // SnmpwalkMenu owns the restriction notice; the surrounding menu must not repeat it.
+  expect(screen.queryByText(/Message forwarding changes and live refresh require/)).not.toBeInTheDocument()
+})
+
 it('shows the Intersection API ProblemDetail when message counts fail', () => {
   mockUseGetRsuCountsByIpQuery.mockReturnValue(
     mockQueryResult({

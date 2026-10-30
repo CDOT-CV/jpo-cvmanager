@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
   selectDestIp,
   selectSnmpMsgType,
+  selectIncludeSecurityHeader,
 
   // Actions
   submitSnmpSet,
@@ -43,15 +44,16 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
 
   const destIp = useSelector(selectDestIp)
   const snmpMsgType = useSelector(selectSnmpMsgType)
+  const includeSecurity = useSelector(selectIncludeSecurityHeader)
 
   return (
     <div>
       <form id="snmpform">
-        <Grid2 container spacing={2}>
+        <Grid2 container spacing={1}>
           <Grid2 size={8}>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="dense">
               <TextField
-                label="Destination IP"
+                label="Destination IPv4"
                 placeholder="Enter Destination IP"
                 id="snmpinput"
                 color="info"
@@ -70,7 +72,7 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
             </FormControl>
           </Grid2>
           <Grid2 size={4}>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="dense">
               <InputLabel htmlFor="msg-type-select">Message Type</InputLabel>
               <Select
                 label="Message Type"
@@ -93,6 +95,7 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
         <FormControlLabel
           control={
             <Checkbox
+              checked={includeSecurity}
               onChange={(e) => {
                 dispatch(setIncludeSecurityHeader(e.target.checked))
               }}
@@ -108,11 +111,12 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
           size="medium"
           startIcon={<ControlPointOutlined />}
           onClick={() =>
-            dispatch(submitSnmpSet(rsuIpList)).then((data: any) => {
-              if (data.payload.changeSuccess) {
+            dispatch(submitSnmpSet(rsuIpList)).then((data) => {
+              if (submitSnmpSet.fulfilled.match(data) && data.payload.changeSuccess) {
                 toast.success('Forwarding Changes Applied Successfully')
               } else {
-                toast.error('Failed to add forwarding: ' + data.errorState)
+                const message = submitSnmpSet.fulfilled.match(data) ? data.payload.errorState : data.error.message
+                toast.error('Failed to add forwarding: ' + (message || 'Request did not complete'))
               }
             })
           }
@@ -140,7 +144,14 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
                   snmpMsgType: snmpMsgType,
                   destIp: destIp,
                 })
-              )
+              ).then((data) => {
+                if (deleteSnmpSet.fulfilled.match(data) && data.payload.changeSuccess) {
+                  toast.success('Successfully deleted SNMP forwarding')
+                } else {
+                  const message = deleteSnmpSet.fulfilled.match(data) ? data.payload.errorState : data.error.message
+                  toast.error('Failed to delete SNMP forwarding: ' + (message || 'Request did not complete'))
+                }
+              })
             }
           >
             Delete Forwarding
