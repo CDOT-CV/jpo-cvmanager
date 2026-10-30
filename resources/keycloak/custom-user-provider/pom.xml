@@ -96,7 +96,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>17</java.version>
 
-        <keycloak.version>25.0.6</keycloak.version>
+        <keycloak.version>26.7.2</keycloak.version>
         <byte-buddy.version>1.17.6</byte-buddy.version>
 
         <!-- these should be updated together with Keycloak -->
