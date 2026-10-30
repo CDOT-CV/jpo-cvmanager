@@ -1,90 +1,88 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import Map, { Source, Layer, MapRef } from 'react-map-gl'
+import React, { useEffect, useMemo, useState } from 'react'
+import Map, { Layer, MapRef, Source } from 'react-map-gl'
 
-import { Container, Col } from 'reactstrap'
+import { Col, Container } from 'reactstrap'
 
-import { Paper, Box, Fab, useTheme } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import { Box, Fab, Paper, useTheme } from '@mui/material'
 
-import ControlPanel from './control-panel'
-import { SidePanel } from './map-info'
-import { CustomPopup } from './popup'
-import { selectToken } from '../../../generalSlices/userSlice'
-import {
-  selectBsmLayerStyle,
-  selectConnectingLanesHighlightLayerStyle,
-  selectConnectingLanesLabelsLayerStyle,
-  selectConnectingLanesLayerStyle,
-  selectConnectingLanesSsmStatusLayerStyle,
-  selectMapMessageHighlightLayerStyle,
-  selectMapMessageLabelsLayerStyle,
-  selectMapMessageLayerStyle,
-  selectMarkerLayerStyle,
-  selectSignalStateLayerStyle,
-  selectSrmLayerStyle,
-  setSrmCircleColor,
-  setSrmLegendColors,
-} from './map-layer-style-slice'
-import {
-  MAP_PROPS,
-  addInitialDataAbortPromise,
-  cleanUpLiveStreaming,
-  generateQueryParams,
-  incrementSliderValue,
-  initializeLiveStreaming,
-  pullInitialData,
-  resetInitialDataAbortControllers,
-  selectActiveSrmData,
-  selectActiveSsmData,
-  selectAllInteractiveLayerIds,
-  selectBsmData,
-  selectConnectingLanes,
-  selectCurrentBsms,
-  selectCurrentSignalGroups,
-  selectDecoderModeEnabled,
-  selectFilteredSurroundingEvents,
-  selectFilteredSurroundingNotifications,
-  selectLiveDataActive,
-  selectLiveDataRestart,
-  selectLoadInitialDataTimeoutId,
-  selectMapData,
-  selectMapSignalGroups,
-  selectPlaybackModeActive,
-  selectQueryParams,
-  selectRenderTimeInterval,
-  selectShowPopupOnHover,
-  selectSignalStateData,
-  selectSliderValueDeciseconds,
-  selectSpatSignalGroups,
-  selectTimeWindowSeconds,
-  setLoadInitialDataTimeoutId,
-  setMapProps,
-  setMapRef,
-  updateQueryParams,
-  updateRenderTimeInterval,
-  updateRenderedMapState,
-  MAP_LAYERS,
-  selectLayersVisible,
-} from './map-slice'
-import EnvironmentVars from '../../../EnvironmentVars'
-import {
-  addConnections,
-  createMarkerForNotification,
-  addSsmStatus,
-  addSsmSrmToConnections,
-  addSsmSrmToMapFeatures,
-} from './utilities/message-utils'
+import { Remove } from '@mui/icons-material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { useDispatch, useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
+import EnvironmentVars from '../../../EnvironmentVars'
+import { selectToken } from '../../../generalSlices/userSlice'
 import { RootState } from '../../../store'
-import { MapLegend } from './map-legend'
 import mbStyle from '../../../styles/intersectionMapStyle.json'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
-import { useLocation } from 'react-router-dom'
-import { Remove } from '@mui/icons-material'
-import VisualSettings from './visual-settings'
-import { useDispatch, useSelector } from 'react-redux'
+import ControlPanel from './control-panel'
 import LayerMenu from './layer-menu'
+import { SidePanel } from './map-info'
+import {
+    selectBsmLayerStyle,
+    selectConnectingLanesHighlightLayerStyle,
+    selectConnectingLanesLabelsLayerStyle,
+    selectConnectingLanesLayerStyle,
+    selectConnectingLanesSsmStatusLayerStyle,
+    selectMapMessageHighlightLayerStyle,
+    selectMapMessageLabelsLayerStyle,
+    selectMapMessageLayerStyle,
+    selectMarkerLayerStyle,
+    selectSignalStateLayerStyle,
+    selectSrmLayerStyle,
+    setSrmCircleColor,
+    setSrmLegendColors,
+} from './map-layer-style-slice'
+import { MapLegend } from './map-legend'
+import {
+    MAP_LAYERS,
+    MAP_PROPS,
+    addInitialDataAbortPromise,
+    cleanUpLiveStreaming,
+    generateQueryParams,
+    incrementSliderValue,
+    initializeLiveStreaming,
+    pullInitialData,
+    resetInitialDataAbortControllers,
+    selectActiveSrmData,
+    selectActiveSsmData,
+    selectAllInteractiveLayerIds,
+    selectBsmData,
+    selectConnectingLanes,
+    selectCurrentBsms,
+    selectCurrentSignalGroups,
+    selectDecoderModeEnabled,
+    selectFilteredSurroundingEvents,
+    selectFilteredSurroundingNotifications,
+    selectLayersVisible,
+    selectLiveDataActive,
+    selectLiveDataRestart,
+    selectMapData,
+    selectMapSignalGroups,
+    selectPlaybackModeActive,
+    selectQueryParams,
+    selectRenderTimeInterval,
+    selectShowPopupOnHover,
+    selectSignalStateData,
+    selectSliderValueDeciseconds,
+    selectSpatSignalGroups,
+    selectTimeWindowSeconds,
+    setMapProps,
+    setMapRef,
+    updateQueryParams,
+    updateRenderTimeInterval,
+    updateRenderedMapState,
+} from './map-slice'
+import { CustomPopup } from './popup'
 import { generateColorDictionary, generateMapboxStyleExpression } from './utilities/colors'
+import {
+    addConnections,
+    addSsmSrmToConnections,
+    addSsmSrmToMapFeatures,
+    addSsmStatus,
+    createMarkerForNotification,
+} from './utilities/message-utils'
+import VisualSettings from './visual-settings'
 
 /**
  *  Converts a date string or timestamp to a timestamp in milliseconds since epoch.
@@ -151,18 +149,19 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const sliderValueDeciseconds = useSelector(selectSliderValueDeciseconds)
   const renderTimeInterval = useSelector(selectRenderTimeInterval)
   const showPopupOnHover = useSelector(selectShowPopupOnHover)
-  const loadInitialDataTimeoutId = useSelector(selectLoadInitialDataTimeoutId)
   const liveDataActive = useSelector(selectLiveDataActive)
   const playbackModeActive = useSelector(selectPlaybackModeActive)
   const liveDataRestart = useSelector(selectLiveDataRestart)
   const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
 
   const mapRef = React.useRef<MapRef>(null)
+  const loadInitialDataTimeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined)
   const [viewState, setViewState] = useState({
     latitude: 39.587905,
     longitude: -105.0907089,
     zoom: 11,
   })
+  const [mapLoaded, setMapLoaded] = useState(false)
   const [bsmTrailLength, setBsmTrailLength] = useState<number>(5)
   const [openPanel, setOpenPanel] = useState<string>('')
   const [cursor, setCursor] = useState<string>('default')
@@ -177,7 +176,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
 
   useEffect(() => {
     dispatch(setMapProps(props))
-  }, [props])
+  }, [props, dispatch])
 
   // Increment selectSliderValueDeciseconds by 1 every second when playbackModeActive is true
   useEffect(() => {
@@ -193,7 +192,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
       }
     }
     return () => {}
-  }, [playbackModeActive])
+  }, [playbackModeActive, dispatch])
 
   useEffect(() => {
     if (props.intersectionId != queryParams.intersectionId) {
@@ -212,7 +211,9 @@ const IntersectionMap = (props: MAP_PROPS) => {
         )
       }
     }
-  }, [props.intersectionId])
+    // Only trigger on intersection ID change, not on other prop changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.intersectionId, dispatch])
 
   useEffect(() => {
     dispatch(
@@ -222,28 +223,32 @@ const IntersectionMap = (props: MAP_PROPS) => {
         resetTimeWindow: true,
       })
     )
-  }, [props.sourceData])
+    // Sets initial query params based on source data
+    // Do not trigger on Intersection ID change, useEffect above handles that separately
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.sourceData, props.sourceDataType, decoderModeEnabled, dispatch])
 
   useEffect(() => {
-    if (liveDataActive) {
-      return
-    }
-    if (loadInitialDataTimeoutId) {
-      clearTimeout(loadInitialDataTimeoutId)
+    if (liveDataActive) return
+
+    if (loadInitialDataTimeoutRef.current) {
+      clearTimeout(loadInitialDataTimeoutRef.current)
     }
     const timeoutId = setTimeout(() => dispatch(addInitialDataAbortPromise(dispatch(pullInitialData()))), 500)
-    dispatch(setLoadInitialDataTimeoutId(timeoutId))
-  }, [queryParams])
+    loadInitialDataTimeoutRef.current = timeoutId
+
+    return () => clearTimeout(timeoutId)
+  }, [queryParams, liveDataActive, dispatch])
 
   useEffect(() => {
     dispatch(updateRenderedMapState())
-  }, [bsmData, mapSignalGroups, renderTimeInterval, spatSignalGroups])
+  }, [bsmData, mapSignalGroups, renderTimeInterval, spatSignalGroups, dispatch])
 
   useEffect(() => {
     if (!liveDataActive) {
       dispatch(updateRenderTimeInterval())
     }
-  }, [sliderValueDeciseconds, queryParams, timeWindowSeconds])
+  }, [sliderValueDeciseconds, queryParams, timeWindowSeconds, liveDataActive, dispatch])
 
   useEffect(() => {
     if (liveDataActive) {
@@ -267,7 +272,9 @@ const IntersectionMap = (props: MAP_PROPS) => {
       if (bsmTrailLength < 15) setBsmTrailLength(20)
       dispatch(cleanUpLiveStreaming())
     }
-  }, [liveDataActive])
+    // Only trigger on liveDataActive change, not on other prop changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveDataActive, dispatch])
 
   useEffect(() => {
     if (liveDataRestart != -1 && liveDataRestart < 5 && liveDataActive) {
@@ -283,11 +290,27 @@ const IntersectionMap = (props: MAP_PROPS) => {
     } else {
       dispatch(cleanUpLiveStreaming())
     }
-  }, [liveDataRestart])
+    // Only trigger on liveDataRestart change, not on other prop changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveDataRestart, dispatch])
 
   useEffect(() => {
     if (mapRef.current) dispatch(setMapRef(mapRef))
-  }, [mapRef])
+  }, [mapRef, dispatch])
+
+  useEffect(() => {
+    const refPoint = mapData?.properties.refPoint
+    if (!mapLoaded || !mapRef.current || !refPoint) return
+
+    mapRef.current.flyTo({
+      center: [refPoint.longitude, refPoint.latitude],
+      zoom: 19,
+      duration: 100,
+    })
+    // Fly to the reference point when the map is loaded and the reference point is available
+    // Do not trigger on other prop changes, only on mapLoaded and reference point changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapLoaded, mapData?.properties.refPoint.longitude, mapData?.properties.refPoint.latitude])
 
   const activeSrmFeatureCollection = useMemo(() => {
     const srmFeatures = addSsmStatus(activeSrmData, activeSsmData)
@@ -304,7 +327,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
       type: 'FeatureCollection' as const,
       features: srmFeatures,
     }
-  }, [activeSrmData, activeSsmData])
+  }, [activeSrmData, activeSsmData, dispatch])
 
   const [connectingLanesFeatureCollection, connectingLanesOnlyWithSsmSrmFeatureCollection] = useMemo(() => {
     let connections: ConnectingLanesFeatureCollectionWithSignalState = EMPTY_FEATURE_COLLECTION
@@ -527,6 +550,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
             })
 
             if (mapRef.current) dispatch(setMapRef(mapRef))
+            setMapLoaded(true)
           }}
         >
           {/* 

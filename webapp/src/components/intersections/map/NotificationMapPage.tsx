@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Box, Container } from '@mui/material'
 import IntersectionMap from '../../../features/intersections/map/map-component'
 import { setSelectedIntersectionId } from '../../../generalSlices/intersectionSlice'
@@ -18,7 +18,7 @@ function NotificationMapPage() {
 
   const intersectionIdInt = parseInt(intersectionId) ?? -1
 
-  const updateNotifications = () => {
+  const updateNotifications = useCallback(() => {
     if (intersectionId) {
       NotificationApi.getActiveNotifications({
         token: token,
@@ -31,12 +31,12 @@ function NotificationMapPage() {
     } else {
       console.error('Did not attempt to get notification data in map. Intersection ID:', intersectionId)
     }
-  }
+  }, [intersectionId, intersectionIdInt, notificationId, token])
 
   useEffect(() => {
     updateNotifications()
     setSelectedIntersectionId(intersectionIdInt)
-  }, [intersectionId])
+  }, [intersectionIdInt, updateNotifications])
 
   return (
     <div className="container">
