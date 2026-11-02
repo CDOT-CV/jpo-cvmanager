@@ -1,4 +1,4 @@
-import reducer from './rsuSlice'
+import reducer, { forwardingUnavailableReason } from './rsuSlice'
 import {
   // async thunks
   getRsuData,
@@ -126,8 +126,7 @@ describe('async thunks', () => {
             organization: { name: 'Org 1' },
           },
         },
-        rsu: {
-        },
+        rsu: {},
       })
       const action = getRsuData()
       const rsuData = ['1.1.1.1'] as any
@@ -193,10 +192,7 @@ describe('async thunks', () => {
       const secondPending = reducer(firstPending, getRsuData.pending('second-request', undefined))
       const staleRsuData = [{ properties: { ipv4_address: 'stale' } }] as any
 
-      const afterStaleResponse = reducer(
-        secondPending,
-        getRsuData.fulfilled(staleRsuData, 'first-request', undefined)
-      )
+      const afterStaleResponse = reducer(secondPending, getRsuData.fulfilled(staleRsuData, 'first-request', undefined))
       expect(afterStaleResponse.value.rsuData).toEqual([])
       expect(afterStaleResponse.currentRequestId).toBe('second-request')
 
@@ -239,7 +235,6 @@ describe('async thunks', () => {
       expect(state).toEqual({ ...initialState, value: { ...initialState.value, rsuData } })
     })
   })
-
 })
 
 describe('reducers', () => {
@@ -448,5 +443,42 @@ describe('selectors', () => {
     expect(selectGeoMsgFilter(rsuState)).toEqual('geoMsgFilter')
     expect(selectGeoMsgFilterStep(rsuState)).toEqual('geoMsgFilterStep')
     expect(selectGeoMsgFilterOffset(rsuState)).toEqual('geoMsgFilterOffset')
+  })
+})
+
+describe('forwarding availability', () => {
+  const stateFor = (protocol = '1218', role = 'OPERATOR', owner = 1) =>
+    ({
+      rsu: {
+        value: {
+          rsuData: [
+            { properties: { ipv4_address: '192.0.2.1', snmp_protocol_code: protocol, owner_organization_id: owner } },
+          ],
+        },
+      },
+      user: { value: { organization: { role, organization: 1 } } },
+    }) as unknown as RootState
+
+  it('allows supported devices for an owning operator', () => {
+    expect(forwardingUnavailableReason(stateFor(), ['192.0.2.1'], 'write')).toBeUndefined()
+  })
+
+  it('keeps legacy cache readable but blocks changes and live refresh', () => {
+    const state = stateFor('41')
+    expect(forwardingUnavailableReason(state, ['192.0.2.1'], 'cached')).toBeUndefined()
+    expect(forwardingUnavailableReason(state, ['192.0.2.1'], 'live')).toContain('NTCIP 1218')
+    expect(forwardingUnavailableReason(state, ['192.0.2.1'], 'write')).toContain('NTCIP 1218')
+  })
+
+  it('allows user reads but hides writes, and rejects viewing organizations', () => {
+    expect(forwardingUnavailableReason(stateFor('1218', 'USER'), ['192.0.2.1'], 'cached')).toBeUndefined()
+    expect(forwardingUnavailableReason(stateFor('1218', 'USER'), ['192.0.2.1'], 'write')).toContain('operator')
+    expect(forwardingUnavailableReason(stateFor('1218', 'OPERATOR', 2), ['192.0.2.1'], 'cached')).toContain(
+      'owning organization'
+    )
+  })
+
+  it('blocks the whole bulk selection when a device is unknown or unsupported', () => {
+    expect(forwardingUnavailableReason(stateFor(), ['192.0.2.1', '192.0.2.2'], 'write')).toContain('every selected RSU')
   })
 })

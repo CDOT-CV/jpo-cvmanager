@@ -7,13 +7,13 @@ exports[`should take a snapshot 1`] = `
       id="snmpform"
     >
       <div
-        class="MuiGrid2-root MuiGrid2-container MuiGrid2-direction-xs-row MuiGrid2-spacing-xs-2 css-mocked-MuiGrid2-root"
+        class="MuiGrid2-root MuiGrid2-container MuiGrid2-direction-xs-row MuiGrid2-spacing-xs-1 css-mocked-MuiGrid2-root"
       >
         <div
           class="MuiGrid2-root MuiGrid2-direction-xs-row MuiGrid2-grid-xs-8 css-mocked-MuiGrid2-root"
         >
           <div
-            class="MuiFormControl-root MuiFormControl-marginNormal MuiFormControl-fullWidth css-mocked-MuiFormControl-root"
+            class="MuiFormControl-root MuiFormControl-marginDense MuiFormControl-fullWidth css-mocked-MuiFormControl-root"
           >
             <div
               class="MuiFormControl-root MuiTextField-root css-mocked-MuiFormControl-root-MuiTextField-root"
@@ -24,7 +24,7 @@ exports[`should take a snapshot 1`] = `
                 for="snmpinput"
                 id="snmpinput-label"
               >
-                Destination IP
+                Destination IPv4
               </label>
               <div
                 class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorInfo MuiInputBase-formControl css-mocked-MuiInputBase-root-MuiOutlinedInput-root"
@@ -44,7 +44,7 @@ exports[`should take a snapshot 1`] = `
                     class="css-mocked-MuiNotchedOutlined-root"
                   >
                     <span>
-                      Destination IP
+                      Destination IPv4
                     </span>
                   </legend>
                 </fieldset>
@@ -56,7 +56,7 @@ exports[`should take a snapshot 1`] = `
           class="MuiGrid2-root MuiGrid2-direction-xs-row MuiGrid2-grid-xs-4 css-mocked-MuiGrid2-root"
         >
           <div
-            class="MuiFormControl-root MuiFormControl-marginNormal MuiFormControl-fullWidth css-mocked-MuiFormControl-root"
+            class="MuiFormControl-root MuiFormControl-marginDense MuiFormControl-fullWidth css-mocked-MuiFormControl-root"
           >
             <label
               class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-mocked-MuiFormLabel-root-MuiInputLabel-root"

@@ -598,11 +598,12 @@ const AdminEditRsu = () => {
                 <Grid2 size={6}>
                   <Form.Group controlId="snmp_version_group">
                     <FormControl fullWidth margin="normal">
-                      <InputLabel htmlFor="snmp_version_group" required>
+                      <InputLabel id="snmp-protocol-label" htmlFor="snmp_version_group" required>
                         SNMP Protocol
                       </InputLabel>
                       <Select
                         id="snmp_version_group"
+                        labelId="snmp-protocol-label"
                         label="SNMP Protocol"
                         value={watchedSnmpVersion || ''}
                         required
@@ -611,12 +612,21 @@ const AdminEditRsu = () => {
                           setValue('snmp_version_group', event.target.value as string)
                         }}
                       >
+                        {watchedSnmpVersion &&
+                          !rsuAllowedSelections.snmp_version_groups?.includes(watchedSnmpVersion) && (
+                            <MenuItem value={watchedSnmpVersion} disabled>
+                              {watchedSnmpVersion} (retired)
+                            </MenuItem>
+                          )}
                         {rsuAllowedSelections.snmp_version_groups?.map((ver) => (
                           <MenuItem key={ver} value={ver}>
                             {ver}
                           </MenuItem>
                         ))}
                       </Select>
+                      <Typography variant="caption">
+                        New assignments require NTCIP 1218. Existing legacy assignments can be kept.
+                      </Typography>
                       {!watchedSnmpVersion && submitAttempt && (
                         <ErrorMessageText role="alert">Must select a SNMP protocol</ErrorMessageText>
                       )}
