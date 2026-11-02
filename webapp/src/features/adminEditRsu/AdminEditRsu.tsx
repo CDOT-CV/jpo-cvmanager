@@ -1,4 +1,3 @@
-import { ErrorMessage } from '@hookform/error-message'
 import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
@@ -43,7 +42,7 @@ export type AdminEditRsuFormType = {
   ssh_credential_group: string
   snmp_credential_group: string
   snmp_version_group: string
-  organizations: number[]
+  organizations: string[]
   tim_deposit: boolean
   snmp_monitoring: boolean
 }
@@ -55,9 +54,6 @@ const AdminEditRsu = () => {
   const { data: rsuInfo, isLoading: isLoadingRsu } = useGetRsuQuery(rsuIp!)
   const { data: rsuAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetRsuAllowedSelectionsQuery()
   const [patchRsu, { isLoading: isPatchingRsu }] = usePatchRsuMutation()
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, rsuAllowedSelections?.organizations ?? [])
-  )
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
@@ -641,13 +637,13 @@ const AdminEditRsu = () => {
                     value={watchedOrganizations || []}
                     {...register('organizations', { required: true })}
                     onChange={(event) => {
-                      const value = event.target.value as number[]
+                      const value = event.target.value as string[]
                       setValue('organizations', value)
                     }}
                   >
-                    {allowedOrganizations.map(({ id, name }) => (
-                      <MenuItem key={id} value={id}>
-                        {name ?? id}
+                    {rsuAllowedSelections.organizations?.map((org) => (
+                      <MenuItem key={org} value={org}>
+                        {org}
                       </MenuItem>
                     ))}
                   </Select>

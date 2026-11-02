@@ -8,12 +8,7 @@ type UserRole = 'ADMIN' | 'OPERATOR' | 'USER'
 
 type UserOrganization = {
   role: UserRole
-  organization: number
-}
-
-type UserOrganizationOptionalOrg = {
-  role: UserRole
-  organization?: number
+  organization: string
 }
 
 type UserAuthOrganization = {
@@ -61,5 +56,5 @@ type AdminUserWithRole = AdminUser & {
 
 type AdminUserAllowedSelections = {
   roles: UserRole[]
-  organizations: number[]
+  organizations: string[]
 }

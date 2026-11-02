@@ -21,13 +21,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
 import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
-import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
-import {
-    useGetIntersectionAllowedSelectionsQuery,
-    useGetIntersectionQuery,
-    usePatchIntersectionMutation,
-} from '../api/adminIntersectionApiSlice'
+import { useGetIntersectionAllowedSelectionsQuery, useGetIntersectionQuery, usePatchIntersectionMutation } from '../api/adminIntersectionApiSlice'
 
 export type AdminEditIntersectionFormType = {
   orig_intersection_id?: string
@@ -353,8 +348,8 @@ const AdminEditIntersection = () => {
                       setValue('organizations', value)
                     }}
                   >
-                    {allowedOrganizations.map((org) => (
-                      <MenuItem key={org.id} value={org.id}>
+                    {organizations.map((org) => (
+                      <MenuItem key={org.name} value={org.name}>
                         {org.name}
                       </MenuItem>
                     ))}
