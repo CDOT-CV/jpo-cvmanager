@@ -17,6 +17,14 @@ export type AdminIntersection = {
   rsus: string[]
 }
 
+export type AdminIntersectionCreationInfo = {
+  organizations: string[]
+  rsus: string[]
+}
+
+// No changes required currently - just an admin intersection object
+export type AdminIntersectionCreationBody = AdminIntersection
+
 export type AdminIntersectionPatch = {
   intersection_id?: string
   ref_pt?: {

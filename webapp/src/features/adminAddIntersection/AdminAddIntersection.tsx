@@ -1,24 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
-import {
-  convertApiJsonToKeyedFormat,
-  validateFormContents,
-  mapFormToRequestJson,
-  selectSelectedOrganizations,
-  selectSelectedRsus,
 
-  // actions
-  updateSelectedOrganizations,
-  updateSelectedRsus,
-  resetForm,
-} from './adminAddIntersectionSlice'
-import { useSelector, useDispatch } from 'react-redux'
-
-import { RootState } from '../../store'
-import toast from 'react-hot-toast'
-import { useNavigate } from 'react-router-dom'
-import Dialog from '@mui/material/Dialog'
 import {
   Button,
   DialogActions,
@@ -29,12 +12,16 @@ import {
   Select,
   TextField,
 } from '@mui/material'
+import Dialog from '@mui/material/Dialog'
+import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
+import { AdminIntersectionCreationBody } from '../../models/Intersection'
 import { ErrorMessageText } from '../../styles/components/Messages'
-import '../../styles/fonts/museo-slab.css'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
+import '../../styles/fonts/museo-slab.css'
 import {
-  useGetIntersectionAllowedSelectionsQuery,
   useCreateIntersectionMutation,
+  useGetIntersectionAllowedSelectionsQuery,
 } from '../api/adminIntersectionApiSlice'
 
 export type AdminAddIntersectionForm = {
@@ -56,40 +43,75 @@ export type AdminAddIntersectionForm = {
 }
 
 const AdminAddIntersection = () => {
-  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(true)
 
+  // Local state for form selections
+  const [selectedOrganizations, setSelectedOrganizations] = useState<string[]>([])
+  const [selectedRsus, setSelectedRsus] = useState<string[]>([])
+  const [submitAttempt, setSubmitAttempt] = useState(false)
+
+  // RTK Query hooks
   const { data: allowedSelections } = useGetIntersectionAllowedSelectionsQuery()
   const [createIntersection] = useCreateIntersectionMutation()
 
-  const keyedData = useMemo(
-    () => (allowedSelections ? convertApiJsonToKeyedFormat(allowedSelections) : undefined),
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<AdminAddIntersectionForm>()
+
+  const organizations = allowedSelections?.organizations ?? []
+  const rsus = useMemo(
+    () => (allowedSelections?.rsus ?? []).map((rsu) => rsu?.replace('/32', '')),
     [allowedSelections]
   )
-  const organizations = keyedData?.organizations ?? []
-  const rsus = keyedData?.rsus ?? []
 
-  const selectedOrganizations = useSelector(selectSelectedOrganizations)
-  const selectedRsus = useSelector(selectSelectedRsus)
+  const handleClose = () => {
+    setOpen(false)
+    navigate('/dashboard/admin/intersections')
+  }
 
-  const [open, setOpen] = useState(true)
-  const [submitAttempt, setSubmitAttempt] = useState(false)
-  const navigate = useNavigate()
+  const checkForm = (): boolean => selectedOrganizations.length !== 0
+
+  const buildRequestBody = (data: AdminAddIntersectionForm): AdminIntersectionCreationBody => {
+    const body: AdminIntersectionCreationBody = {
+      ...data,
+      intersection_id: Number(data.intersection_id),
+      ref_pt: {
+        latitude: Number(data.ref_pt.latitude),
+        longitude: Number(data.ref_pt.longitude),
+      },
+      organizations: selectedOrganizations,
+      rsus: selectedRsus,
+    } as unknown as AdminIntersectionCreationBody
+    if (data.bbox?.latitude1 && data.bbox?.longitude1 && data.bbox?.latitude2 && data.bbox?.longitude2) {
+      body.bbox = {
+        latitude1: Number(data.bbox.latitude1),
+        longitude1: Number(data.bbox.longitude1),
+        latitude2: Number(data.bbox.latitude2),
+        longitude2: Number(data.bbox.longitude2),
+      } as any
+    }
+    return body
+  }
 
   const handleFormSubmit = async (data: AdminAddIntersectionForm) => {
     setSubmitAttempt(true)
-    const state = { value: { selectedOrganizations, selectedRsus } } as RootState['adminAddIntersection']
-    if (!validateFormContents(state)) {
+    if (!checkForm()) {
       toast.error('Please fill out all required fields')
       return
     }
-    const json = mapFormToRequestJson(data, state)
+    const json = buildRequestBody(data)
     try {
       await createIntersection(json).unwrap()
-      dispatch(resetForm())
       reset()
+      setSelectedOrganizations([])
+      setSelectedRsus([])
+      setSubmitAttempt(false)
       toast.success('Intersection created successfully')
-      setOpen(false)
-      navigate('/dashboard/admin/intersections')
+      handleClose()
     } catch (error) {
       const detail =
         error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object'
@@ -99,26 +121,13 @@ const AdminAddIntersection = () => {
     }
   }
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<AdminAddIntersectionForm>()
-
   return (
     <Dialog open={open} sx={{ padding: '5px 10px' }}>
       <DialogContent sx={{ width: '600px', padding: '5px 10px' }}>
-        <SideBarHeader
-          onClick={() => {
-            setOpen(false)
-            navigate('..')
-          }}
-          title="Add Intersection"
-        />
+        <SideBarHeader onClick={handleClose} title="Add Intersection" />
         <Form
           id="add-intersection-form"
-          onSubmit={handleSubmit((data) => handleFormSubmit(data))}
+          onSubmit={handleSubmit(handleFormSubmit)}
           style={{ fontFamily: '"museo-slab", Arial, Helvetica, sans-serif' }}
         >
           <Form.Group controlId="intersection_id">
@@ -247,15 +256,12 @@ const AdminAddIntersection = () => {
                 id="organizations"
                 label="Organizations"
                 multiple
-                value={selectedOrganizations.map((org) => org.name)}
-                onChange={(event) => {
-                  const selectedOrgs = event.target.value as string[]
-                  dispatch(updateSelectedOrganizations(organizations.filter((org) => selectedOrgs.includes(org.name))))
-                }}
+                value={selectedOrganizations}
+                onChange={(event) => setSelectedOrganizations(event.target.value as string[])}
               >
                 {organizations.map((org) => (
-                  <MenuItem key={org.id} value={org.name}>
-                    {org.name}
+                  <MenuItem key={org} value={org}>
+                    {org}
                   </MenuItem>
                 ))}
               </Select>
@@ -272,15 +278,12 @@ const AdminAddIntersection = () => {
                 id="rsus"
                 label="RSUs"
                 multiple
-                value={selectedRsus.map((rsu) => rsu.name)}
-                onChange={(event) => {
-                  const selectedRsus = event.target.value as string[]
-                  dispatch(updateSelectedRsus(rsus.filter((rsu) => selectedRsus.includes(rsu.name))))
-                }}
+                value={selectedRsus}
+                onChange={(event) => setSelectedRsus(event.target.value as string[])}
               >
                 {rsus.map((rsu) => (
-                  <MenuItem key={rsu.id} value={rsu.name}>
-                    {rsu.name}
+                  <MenuItem key={rsu} value={rsu}>
+                    {rsu}
                   </MenuItem>
                 ))}
               </Select>
@@ -290,10 +293,7 @@ const AdminAddIntersection = () => {
       </DialogContent>
       <DialogActions sx={{ padding: '20px' }}>
         <Button
-          onClick={() => {
-            setOpen(false)
-            navigate('/dashboard/admin/intersections')
-          }}
+          onClick={handleClose}
           variant="outlined"
           color="info"
           style={{ position: 'absolute', bottom: 10, left: 10 }}

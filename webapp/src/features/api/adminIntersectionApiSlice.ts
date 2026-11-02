@@ -1,12 +1,13 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
 import { selectToken } from '../../generalSlices/userSlice'
-import { AdminIntersection, AdminIntersectionPatch } from '../../models/Intersection'
-import { RootState } from '../../store'
 import {
+  AdminIntersection,
   AdminIntersectionCreationBody,
   AdminIntersectionCreationInfo,
-} from '../adminAddIntersection/adminAddIntersectionSlice'
+  AdminIntersectionPatch,
+} from '../../models/Intersection'
+import { RootState } from '../../store'
 
 // Tag type constants
 export const ADMIN_INTERSECTION_TAG = 'AdminIntersection' as const

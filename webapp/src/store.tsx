@@ -1,5 +1,4 @@
 import { configureStore } from '@reduxjs/toolkit'
-import adminAddIntersectionReducer from './features/adminAddIntersection/adminAddIntersectionSlice'
 import adminAddOrganizationReducer from './features/adminAddOrganization/adminAddOrganizationSlice'
 import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
 import { emailApiSlice } from './features/api/emailApiSlice'
@@ -40,7 +39,6 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       config: configReducer,
       intersection: intersectionReducer,
       adminAddOrganization: adminAddOrganizationReducer,
-      adminAddIntersection: adminAddIntersectionReducer,
       menu: menuReducer,
       intersectionMap: intersectionMapReducer,
       intersectionMapLayerStyle: intersectionMapLayerStyleReducer,
