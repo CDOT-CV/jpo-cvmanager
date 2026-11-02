@@ -1,35 +1,28 @@
 import pytest
+from cryptography.fernet import Fernet
+
 from addons.images.iss_health_check import iss_health_check_environment
 
-
-def test_get_storage_type_gcp():
-    actual_value = iss_health_check_environment.process_storage_type("gcp", "postgres")
-    assert actual_value == "gcp"
+KEY_1 = Fernet.generate_key().decode()
+KEY_2 = Fernet.generate_key().decode()
 
 
-def test_get_storage_type_postgres():
-    actual_value = iss_health_check_environment.process_storage_type(
-        "postgres", "postgres"
+def test_parse_encryption_keys_single():
+    assert iss_health_check_environment.parse_encryption_keys(KEY_1) == [KEY_1]
+
+
+def test_parse_encryption_keys_multiple():
+    actual_value = iss_health_check_environment.parse_encryption_keys(
+        f" {KEY_1} , {KEY_2} "
     )
-    assert actual_value == "postgres"
+    assert actual_value == [KEY_1, KEY_2]
 
 
-def test_get_storage_type_gcp_case_insensitive():
-    actual_value = iss_health_check_environment.process_storage_type("GCP", "postgres")
-    assert actual_value == "gcp"
+def test_parse_encryption_keys_empty():
+    with pytest.raises(ValueError, match="at least one key"):
+        iss_health_check_environment.parse_encryption_keys(" , ")
 
 
-def test_get_storage_type_postgres_case_insensitive():
-    actual_value = iss_health_check_environment.process_storage_type(
-        "POSTGRES", "postgres"
-    )
-    assert actual_value == "postgres"
-
-
-def test_get_storage_type_invalid():
-    with pytest.raises(ValueError):
-        iss_health_check_environment.process_storage_type("test", "postgres")
-
-
-def test_get_storage_type_unset():
-    iss_health_check_environment.process_storage_type(None, "postgres") == "postgres"
+def test_parse_encryption_keys_invalid():
+    with pytest.raises(ValueError, match="invalid key"):
+        iss_health_check_environment.parse_encryption_keys(f"{KEY_1},not-a-key")

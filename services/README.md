@@ -30,7 +30,7 @@ Read more about the deployment process in the [firmware_manager directory](addon
 
 ### iss_health_check
 
-The iss_health_check service allows for RSU ISS SCMS certificate status information to be displayed on the CV Manager. This service has a dependency on the GCP Secret Manager but can be reworked to work with any secret manager. This service requires a service agreement with Greenhills ISS so an API key can be obtained to access a user's RSU profile.
+The iss_health_check service allows for RSU ISS SCMS certificate status information to be displayed on the CV Manager. Its API token is stored encrypted in PostgreSQL. This service requires a service agreement with Greenhills ISS so an API key can be obtained to access a user's RSU profile.
 
 Read more about the deployment process in the [iss_health_check directory](addons/images/iss_health_check/README.md).
 

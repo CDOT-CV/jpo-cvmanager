@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
+import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { RootState } from '../store'
 import {
@@ -16,6 +17,7 @@ const initialState = {
   errorState: '',
   changeSuccess: false,
   rebootChangeSuccess: false,
+  rebootRequestedIp: undefined as string | undefined,
   firmwareUpgradeAvailable: false,
   firmwareUpgradeName: '',
   firmwareUpgradeMsg: '',
@@ -144,20 +146,16 @@ export const deleteSnmpSet = createAsyncThunk(
   }
 )
 
-export const rebootRsu = createAsyncThunk('config/rebootRsu', async (ipList: string[], { getState }) => {
+export const rebootRsu = createAsyncThunk('config/rebootRsu', async (rsuIp: string, { getState }) => {
   const currentState = getState() as RootState
   const token = selectToken(currentState)
   const organization = selectOrganizationName(currentState)
 
-  const body: RsuCommandPostBody = {
-    command: 'reboot',
-    rsu_ip: ipList,
-    args: {},
-  }
+  if (!rsuIp) throw new Error('An RSU IPv4 address is required')
 
-  RsuApi.postRsuData(token, organization, body, '')
-
-  return
+  // Await admission only; SSH execution continues in the API after this request completes.
+  const response = await RsuRebootApi.reboot(token, organization, rsuIp)
+  return { ...response, rsuIp }
 })
 
 export const checkFirmwareUpgrade = createAsyncThunk(
@@ -303,7 +301,7 @@ export const geoRsuQuery = createAsyncThunk(
       geometry: configCoordinates,
       vendor,
     })
-    if (!response || response.status !== 200) {
+    if (response?.status !== 200) {
       return rejectWithValue(response?.message || 'Failed to query RSUs by geometry')
     }
     return response
@@ -416,9 +414,11 @@ export const configSlice = createSlice({
         state.loading = true
         state.value.rebootChangeSuccess = false
       })
-      .addCase(rebootRsu.fulfilled, (state) => {
+      .addCase(rebootRsu.fulfilled, (state, action) => {
         state.loading = false
         state.value.rebootChangeSuccess = true
+        // Keep a late response from showing an acceptance notice for a different selected RSU.
+        state.value.rebootRequestedIp = action.payload.rsuIp
       })
       .addCase(rebootRsu.rejected, (state) => {
         state.loading = false
@@ -486,6 +486,7 @@ export const configSlice = createSlice({
 export const selectMsgFwdConfig = (state: RootState) => state.config.value.msgFwdConfig
 export const selectChangeSuccess = (state: RootState) => state.config.value.changeSuccess
 export const selectRebootChangeSuccess = (state: RootState) => state.config.value.rebootChangeSuccess
+export const selectRebootRequestedIp = (state: RootState) => state.config.value.rebootRequestedIp
 export const selectErrorState = (state: RootState) => state.config.value.errorState
 export const selectFirmwareUpgradeAvailable = (state: RootState) => state.config.value.firmwareUpgradeAvailable
 export const selectFirmwareUpgradeName = (state: RootState) => state.config.value.firmwareUpgradeName

@@ -4,19 +4,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -30,6 +27,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @Slf4j
 @RestController
@@ -72,12 +70,7 @@ public class OrganizationController {
     })
     public List<String> getRsuOrganizationAssignments(
             @Parameter(description = "RSU IP address", example = "192.168.1.1", required = true) @PathVariable(name = "rsuIp") String rsuIp) {
-        try {
-            return rsuRepository.findAllOrganizationNamesByIpv4Address(InetAddress.getByName(rsuIp));
-        } catch (UnknownHostException e) {
-            log.error("Invalid RSU IP address: {}", rsuIp, e);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIp, e);
-        }
+        return rsuRepository.findAllOrganizationNamesByIpv4Address(RsuManagementService.toIpv4Address(rsuIp));
     }
 
     @Operation(summary = "Get RSU IPs not in Organization", description = "Retrieves a list of IP addresses for all RSUs not belonging to the specified organization.")
