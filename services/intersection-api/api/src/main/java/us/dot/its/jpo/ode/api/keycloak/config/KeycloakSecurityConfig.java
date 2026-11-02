@@ -48,8 +48,4 @@ public class KeycloakSecurityConfig {
                 .build();
     }
 
-    @Bean
-    AccessController accessController() {
-        return new AccessController();
-    }
 }
