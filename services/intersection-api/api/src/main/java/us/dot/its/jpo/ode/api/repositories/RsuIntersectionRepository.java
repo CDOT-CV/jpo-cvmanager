@@ -1,5 +1,8 @@
 package us.dot.its.jpo.ode.api.repositories;
 
+import java.net.InetAddress;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,9 +13,6 @@ import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuIntersection;
-
-import java.net.InetAddress;
-import java.util.List;
 
 @Repository
 public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection, Integer> {
@@ -45,19 +45,7 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
     List<InetAddress> findRsuIpsByIntersectionNumber(
             @Param("intersectionNumber") Integer intersectionNumber);
 
-    List<RsuIntersection> findAllByIntersection_IntersectionNumber(String intersectionNumber);
-
     boolean existsByRsuAndIntersection(Rsu rsu, Intersection intersection);
-
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM RsuIntersection ri WHERE ri.rsu.ipv4Address = :ipv4Address")
-    void removeRsuIntersectionByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
-
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM RsuIntersection ri WHERE ri.rsu.ipv4Address IN :ipv4Addresses")
-    void removeMultipleRsuIntersectionsByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 
     @Modifying
     @Transactional
