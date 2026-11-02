@@ -29,10 +29,10 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrlRequest;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
-import us.dot.its.jpo.ode.api.services.FirmwareObjectService;
-import us.dot.its.jpo.ode.api.services.FirmwareDeletionService;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadOptionsService;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareObjectService;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareDeletionService;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadOptionsService;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService;
 
 @Slf4j
 @RestController

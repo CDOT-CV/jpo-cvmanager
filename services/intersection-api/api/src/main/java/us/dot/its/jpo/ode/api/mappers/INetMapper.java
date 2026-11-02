@@ -3,8 +3,9 @@ package us.dot.its.jpo.ode.api.mappers;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
+
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 /**
  * MapStruct mapper for converting between InetAddress and String.
@@ -33,10 +34,6 @@ public interface INetMapper {
         if (ipAddress == null) {
             return null;
         }
-        try {
-            return InetAddress.getByName(ipAddress);
-        } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Invalid IP address: " + ipAddress, e);
-        }
+        return RsuManagementService.toIpv4Address(ipAddress);
     }
 }

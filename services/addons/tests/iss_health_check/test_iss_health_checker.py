@@ -52,7 +52,8 @@ def test_get_scms_status_data(
     mock_get_rsu_data, mock_get_token, mock_requests, mock_response
 ):
     mock_get_rsu_data.return_value = RsuDataWrapper({"ABC": {"rsu_id": 1}, "DEF": {"rsu_id": 2}})
-    mock_get_token.get_token.return_value = "test-token"
+    mock_get_token.token_for_check.return_value.__enter__.return_value = "test-token"
+    mock_get_token.REQUEST_TIMEOUT_SECONDS = 30
     mock_requests.get.return_value = mock_response
     mock_response.json.side_effect = [
         {
@@ -111,11 +112,13 @@ def test_get_scms_status_data(
 
     assert actual_result == expected_result
     mock_get_rsu_data.assert_called_with()
-    mock_get_token.get_token.assert_called_with()
+    mock_get_token.token_for_check.assert_called_once_with()
+    mock_get_token.token_for_check.return_value.__exit__.assert_called_once_with(None, None, None)
     # Assert what should be the last call on the endpoint
     mock_requests.get.assert_called_with(
         "https://api.dm.iss-scms.com/api/test?pageSize=200&page=1&project_id=test",
         headers={"x-api-key": "test-token"},
+        timeout=30,
     )
 
 

@@ -1,7 +1,5 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -115,10 +113,6 @@ public class RsuGeoQueryService {
      * @throws ResponseStatusException {@code 500} when {@code ip} is not a valid address
      */
     private static String hostAddress(String ip) {
-        try {
-            return InetAddress.getByName(ip).getHostAddress();
-        } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Invalid RSU IP address: " + ip, e);
-        }
+        return RsuManagementService.toIpv4Address(ip).getHostAddress();
     }
 }
