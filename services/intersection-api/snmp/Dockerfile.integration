@@ -5,4 +5,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends snmp snmpd \
 WORKDIR /workspace
 COPY intersection-api/snmp/pom.xml ./intersection-api/snmp/pom.xml
 COPY intersection-api/snmp/src ./intersection-api/snmp/src
+COPY resources/mibs ./resources/mibs
 ENTRYPOINT ["sh", "/workspace/intersection-api/snmp/src/test/resources/agent/run-integration.sh"]

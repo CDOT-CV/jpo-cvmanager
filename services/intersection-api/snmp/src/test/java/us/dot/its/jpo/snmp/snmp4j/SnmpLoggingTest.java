@@ -1,5 +1,6 @@
 package us.dot.its.jpo.snmp.snmp4j;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import ch.qos.logback.classic.Level;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.LoggerFactory;
 import us.dot.its.jpo.snmp.client.*;
 import us.dot.its.jpo.snmp.execution.*;
+import us.dot.its.jpo.snmp.rsu.ntcip1218.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Timeout(15)
@@ -60,6 +62,73 @@ class SnmpLoggingTest {
             assertTrue(message.contains("Device rejected the request."));
             assertTrue(message.contains("agentError=17"));
             assertTrue(message.contains("binding=1"));
+        }
+    }
+
+    @Test void verificationTimeoutRetainsAcknowledgedStepAndCorrelatesCallsWithoutLeakingScope() throws Exception {
+        try (var capture = new Capture(); var agent = new LoopbackAgent(CREDS); var wire = client()) {
+            SnmpClient transport = new SnmpClient() {
+                @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) { return wire.get(target, oids); }
+                @Override public List<SnmpBinding> getNext(SnmpTarget target, List<SnmpOid> oids) { return wire.getNext(target, oids); }
+                @Override public List<SnmpBinding> walk(SnmpTarget target, SnmpOid root) { return wire.walk(target, root); }
+                @Override public List<SnmpBinding> set(SnmpTarget target, List<SnmpBinding> bindings) {
+                    var result = wire.set(target, bindings);
+                    agent.dropReads = true;
+                    return result;
+                }
+            };
+            var ntcip = new Ntcip1218Client(transport, Clock.systemUTC());
+            assertThrows(SnmpException.class, () -> ntcip.addForwarding(new Ntcip1218Device(agent.target()),
+                    new ForwardingRequest(MessageType.BSM, "198.51.100.20", true)));
+            String failure = capture.one("operation_failed", "FORWARDING_ADD").getFormattedMessage();
+            String procedureId = field(failure, "operation");
+            assertTrue(capture.messages().stream().anyMatch(line -> line.contains("Selected row 1.")));
+            assertTrue(failure.contains("Write not confirmed; check device before retrying."));
+            String setSuccess = capture.one("operation_succeeded", "SET").getFormattedMessage();
+            assertEquals(procedureId, field(setSuccess, "parent"));
+            assertFalse(capture.messages().stream().anyMatch(line -> line.contains("SNMP FORWARDING_ADD: Completed. ")));
+            assertTrue(capture.messages().stream().anyMatch(line -> line.contains("Retrying read with fresh engine discovery.")));
+
+            // Reuse the same calling thread after failure: a later read must not inherit the procedure ID.
+            agent.dropReads = false;
+            wire.get(agent.target(), List.of(OID));
+            assertEquals("none", field(capture.one("operation_succeeded", "GET").getFormattedMessage(), "parent"));
+            capture.assertRedacted();
+        }
+    }
+
+    @Test void unexpectedFailureAfterAcknowledgedWriteIsLoggedConservativelyWithoutExceptionText() {
+        try (var capture = new Capture()) {
+            var reads = new java.util.concurrent.atomic.AtomicInteger();
+            SnmpClient transport = new SnmpClient() {
+                @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) { throw new IllegalStateException("sensitive-diagnostic"); }
+                @Override public List<SnmpBinding> getNext(SnmpTarget target, List<SnmpOid> oids) { throw new UnsupportedOperationException(); }
+                @Override public List<SnmpBinding> walk(SnmpTarget target, SnmpOid root) {
+                    if (reads.incrementAndGet() > 1) throw new IllegalStateException("sensitive-diagnostic");
+                    return List.of();
+                }
+                @Override public List<SnmpBinding> set(SnmpTarget target, List<SnmpBinding> bindings) { return bindings; }
+            };
+            var ntcip = new Ntcip1218Client(transport, Clock.systemUTC());
+            assertThrows(IllegalStateException.class, () -> ntcip.addForwarding(
+                    new Ntcip1218Device(new SnmpTarget("192.0.2.10", CREDS)),
+                    new ForwardingRequest(MessageType.BSM, "198.51.100.20", false)));
+            var failure = capture.one("operation_failed", "FORWARDING_ADD").getFormattedMessage();
+            assertTrue(failure.contains("Write not confirmed; check device before retrying."));
+            capture.assertRedacted();
+        }
+    }
+
+    @Test void successfulForwardingAddAndDeleteConfirmVerificationSeparately() throws Exception {
+        try (var capture = new Capture(); var agent = new LoopbackAgent(CREDS); var wire = client()) {
+            var ntcip = new Ntcip1218Client(wire, Clock.systemUTC());
+            var device = new Ntcip1218Device(agent.target());
+            ntcip.addForwarding(device, new ForwardingRequest(MessageType.BSM, "198.51.100.20", false));
+            assertTrue(ntcip.deleteForwarding(device, MessageType.BSM, "198.51.100.20").changed());
+            assertTrue(capture.messages().stream().anyMatch(line -> line.contains("Starting step verify_row.")));
+            assertTrue(capture.messages().stream().anyMatch(line -> line.contains("Starting step verify_absence.")));
+            assertEquals(Level.INFO, capture.one("operation_succeeded", "FORWARDING_ADD").getLevel());
+            capture.assertRedacted();
         }
     }
 
