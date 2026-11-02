@@ -7,6 +7,8 @@ import jakarta.validation.Path;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -18,6 +20,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -93,6 +96,21 @@ class GlobalExceptionHandlerTest {
 
             assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
             assertTrue(response.getBody().getDetail().contains("192.168.1.1"));
+        }
+    }
+
+    @Nested
+    class HandleNoHandlerFoundTests {
+
+        @Test
+        void returnsNotFoundForUnmatchedEndpoint() {
+            NoHandlerFoundException ex = new NoHandlerFoundException(
+                    HttpMethod.GET, "/favicon.ico", HttpHeaders.EMPTY);
+
+            ErrorResponse response = handler.handleNoHandlerFound(ex);
+
+            assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+            assertTrue(response.getBody().getDetail().contains("/favicon.ico"));
         }
     }
 
