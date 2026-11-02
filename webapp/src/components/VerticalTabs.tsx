@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 
 import '../features/adminRsuTab/Admin.css'
 import { alpha, Box, Tab, Tabs, useTheme } from '@mui/material'
@@ -97,7 +97,7 @@ function VerticalTabs(props: VerticalTabProps) {
    * @function
    * @returns {string} The key of the selected tab or the default tab key if no match is found.
    */
-  const getSelectedTab = () => {
+  const getSelectedTab = useCallback(() => {
     let baseRoute = location.pathname
     if (parentRoute && baseRoute.includes(parentRoute)) {
       baseRoute = baseRoute.substring(baseRoute.indexOf(parentRoute) + parentRoute.length)
@@ -110,13 +110,13 @@ function VerticalTabs(props: VerticalTabProps) {
       }
     }
     return defaultTabKey
-  }
+  }, [location.pathname, parentRoute, filteredTabs, defaultTabKey])
 
   const [value, setValue] = useState<string | number>(getSelectedTab())
 
   useEffect(() => {
     setValue(getSelectedTab())
-  }, [location.pathname])
+  }, [location.pathname, getSelectedTab])
 
   const handleChange = (_e, newValue) => {
     setValue(newValue)

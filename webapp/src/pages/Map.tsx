@@ -87,7 +87,11 @@ import {
 import './css/MsgMap.css'
 import './css/Map.css'
 import { WZDxFeature } from '../models/wzdx/WzdxWorkZoneFeed42'
-import { selectIntersections, selectSelectedIntersection, setSelectedIntersectionId } from '../generalSlices/intersectionSlice'
+import {
+  selectIntersections,
+  selectSelectedIntersection,
+  setSelectedIntersectionId,
+} from '../generalSlices/intersectionSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
@@ -143,12 +147,7 @@ import { useGetGeoMsgDataMutation } from '../features/api/geoMsgApiSlice'
 const MILLISECONDS_PER_MINUTE = 60000
 const EMPTY_WZDX_FEATURES: WZDxFeature[] = []
 const EMPTY_WZDX_DATA = { type: 'FeatureCollection' as const, features: EMPTY_WZDX_FEATURES }
-const MAP_CLICK_LAYER_IDS = [
-  'geoMsgPointLayer',
-  RSU_POINT_LAYER_ID,
-  INTERSECTION_POINT_LAYER_ID,
-  WZDX_POINT_LAYER_ID,
-]
+const MAP_CLICK_LAYER_IDS = ['geoMsgPointLayer', RSU_POINT_LAYER_ID, INTERSECTION_POINT_LAYER_ID, WZDX_POINT_LAYER_ID]
 
 const serializeTimestampAsUtc = (value: string): string => {
   const dateTime = DateTime.fromISO(value)
@@ -489,6 +488,21 @@ function MapPage() {
     setMsgViewerSliderEndDate(localEndDate)
   }, [startGeoMsgDate, filterOffset, filterStep])
 
+  const dateChanged = React.useCallback(
+    (e: Date, type: 'start' | 'end') => {
+      try {
+        const date = DateTime.fromISO(e.toISOString())
+        date.setZone(DateTime.local().zoneName)
+        dispatch(updateGeoMsgDate({ type, date: date.toString() }))
+      } catch (err) {
+        if (err instanceof Error) {
+          console.error('Encountered issue updating date: ', err instanceof Error ? err.message : err)
+        }
+      }
+    },
+    [dispatch]
+  )
+
   useEffect(() => {
     if (!startGeoMsgDate) {
       dateChanged(new Date(), 'start')
@@ -499,7 +513,7 @@ function MapPage() {
     if (wzdxFeatures.length === 0) {
       dispatch(getWzdxData())
     }
-  }, [dispatch])
+  }, [dispatch, startGeoMsgDate, endGeoMsgDate, wzdxFeatures.length, dateChanged])
 
   const createPointFeature = (point: number[]): GeoJSON.Feature<GeoJSON.Geometry> => {
     return {
@@ -607,38 +621,6 @@ function MapPage() {
       },
     } as GeoJSON.Feature<GeoJSON.Geometry>
   }, [configCoordinates, addConfigPoint, previewPoint])
-
-  // Effect for handling point source updates msg-viewer-layer
-  useEffect(() => {
-    // if the msg-viewer-layer is not active, exit the effect
-    if (!activeLayers.includes(MAP_LAYERS.MSG_VIEWER.id)) return
-
-    const pointSourceFeatures: Array<GeoJSON.Feature<GeoJSON.Geometry>> = []
-
-    // Handle case when we have message data
-    if ((geoMsgData?.length ?? 0) > 0) {
-      // Filter messages within the selected time range and preserve properties
-      geoMsgData.forEach((message) => {
-        const messageDate = new Date(message['properties']['timeStamp'])
-        if (isDateInRange(messageDate, msgViewerSliderStartDate, msgViewerSliderEndDate)) {
-          // Create a new feature with all original properties
-          const feature: GeoJSON.Feature<GeoJSON.Geometry> = {
-            type: 'Feature',
-            geometry: message.geometry,
-            properties: {
-              ...message.properties,
-            },
-          }
-          pointSourceFeatures.push(feature)
-        }
-      })
-    }
-
-    setGeoMsgPointSource((prevPointSource) => ({
-      ...prevPointSource,
-      features: pointSourceFeatures,
-    }))
-  }, [geoMsgData, msgViewerSliderStartDate, msgViewerSliderEndDate, activeLayers, filter])
 
   // Helper function to calculate the maximum offset based on the start and end dates and the step
   const calculateMaxOffset = (start: string | Date, end: string | Date, step: number) => {
@@ -750,16 +732,6 @@ function MapPage() {
     }),
     [intersectionsList]
   )
-
-  function dateChanged(e: Date, type: 'start' | 'end') {
-    try {
-      const date = DateTime.fromISO(e.toISOString())
-      date.setZone(DateTime.local().zoneName)
-      dispatch(updateGeoMsgDate({ type, date: date.toString() }))
-    } catch (err) {
-      console.error('Encountered issue updating date: ', err.message)
-    }
-  }
 
   const addGeoMsgPointToCoordinates = (point: { lat: number; lng: number }) => {
     const pointArray = [point.lng, point.lat]
@@ -913,6 +885,38 @@ function MapPage() {
     },
   }
 
+  // Effect for handling point source updates msg-viewer-layer
+  useEffect(() => {
+    // if the msg-viewer-layer is not active, exit the effect
+    if (!activeLayers.includes(MAP_LAYERS.MSG_VIEWER.id)) return
+
+    const pointSourceFeatures: Array<GeoJSON.Feature<GeoJSON.Geometry>> = []
+
+    // Handle case when we have message data
+    if ((geoMsgData?.length ?? 0) > 0) {
+      // Filter messages within the selected time range and preserve properties
+      geoMsgData.forEach((message) => {
+        const messageDate = new Date(message['properties']['timeStamp'])
+        if (isDateInRange(messageDate, msgViewerSliderStartDate, msgViewerSliderEndDate)) {
+          // Create a new feature with all original properties
+          const feature: GeoJSON.Feature<GeoJSON.Geometry> = {
+            type: 'Feature',
+            geometry: message.geometry,
+            properties: {
+              ...message.properties,
+            },
+          }
+          pointSourceFeatures.push(feature)
+        }
+      })
+    }
+
+    setGeoMsgPointSource((prevPointSource) => ({
+      ...prevPointSource,
+      features: pointSourceFeatures,
+    }))
+  }, [geoMsgData, msgViewerSliderStartDate, msgViewerSliderEndDate, activeLayers, filter, MAP_LAYERS.MSG_VIEWER.id])
+
   const toggleLayer = (id: string) => {
     dispatch(toggleLayerActive(id))
     if (activeLayers.includes(id)) {
@@ -1009,7 +1013,9 @@ function MapPage() {
     toast.promise(responsePromise, {
       loading: `Retrieving ${requestBody.msg_type} Data`,
       success: (features) =>
-        Array.isArray(features) ? `Retrieved ${features.length.toLocaleString()} messages` : 'No data returned from API',
+        Array.isArray(features)
+          ? `Retrieved ${features.length.toLocaleString()} messages`
+          : 'No data returned from API',
       error: (error) => `Query failed: ${getGeoMsgApiErrorMessage(error)}`,
     })
 
@@ -1473,9 +1479,7 @@ function MapPage() {
               )}
             </div>
           )}
-          {activeLayers.includes(MAP_LAYERS.WZDX.id) && (
-            <WzdxMapLayer data={safeWzdxData} />
-          )}
+          {activeLayers.includes(MAP_LAYERS.WZDX.id) && <WzdxMapLayer data={safeWzdxData} />}
           {selectedWZDxMarker ? (
             <Popup
               latitude={selectedWZDxMarker.coordinates[1]}
@@ -1497,9 +1501,7 @@ function MapPage() {
               <div>SELECTED {selectedIntersection.intersectionID}</div>
             </Popup>
           )}
-          {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && (
-            <IntersectionMapLayer data={intersectionPointData} />
-          )}
+          {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && <IntersectionMapLayer data={intersectionPointData} />}
           {selectedRsu ? (
             <Popup
               latitude={selectedRsu.geometry.coordinates[1]}
@@ -1646,9 +1648,7 @@ function MapPage() {
               onIncidentClose={() => setSelectedHaasIncident(null)}
             />
           )}
-          {activeLayers.includes(MAP_LAYERS.RSU.id) && (
-            <RsuMapLayer data={rsuPointData} />
-          )}
+          {activeLayers.includes(MAP_LAYERS.RSU.id) && <RsuMapLayer data={rsuPointData} />}
         </Map>
       </Container>
 

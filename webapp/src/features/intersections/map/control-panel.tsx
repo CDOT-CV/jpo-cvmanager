@@ -216,7 +216,9 @@ function ControlPanel() {
     if (getNumber(timeWindowSecondsLocal) != null && getNumber(timeWindowSecondsLocal) !== timeWindowSeconds) {
       dispatch(setTimeWindowSeconds(getNumber(timeWindowSecondsLocal)))
     }
-  }, [timeWindowSecondsLocal])
+    // Only commit local edits; store changes synchronize through the effect above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeWindowSecondsLocal, dispatch])
 
   const timelineTicks = [120, 240, 360, 480, 600, 720, 840, 960, 1080, 1200, 1320]
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import AdminAddOrganization from '../adminAddOrganization/AdminAddOrganization'
 import AdminOrganizationTabRsu from '../adminOrganizationTabRsu/AdminOrganizationTabRsu'
 import AdminOrganizationTabIntersection from '../adminOrganizationTabIntersection/AdminOrganizationTabIntersection'
@@ -57,8 +57,8 @@ const AdminOrganizationTab = () => {
   const intersectionTableData = useSelector(selectIntersectionTableData)
   const userTableData = useSelector(selectUserTableData)
 
-  const notifySuccess = (message: string) => toast.success(message)
-  const notifyError = (message: string) => toast.error(message)
+  const notifySuccess = useCallback((message: string) => toast.success(message), [])
+  const notifyError = useCallback((message: string) => toast.error(message), [])
   const defaultOrgName = useSelector(selectOrganizationName)
 
   useEffect(() => {
@@ -78,29 +78,32 @@ const AdminOrganizationTab = () => {
         }
       }
     })
-  }, [])
+  }, [defaultOrgName, notifyError, dispatch])
 
-  const getSelectedOrgData = () => {
+  const getSelectedOrgData = useCallback(() => {
     dispatch(getOrgData({ orgName: selectedOrgName })).then((data: any) => {
       if (data !== undefined && !data.payload?.success) {
         notifyError('Failed to obtain data due to error: ' + data.payload?.message)
       }
     })
-  }
+  }, [dispatch, notifyError, selectedOrgName])
 
-  const updateTableData = (orgName: string) => {
-    dispatch(getOrgData({ orgName })).then((data: any) => {
-      if (!data.payload.success) {
-        notifyError('Failed to obtain data due to error: ' + data.payload.message)
-      }
-    })
-  }
+  const updateTableData = useCallback(
+    (orgName: string) => {
+      dispatch(getOrgData({ orgName })).then((data: any) => {
+        if (!data.payload.success) {
+          notifyError('Failed to obtain data due to error: ' + data.payload.message)
+        }
+      })
+    },
+    [dispatch, notifyError]
+  )
 
   useEffect(() => {
     if (selectedOrgName != undefined) {
       getSelectedOrgData()
     }
-  }, [selectedOrgName, dispatch])
+  }, [selectedOrgName, getSelectedOrgData, dispatch])
 
   useEffect(() => {
     dispatch(updateTitle())
