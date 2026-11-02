@@ -22,7 +22,11 @@ import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userS
 import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import '../../styles/fonts/museo-slab.css'
-import { useGetIntersectionAllowedSelectionsQuery, useGetIntersectionQuery, usePatchIntersectionMutation } from '../api/adminIntersectionApiSlice'
+import {
+    useGetIntersectionAllowedSelectionsQuery,
+    useGetIntersectionQuery,
+    usePatchIntersectionMutation,
+} from '../api/adminIntersectionApiSlice'
 
 export type AdminEditIntersectionFormType = {
   orig_intersection_id?: string
@@ -348,8 +352,8 @@ const AdminEditIntersection = () => {
                       setValue('organizations', value)
                     }}
                   >
-                    {organizations.map((org) => (
-                      <MenuItem key={org.name} value={org.name}>
+                    {allowedOrganizations.map((org) => (
+                      <MenuItem key={org.id} value={org.id}>
                         {org.name}
                       </MenuItem>
                     ))}

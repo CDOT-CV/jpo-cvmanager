@@ -243,6 +243,11 @@ export const selectLoadingGlobal = (state: RootState) => {
   }
   return loading
 }
+export const selectFilteredOrganizationNameObjects = (state: RootState, organizationIds: number[]) =>
+  organizationIds.map((id) => ({
+    id,
+    name: (state.user.value.authLoginData?.data.organizations ?? []).find((org) => org.organization === id)?.name ?? id,
+  }))
 
 export const selectIsUserOrAbove = (state: RootState) => {
   if (selectIsSuperUser(state)) {

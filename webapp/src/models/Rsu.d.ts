@@ -20,7 +20,7 @@ export type AdminRsu = {
   ssh_credential_group: string
   snmp_credential_group: string
   snmp_version_group: string
-  organizations: string[]
+  organizations: number[]
   tim_deposit: boolean
   snmp_monitoring: boolean
 }
@@ -39,8 +39,8 @@ export type AdminRsuPatch = Partial<{
   ssh_credential_group: string
   snmp_credential_group: string
   snmp_version_group: string
-  organizations_to_add: string[]
-  organizations_to_remove: string[]
+  organizations_to_add: number[]
+  organizations_to_remove: number[]
   tim_deposit: boolean
   snmp_monitoring: boolean
 }>
@@ -51,7 +51,7 @@ export type AdminRsuAllowedSelections = {
   ssh_credential_groups: string[]
   snmp_credential_groups: string[]
   snmp_version_groups: string[]
-  organizations: string[]
+  organizations: number[]
 }
 
 export type AdminRsuWithAllowedSelections = {
