@@ -15,6 +15,7 @@ management:
     health:
       probes:
         enabled: true
+      show-components: always
       show-details: never
 
 ### keycloak configuration
