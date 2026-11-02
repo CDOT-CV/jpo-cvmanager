@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 
 import java.net.InetAddress;
 import java.time.Instant;
@@ -50,10 +51,12 @@ public class SnmpMsgfwdConfig {
 
     @NotNull
     @Column(name = "active", nullable = false, columnDefinition = "bit(1)")
+    @ColumnTransformer(read = "active::integer::boolean", write = "(?::integer)::bit(1)")
     private Boolean active;
 
     @NotNull
     @Column(name = "security", nullable = false, columnDefinition = "bit(1)")
+    @ColumnTransformer(read = "security::integer::boolean", write = "(?::integer)::bit(1)")
     private Boolean security;
 
 }

@@ -54,6 +54,7 @@ Use `changed(result)` to read the outcome. A later snapshot or callback failure
 preserves the verified device change. `SnapshotAction` is specific to forwarding;
 other recipes should use callbacks suited to their own data.
 
-The table/index overload of `deleteWithSnapshot` deletes a specific row, including non-preset PSIDs.
+The table/index overload of `deleteWithSnapshot` deletes a specific row, including unknown PSIDs
+and message types stored in a different table than CV Manager uses (for example, MAP in the receive table).
 It checks the displayed destination and port before writing, then verifies absence.
-Create methods continue to use the message presets.
+Create methods still choose the table and UDP port based on the message type.
