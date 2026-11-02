@@ -105,7 +105,7 @@ class GlobalExceptionHandlerTest {
         @Test
         void returnsNotFoundForUnmatchedEndpoint() {
             NoHandlerFoundException ex = new NoHandlerFoundException(
-                    HttpMethod.GET, "/favicon.ico", HttpHeaders.EMPTY);
+                    "GET", "/favicon.ico", HttpHeaders.EMPTY);
 
             ErrorResponse response = handler.handleNoHandlerFound(ex);
 
