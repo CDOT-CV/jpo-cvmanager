@@ -1,10 +1,5 @@
 package us.dot.its.jpo.ode.api.controllers.advice;
 
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -21,31 +16,36 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
-import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
-import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleConflictException;
-import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleImpactException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.services.OrganizationManagementService;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
-import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareDeletionService.FirmwareDeletionConflictException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService.FirmwareRuleConflictException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService.FirmwareRuleImpactException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadConfigurationException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageConflictException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 /**
  * Global exception handler for REST API endpoints.
@@ -350,6 +350,19 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleServletRequestBinding(ServletRequestBindingException ex) {
         log.warn("Request binding error: {}", ex.getMessage());
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        return ErrorResponse.builder(ex, problemDetail).build();
+    }
+
+    /**
+     * Handles request parameters and path variables that cannot be converted to
+     * their declared type, such as a malformed timestamp or number.
+     */
+    @ExceptionHandler()
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        log.warn("Invalid value for parameter '{}': {}", ex.getName(), ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "Invalid value for parameter '" + ex.getName() + "'");
         return ErrorResponse.builder(ex, problemDetail).build();
     }
 

@@ -240,3 +240,33 @@ INSERT INTO public.scms_health(timestamp, health, expiration, rsu_id)
     ('2026/06/01T00:10:00'::timestamp, B'0', '2027/06/01T00:00:00'::timestamp, 2)
   ) AS seed(ts, hlth, exp, rid)
   WHERE NOT EXISTS (SELECT 1 FROM public.scms_health);
+
+INSERT INTO public.obu_ota_requests(obu_sn, manufacturer, request_datetime, origin_ip,
+    obu_firmware_version, requested_firmware_version, error_status, error_message)
+  SELECT sn, m.manufacturer_id, ts, ip::inet, cur, req, err, msg
+  FROM (VALUES
+    ('OBU-SAMPLE-0001', '2026/06/01T00:00:00'::timestamp, '10.0.0.21', 'y20.47.0-b220001',
+      'ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig', B'0', ''),
+    ('OBU-SAMPLE-0002', '2026/06/01T00:05:00'::timestamp, '10.0.0.22', 'y20.47.0-b220001',
+      'ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig', B'0', ''),
+    ('OBU-SAMPLE-0002', '2026/06/01T00:10:00'::timestamp, '10.0.0.22', 'y20.48.2-b228647',
+      'ob4-generic-ro-secureboot-y20.49.0-b230000.tar.sig', B'1', '404: Firmware not found')
+  ) AS seed(sn, ts, ip, cur, req, err, msg)
+  JOIN public.manufacturers m ON m.name = 'Commsignia'
+  WHERE NOT EXISTS (SELECT 1 FROM public.obu_ota_requests);
+
+-- OBU firmware served from the OBU OTA server's local firmware mount
+-- (resources/ota/firmwares). Only the published row is offered to OBUs.
+INSERT INTO public.obu_firmware_images(manufacturer, file_name, device_type, variant, release_version,
+    writable_system_partition, secure_boot, storage_provider, storage_container, object_name,
+    published, published_at, published_by)
+  SELECT m.manufacturer_id, seed.file_name, 'OBU', 'ob4-generic', seed.release_version, seed.writable, seed.secure,
+    'local', 'local', 'ota/Commsignia/' || seed.release_version || '/' || seed.file_name,
+    seed.published, CASE WHEN seed.published THEN CURRENT_TIMESTAMP END,
+    CASE WHEN seed.published THEN 'sample-data' END
+  FROM (VALUES
+    ('ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig', 'y20.48.2-b228647', false, true, true),
+    ('ob4-generic-rw-y20.49.0-b230000.tar.sig', 'y20.49.0-b230000', true, false, false)
+  ) AS seed(file_name, release_version, writable, secure, published)
+  JOIN public.manufacturers m ON m.name = 'Commsignia'
+  ON CONFLICT (manufacturer, file_name) DO NOTHING;

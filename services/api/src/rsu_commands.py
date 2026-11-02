@@ -12,7 +12,6 @@ from common.auth_tools import (
     PermissionResult,
     require_permission,
 )
-import ssh_commands
 import rsu_snmpset
 import api_environment
 
@@ -24,59 +23,15 @@ command_data = {
     "rsufwdsnmpset-del": {
         "roles": ["operator", "admin"],
     },
-    "reboot": {
-        "function": ssh_commands.reboot,
-        "roles": ["operator", "admin"],
-        "ssh_required": True,
-        "snmp_required": False,
-    },
-    "snmpfilter": {
-        "function": ssh_commands.snmpfilter,
-        "roles": ["operator", "admin"],
-        "ssh_required": True,
-        "snmp_required": False,
-    },
     "upgrade-check": {
         "function": rsu_upgrade.check_for_upgrade,
         "roles": ["operator", "admin"],
-        "ssh_required": False,
-        "snmp_required": False,
     },
     "upgrade-rsu": {
         "function": rsu_upgrade.mark_rsu_for_upgrade,
         "roles": ["operator", "admin"],
-        "ssh_required": False,
-        "snmp_required": False,
     },
 }
-
-
-# Performs the RSU command based on the requested command
-def execute_command(command, rsu_ip, args, rsu_info):
-    logging.info(f"Executing command {command} on RSU {rsu_ip}")
-    request_data = {
-        "command": command,
-        "manufacturer": rsu_info["manufacturer"],
-        "rsu_ip": rsu_ip,
-        "args": args,
-    }
-
-    if command_data[command]["ssh_required"]:
-        request_data["creds"] = {
-            "username": rsu_info["ssh_username"],
-            "password": rsu_info["ssh_password"],
-        }
-
-    if command_data[command]["snmp_required"]:
-        request_data["snmp_creds"] = {
-            "username": rsu_info["snmp_username"],
-            "password": rsu_info["snmp_password"],
-            "encrypt_pw": rsu_info["snmp_encrypt_pw"],
-        }
-        request_data["snmp_version"] = rsu_info["snmp_version"]
-
-    logging.debug(f"Request data: {str(request_data)}")
-    return command_data[command]["function"](request_data)
 
 
 # Queries for RSU manufacturer, SSH credentials, and SNMP credentials using a provided RSU IP address
@@ -200,7 +155,7 @@ def perform_command(command, organization, role, rsu_list, args, super_user: boo
     if command == "upgrade-check":
         return command_data[command]["function"](rsu_ip), 200
 
-    return execute_command(command, rsu_ip, args, rsu_info)
+    raise BadRequest("Unsupported RSU command")
 
 
 # REST endpoint resource class and schema
