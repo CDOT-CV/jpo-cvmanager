@@ -229,6 +229,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           id: selectedOrgId,
           users_to_remove: [row.email],
         }).unwrap()
+        toast.success('User deleted successfully', { id: loadingToast })
         if (row.email === authLoginData?.data?.email) {
           dispatch(deleteOrgAssociationByOrgId(props.selectedOrgId))
         }
