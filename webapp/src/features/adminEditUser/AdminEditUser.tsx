@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
-import { selectFilteredOrganizationNameObjects, selectSuperUser } from '../../generalSlices/userSlice'
+import { selectSuperUser } from '../../generalSlices/userSlice'
 
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -24,7 +24,6 @@ import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import 'react-widgets/styles.css'
-import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../adminRsuTab/Admin.css'
@@ -36,7 +35,7 @@ interface UserFormData {
   first_name: string
   last_name: string
   super_user: boolean
-  organizations: UserOrganizationOptionalOrg[]
+  organizations: UserOrganization[]
 }
 
 const AdminEditUser = () => {
@@ -47,9 +46,6 @@ const AdminEditUser = () => {
   const { data: userAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetUserAllowedSelectionsQuery()
   const [patchUser, { isLoading: isPatchingUser }] = usePatchUserMutation()
   const isSuperUser = useSelector(selectSuperUser)
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, userAllowedSelections?.organizations ?? [])
-  )
 
   const [open, setOpen] = useState(true)
 
@@ -90,7 +86,7 @@ const AdminEditUser = () => {
   }, [userInfo, reset])
 
   const onSubmit = async (data: UserFormData) => {
-    if (data.organizations.length === 0 || data.organizations.some((org) => org.organization === undefined)) {
+    if (data.organizations.length === 0) {
       toast.error('Must select at least one organization')
       return
     }
@@ -102,14 +98,12 @@ const AdminEditUser = () => {
         last_name: data.last_name !== userInfo?.last_name ? data.last_name : undefined,
         super_user: data.super_user !== userInfo?.super_user ? data.super_user : undefined,
         organizations_to_add: data.organizations
-          .filter((org) => org.organization !== undefined)
           .filter((org) => !userInfo?.organizations.some((o) => o.organization === org.organization))
           .map((org) => ({ organization: org.organization, role: org.role })),
         organizations_to_remove: userInfo?.organizations
           .filter((org) => !data.organizations.some((o) => o.organization === org.organization))
           .map((org) => org.organization),
         organizations_to_modify: data.organizations
-          .filter((org) => org.organization !== undefined)
           .filter((org) => {
             const originalOrg = userInfo?.organizations.find((o) => o.organization === org.organization)
             return originalOrg && originalOrg.role !== org.role
@@ -137,10 +131,8 @@ const AdminEditUser = () => {
   }
 
   const handleAddOrganization = () => {
-    append({ organization: undefined, role: 'USER' })
+    append({ organization: '', role: 'USER' })
   }
-
-  console.log(fields)
 
   const handleRemoveOrganization = (index: number) => {
     if (fields.length === 1) {
@@ -150,7 +142,7 @@ const AdminEditUser = () => {
     remove(index)
   }
 
-  const handleOrganizationChange = (index: number, fieldKey: keyof UserOrganization, value: number | UserRole) => {
+  const handleOrganizationChange = (index: number, fieldKey: keyof UserOrganization, value: string) => {
     const current = fields[index]
     if (fieldKey === 'organization') {
       const isDuplicate = fields.some((f, i) => i !== index && f.organization === value)
@@ -158,23 +150,23 @@ const AdminEditUser = () => {
         toast.error('This organization has already been added')
         return
       }
-      update(index, { ...current, organization: value as number })
+      update(index, { ...current, organization: value })
     } else {
       update(index, { ...current, role: value as UserRole })
     }
   }
 
   const getAvailableOrganizations = (currentIndex: number) => {
-    const selectedOrgIds = new Set(
+    const selectedOrgNames = new Set(
       fields
         .map((field, index) => (index !== currentIndex ? field.organization : null))
-        .filter((org) => org !== null && org !== undefined)
+        .filter((org) => org !== null && org !== '')
     )
-    return allowedOrganizations?.filter((org) => !selectedOrgIds.has(org.id)) || []
+    return userAllowedSelections?.organizations?.filter((org) => !selectedOrgNames.has(org)) || []
   }
 
   const isLoading = isLoadingUser || isLoadingAllowedSelections
-  const hasOrganizations = fields.length > 0 && fields.some((field) => field.organization !== undefined)
+  const hasOrganizations = fields.length > 0
 
   const handleClose = () => {
     setOpen(false)
@@ -290,37 +282,33 @@ const AdminEditUser = () => {
                           labelId={`organization-label-${field.id}`}
                           value={field.organization}
                           label="Organization"
-                          onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value as number)}
+                          onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value)}
                           required
                         >
                           {getAvailableOrganizations(index).map((org) => (
-                            <MenuItem key={org.id} value={org.id}>
-                              {org.name}
+                            <MenuItem key={org} value={org}>
+                              {org}
                             </MenuItem>
                           ))}
-                          {field.organization &&
-                            !getAvailableOrganizations(index).some((org) => org.id === field.organization) && (
-                              <MenuItem key={field.organization} value={field.organization}>
-                                {allowedOrganizations?.find((org) => org.id === field.organization)?.name ||
-                                  field.organization}
-                              </MenuItem>
-                            )}
+                          {field.organization && !getAvailableOrganizations(index).includes(field.organization) && (
+                            <MenuItem key={field.organization} value={field.organization}>
+                              {field.organization}
+                            </MenuItem>
+                          )}
                         </Select>
                       </FormControl>
 
                       <FormControl fullWidth>
                         <InputLabel>Role</InputLabel>
                         <Select
-                          value={field.role?.toUpperCase()}
+                          value={field.role}
                           label="Role"
-                          onChange={(e) =>
-                            handleOrganizationChange(index, 'role', e.target.value?.toUpperCase() as UserRole)
-                          }
+                          onChange={(e) => handleOrganizationChange(index, 'role', e.target.value)}
                           required
                           disabled={!field.organization}
                         >
                           {userAllowedSelections.roles?.map((role) => (
-                            <MenuItem key={role} value={role?.toUpperCase()}>
+                            <MenuItem key={role} value={role}>
                               {role}
                             </MenuItem>
                           ))}

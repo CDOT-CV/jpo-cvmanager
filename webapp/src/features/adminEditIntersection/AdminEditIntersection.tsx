@@ -1,13 +1,12 @@
-import { ErrorMessage } from '@hookform/error-message'
 import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
-import { useDispatch, useSelector } from 'react-redux'
+import { ErrorMessage } from '@hookform/error-message'
 import {
-  mapFormToRequestJson,
   selectApiData,
-  selectRsus,
+  selectOrganizations,
   selectSelectedOrganizations,
+  selectRsus,
   selectSelectedRsus,
   selectSubmitAttempt,
 
@@ -17,8 +16,15 @@ import {
   setSubmitAttempt,
   updateStates,
   validateFormContents,
+  mapFormToRequestJson,
 } from './adminEditIntersectionSlice'
+import { useSelector, useDispatch } from 'react-redux'
 
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
+import { AdminIntersection } from '../../models/Intersection'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useGetIntersectionQuery, usePatchIntersectionMutation } from '../api/adminIntersectionApiSlice'
 import {
   Button,
   Dialog,
@@ -31,22 +37,16 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import toast from 'react-hot-toast'
-import { useNavigate, useParams } from 'react-router-dom'
-import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
-import { AdminIntersection } from '../../models/Intersection'
-import { RootState } from '../../store'
 import { AdminButton } from '../../styles/components/AdminButton'
 import { ErrorMessageText } from '../../styles/components/Messages'
-import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
-import { useGetIntersectionQuery, usePatchIntersectionMutation } from '../api/adminIntersectionApiSlice'
+import { SideBarHeader } from '../../styles/components/SideBarHeader'
 
 export type AdminEditIntersectionFormType = AdminIntersection & {
   orig_intersection_id: string
-  organizations_to_add: number[]
-  organizations_to_remove: number[]
+  organizations_to_add: string[]
+  organizations_to_remove: string[]
   rsus: string[]
   rsus_to_add: string[]
   rsus_to_remove: string[]
@@ -55,14 +55,12 @@ export type AdminEditIntersectionFormType = AdminIntersection & {
 const AdminEditIntersection = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const apiData = useSelector(selectApiData)
+  const organizations = useSelector(selectOrganizations)
   const selectedOrganizations = useSelector(selectSelectedOrganizations)
   const rsus = useSelector(selectRsus)
   const selectedRsus = useSelector(selectSelectedRsus)
   const submitAttempt = useSelector(selectSubmitAttempt)
   const editIntersectionState = useSelector((state: RootState) => state.adminEditIntersection)
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, apiData?.allowed_selections?.organizations ?? [])
-  )
 
   const [open, setOpen] = useState(true)
   const navigate = useNavigate()
@@ -321,17 +319,15 @@ const AdminEditIntersection = () => {
                     id="organizations"
                     label="Organizations"
                     multiple
-                    value={selectedOrganizations.map((org) => org.id)}
-                    defaultValue={selectedOrganizations.map((org) => org.id)}
+                    value={selectedOrganizations.map((org) => org.name)}
+                    defaultValue={selectedOrganizations.map((org) => org.name)}
                     onChange={(event) => {
-                      const selectedOrgs = event.target.value as number[]
-                      dispatch(
-                        setSelectedOrganizations(allowedOrganizations.filter((org) => selectedOrgs.includes(org.id)))
-                      )
+                      const selectedOrgs = event.target.value as string[]
+                      dispatch(setSelectedOrganizations(organizations.filter((org) => selectedOrgs.includes(org.name))))
                     }}
                   >
-                    {allowedOrganizations.map((org) => (
-                      <MenuItem key={org.id} value={org.id}>
+                    {organizations.map((org) => (
+                      <MenuItem key={org.name} value={org.name}>
                         {org.name}
                       </MenuItem>
                     ))}

@@ -1,12 +1,15 @@
-import { ErrorMessage } from '@hookform/error-message'
 import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
-import { useSelector } from 'react-redux'
+import { ErrorMessage } from '@hookform/error-message'
 
+import '../adminRsuTab/Admin.css'
+import '../../styles/fonts/museo-slab.css'
+import { AdminRsuPatch } from '../../models/Rsu'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
-  Button,
   Checkbox,
+  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -20,14 +23,8 @@ import {
   Typography,
 } from '@mui/material'
 import toast from 'react-hot-toast'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
-import { AdminRsuPatch } from '../../models/Rsu'
-import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import '../../styles/fonts/museo-slab.css'
-import '../adminRsuTab/Admin.css'
 import { useGetRsuAllowedSelectionsQuery, useGetRsuQuery, usePatchRsuMutation } from '../api/rsuApiSlice'
 
 export type AdminEditRsuFormType = {
@@ -46,7 +43,7 @@ export type AdminEditRsuFormType = {
   ssh_credential_group: string
   snmp_credential_group: string
   snmp_version_group: string
-  organizations: number[]
+  organizations: string[]
   tim_deposit: boolean
   snmp_monitoring: boolean
 }
@@ -58,9 +55,6 @@ const AdminEditRsu = () => {
   const { data: rsuInfo, isLoading: isLoadingRsu } = useGetRsuQuery(rsuIp!)
   const { data: rsuAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetRsuAllowedSelectionsQuery()
   const [patchRsu, { isLoading: isPatchingRsu }] = usePatchRsuMutation()
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, rsuAllowedSelections?.organizations ?? [])
-  )
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
@@ -644,13 +638,13 @@ const AdminEditRsu = () => {
                     value={watchedOrganizations || []}
                     {...register('organizations', { required: true })}
                     onChange={(event) => {
-                      const value = event.target.value as number[]
+                      const value = event.target.value as string[]
                       setValue('organizations', value)
                     }}
                   >
-                    {allowedOrganizations.map(({ id, name }) => (
-                      <MenuItem key={id} value={id}>
-                        {name ?? id}
+                    {rsuAllowedSelections.organizations?.map((org) => (
+                      <MenuItem key={org} value={org}>
+                        {org}
                       </MenuItem>
                     ))}
                   </Select>
