@@ -21,6 +21,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
 import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
+import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
 import {
     useGetIntersectionAllowedSelectionsQuery,

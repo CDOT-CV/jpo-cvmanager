@@ -42,7 +42,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
 
   useEffect(() => {
     setSelectedIntersectionList([])
-  }, [selectedOrgName])
+  }, [selectedOrgId])
 
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const [intersectionColumns] = useState<Column<any>[]>([

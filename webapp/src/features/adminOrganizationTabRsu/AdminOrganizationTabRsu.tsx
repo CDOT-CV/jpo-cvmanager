@@ -213,7 +213,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
 
   useEffect(() => {
     setSelectedRsuList([])
-  }, [selectedOrgName])
+  }, [selectedOrgId])
 
   const rsuOnDelete = async (rsu: AdminRsu) => {
     const loadingToast = toast.loading(`Deleting RSU ${rsu.ip}...`)

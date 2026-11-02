@@ -18,7 +18,7 @@ export type AdminIntersection = {
 }
 
 export type AdminIntersectionCreationInfo = {
-  organizations: string[]
+  organizations: number[]
   rsus: string[]
 }
 
