@@ -4,26 +4,29 @@ import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 
 import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    FormControl,
+    InputLabel,
+    MenuItem,
+    Select,
+    TextField,
+    Typography,
 } from '@mui/material'
 import toast from 'react-hot-toast'
+import { useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
+import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
 import {
-  useGetIntersectionAllowedSelectionsQuery,
-  useGetIntersectionQuery,
-  usePatchIntersectionMutation,
+    useGetIntersectionAllowedSelectionsQuery,
+    useGetIntersectionQuery,
+    usePatchIntersectionMutation,
 } from '../api/adminIntersectionApiSlice'
 
 export type AdminEditIntersectionFormType = {
@@ -52,6 +55,9 @@ const AdminEditIntersection = () => {
   const { data: intersectionInfo, isLoading: isLoadingIntersection } = useGetIntersectionQuery(intersectionId!)
   const { data: allowedSelections, isLoading: isLoadingAllowedSelections } = useGetIntersectionAllowedSelectionsQuery()
   const [patchIntersection, { isLoading: isPatchingIntersection }] = usePatchIntersectionMutation()
+  const allowedOrganizations = useSelector((state: RootState) =>
+    selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
+  )
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
@@ -347,9 +353,9 @@ const AdminEditIntersection = () => {
                       setValue('organizations', value)
                     }}
                   >
-                    {allowedSelections.organizations?.map((org) => (
-                      <MenuItem key={org} value={org}>
-                        {org}
+                    {allowedOrganizations.map((org) => (
+                      <MenuItem key={org.id} value={org.id}>
+                        {org.name}
                       </MenuItem>
                     ))}
                   </Select>

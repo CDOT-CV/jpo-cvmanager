@@ -4,19 +4,19 @@ import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 
 import {
-  Button,
-  Checkbox,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  FormControl,
-  FormControlLabel,
-  Grid2,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
+    Button,
+    Checkbox,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    FormControl,
+    FormControlLabel,
+    Grid2,
+    InputLabel,
+    MenuItem,
+    Select,
+    TextField,
+    Typography,
 } from '@mui/material'
 import toast from 'react-hot-toast'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -55,6 +55,9 @@ const AdminEditRsu = () => {
   const { data: rsuInfo, isLoading: isLoadingRsu } = useGetRsuQuery(rsuIp!)
   const { data: rsuAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetRsuAllowedSelectionsQuery()
   const [patchRsu, { isLoading: isPatchingRsu }] = usePatchRsuMutation()
+  const allowedOrganizations = useSelector((state: RootState) =>
+    selectFilteredOrganizationNameObjects(state, rsuAllowedSelections?.organizations ?? [])
+  )
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
@@ -642,9 +645,9 @@ const AdminEditRsu = () => {
                       setValue('organizations', value)
                     }}
                   >
-                    {rsuAllowedSelections.organizations?.map((org) => (
-                      <MenuItem key={org} value={org}>
-                        {org}
+                    {allowedOrganizations.map(({ id, name }) => (
+                      <MenuItem key={id} value={id}>
+                        {name ?? id}
                       </MenuItem>
                     ))}
                   </Select>
