@@ -5,7 +5,7 @@ import { AdminEditIntersectionFormType } from './AdminEditIntersection'
 export type adminEditIntersectionData = {
   intersection_data: AdminEditIntersectionFormType
   allowed_selections: {
-    organizations: string[]
+    organizations: number[]
     rsus: string[]
   }
 }
@@ -25,8 +25,8 @@ export type AdminEditIntersectionBody = {
   }
   intersection_name?: string
   origin_ip?: string
-  organizations_to_add: string[]
-  organizations_to_remove: string[]
+  organizations_to_add: number[]
+  organizations_to_remove: number[]
   rsus_to_add: string[]
   rsus_to_remove: string[]
 }
@@ -50,7 +50,7 @@ const initialState = {
  * @returns {boolean} - Returns true if the form is valid, otherwise false.
  */
 export const validateFormContents = (state: RootState['adminEditIntersection']) => {
-  return state.value.selectedOrganizations.length !== 0;
+  return state.value.selectedOrganizations.length !== 0
 }
 
 /**
