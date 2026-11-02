@@ -21,6 +21,17 @@ import static org.mockito.Mockito.when;
 class ConflictMonitorApiPropertiesTest {
 
     @Test
+    void testWzdxFeedEnabledFlag() {
+        ConflictMonitorApiProperties props = new ConflictMonitorApiProperties(null);
+
+        props.setEnableWzdxFeed(true);
+        assertThat(props.isWzdxFeedEnabled()).isTrue();
+
+        props.setEnableWzdxFeed(false);
+        assertThat(props.isWzdxFeedEnabled()).isFalse();
+    }
+
+    @Test
     void testCreateStreamProperties_Defaults() {
         ConflictMonitorApiProperties props = new ConflictMonitorApiProperties(null);
         props.setKafkaBrokers("localhost:9092");

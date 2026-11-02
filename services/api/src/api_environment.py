@@ -24,9 +24,6 @@ MONGO_DB_NAME = get_env_var("MONGO_DB_NAME", "CV", warn=True)
 ENVIRONMENT_NAME = get_env_var("ENVIRONMENT_NAME")
 LOGS_LINK = get_env_var("LOGS_LINK")
 
-WZDX_ENDPOINT = get_env_var("WZDX_ENDPOINT", error=ENABLE_WZDX_FEATURES)
-WZDX_API_KEY = get_env_var("WZDX_API_KEY", error=ENABLE_WZDX_FEATURES)
-
 FIRMWARE_MANAGER_ENDPOINT = get_env_var("FIRMWARE_MANAGER_ENDPOINT", warn=False)
 
 ENABLE_ERROR_EMAILS = get_env_var("ENABLE_ERROR_EMAILS", "false").lower() != "false"

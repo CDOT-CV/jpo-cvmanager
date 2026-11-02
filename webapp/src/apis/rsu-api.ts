@@ -1,6 +1,5 @@
 import toast from 'react-hot-toast'
 import EnvironmentVars from '../EnvironmentVars'
-import { WZDxWorkZoneFeed } from '../models/wzdx/WzdxWorkZoneFeed42'
 import apiHelper from './api-helper'
 import { authApiHelper } from './intersections/api-helper-cviz'
 import {
@@ -84,15 +83,6 @@ class RsuApi {
       query_params,
       additional_headers: { Organization: org },
       tag: 'rsu',
-    })
-
-  // WZDx
-  getWzdxData = async (token: string, url_ext = '', query_params = {}): Promise<WZDxWorkZoneFeed> =>
-    apiHelper._getData({
-      url: EnvironmentVars.wzdxEndpoint + url_ext,
-      token,
-      query_params,
-      tag: 'wzdx',
     })
 
   // POST

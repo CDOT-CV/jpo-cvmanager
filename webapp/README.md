@@ -109,7 +109,7 @@ Re-factoring RSU manager to utilize Redux Toolkit for state management
      - Map.js - read organization
      - configSlice.js - read access token and organization for requests
      - rsuSlice.js - read access token and organization for requests
-     - wzdxSlice.js - read access token and organization for requests
+     - wzdxFeedApi.ts - read access token for requests
 2. rsuSlice
    - Main CV data - RSU, BSM, SSM, SRM
    - References
@@ -129,10 +129,10 @@ Re-factoring RSU manager to utilize Redux Toolkit for state management
      - RsuRebootMenu.js - Reboot RSU
      - SnmpsetMenu.js - read/write SNMP Set data
      - SnmpwalkMenu.js - read/refresh SNMP Forward data
-4. wzdxSlice
-   - WZDx data
+4. wzdxFeedApi (RTK Query, `features/api/wzdxFeedApi.ts`)
+   - WZDx data, fetched from the intersection-api `/wzdx-feed` endpoint
    - References
-     - Map.js - read and load WZDx data
+     - Map.tsx - load WZDx data while the WZDx layer is active
 
 ## Feature Flags
 
