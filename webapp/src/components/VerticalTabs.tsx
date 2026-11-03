@@ -12,6 +12,7 @@ import HomeOutlined from '@mui/icons-material/HomeOutlined'
 import NotificationsNoneOutlined from '@mui/icons-material/NotificationsNoneOutlined'
 import TrafficOutlined from '@mui/icons-material/TrafficOutlined'
 import TuneOutlined from '@mui/icons-material/TuneOutlined'
+import SystemSecurityUpdateOutlined from '@mui/icons-material/SystemSecurityUpdateOutlined'
 import SystemUpdateAltOutlined from '@mui/icons-material/SystemUpdateAltOutlined'
 import WorkspacesOutlined from '@mui/icons-material/WorkspacesOutlined'
 
@@ -71,6 +72,8 @@ function VerticalTabs(props: VerticalTabProps) {
         return <WorkspacesOutlined />
       case 'Firmware':
         return <SystemUpdateAltOutlined />
+      case 'OBU Firmware':
+        return <SystemSecurityUpdateOutlined />
       case 'Dashboard':
         return <HomeOutlined />
       case 'Notifications':
