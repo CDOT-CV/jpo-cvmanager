@@ -43,13 +43,33 @@ const checksumCalculators: Record<string, (file: Blob) => Promise<string>> = {
   CRC32C: calculateCrc32c,
 }
 
-export const getObjectStorageUploadError = (status: number) => {
+const DEFAULT_CONFLICT_MESSAGE =
+  'Firmware already exists for this manufacturer, model, and version. Change the version and try again.'
+
+// Storage reports an existing object with 409 or 412. The conflict message lets each
+// firmware workflow describe the duplicate in its own terms
+export const getObjectStorageUploadError = (status: number, conflictMessage = DEFAULT_CONFLICT_MESSAGE) => {
   if (status === 409 || status === 412) {
-    return new Error(
-      'Firmware already exists for this manufacturer, model, and version. Change the version and try again.'
-    )
+    return new Error(conflictMessage)
   }
   return new Error(`Object storage rejected the file upload (HTTP ${status}).`)
+}
+
+export const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && error !== null && 'data' in error) {
+    const data = (error as { data?: unknown }).data
+    if (typeof data === 'string' && data) return data
+    if (typeof data === 'object' && data !== null) {
+      const response = data as {
+        message?: string
+        detail?: string
+        error?: string
+      }
+      return response.message || response.detail || response.error || 'The firmware API rejected the request.'
+    }
+  }
+  return 'An unexpected error occurred while uploading the firmware.'
 }
 
 export const formatFileSize = (bytes: number) => {
@@ -73,7 +93,8 @@ export const calculateFileChecksum = (file: Blob, algorithm: string) => {
 export const uploadFileToSignedUrl = (
   file: File,
   instructions: FirmwareUploadUrl,
-  onProgress: (percentage: number) => void
+  onProgress: (percentage: number) => void,
+  conflictMessage?: string
 ) =>
   new Promise<void>((resolve, reject) => {
     const request = new XMLHttpRequest()
@@ -92,7 +113,7 @@ export const uploadFileToSignedUrl = (
         onProgress(100)
         resolve()
       } else {
-        reject(getObjectStorageUploadError(request.status))
+        reject(getObjectStorageUploadError(request.status, conflictMessage))
       }
     }
 
