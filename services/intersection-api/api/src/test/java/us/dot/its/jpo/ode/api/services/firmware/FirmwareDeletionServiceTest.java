@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.services;
+package us.dot.its.jpo.ode.api.services.firmware;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,7 +42,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.*;
 import us.dot.its.jpo.ode.api.models.storage.ObjectChecksum;
 import us.dot.its.jpo.ode.api.models.storage.StoredObjectMetadata;
 import us.dot.its.jpo.ode.api.repositories.*;
-import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareDeletionService.FirmwareDeletionConflictException;
 import us.dot.its.jpo.ode.api.storage.GcpStorageClientProvider;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageConflictException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;

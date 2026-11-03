@@ -1,16 +1,13 @@
-package us.dot.its.jpo.ode.api.services;
+package us.dot.its.jpo.ode.api.services.firmware;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -25,18 +22,17 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage;
-import us.dot.its.jpo.ode.api.models.storage.ObjectListRequest;
 import us.dot.its.jpo.ode.api.models.storage.StorageObject;
 import us.dot.its.jpo.ode.api.models.storage.StorageObjectPage;
 import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
 import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
+import us.dot.its.jpo.ode.api.storage.ObjectIds;
+import us.dot.its.jpo.ode.api.storage.ObjectListings;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
-import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 @Service
 @RequiredArgsConstructor
 public class FirmwareObjectService {
-    private static final int PROVIDER_PAGE_SIZE = 200;
     private static final Set<String> RESERVED_PREFIXES = Set.of("ota");
 
     private final ObjectStorageServiceRegistry storage;
@@ -83,26 +79,14 @@ public class FirmwareObjectService {
     private record Listing(StorageObjectPage page, Set<String> missingNames, Map<String, Integer> legacyImageIds) {}
 
     private Listing readListing(String prefix, String searchTerm) {
-        var storageService = storage.getActiveService();
-        var listedObjects = new ArrayList<StorageObject>();
-        var objects = new ArrayList<StorageObject>();
-        var visitedTokens = new HashSet<String>();
         var legacyImageIds = new HashMap<String, Integer>();
+        var objects = new ArrayList<StorageObject>();
         var missingNames = new HashSet<String>();
-        String pageToken = null;
-        StorageObjectPage page;
 
         // Search every provider page so sorting and pagination apply to the complete
         // filtered result, including untracked and missing files.
-        do {
-            page = storageService.listObjects(new ObjectListRequest(prefix, PROVIDER_PAGE_SIZE, pageToken));
-            listedObjects.addAll(page.objects());
-
-            pageToken = page.nextPageToken();
-            if (pageToken != null && !pageToken.isBlank() && !visitedTokens.add(pageToken)) {
-                throw new ObjectStorageUnavailableException("Object storage returned invalid pagination state");
-            }
-        } while (pageToken != null && !pageToken.isBlank());
+        StorageObjectPage page = ObjectListings.listAll(storage.getActiveService(), prefix);
+        var listedObjects = page.objects();
 
         // Only a complete, successful storage listing establishes absence. Database
         // records remain discoverable after a lost deletion response or failed commit.
@@ -153,8 +137,7 @@ public class FirmwareObjectService {
             Map<UUID, Integer> imageIds, Listing listing) {
         boolean absent = listing.missingNames().contains(object.objectName());
         // Parse conventional paths into columns, retaining the full path for actions.
-        String id = Base64.getUrlEncoder().withoutPadding().encodeToString(
-                (provider + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
+        String id = ObjectIds.encode(provider, object.objectName());
         String[] path = object.objectName().split("/", 4);
         String manufacturerName = path.length == 4 ? path[0] : null;
         String modelName = path.length == 4 ? path[1] : null;
@@ -170,14 +153,7 @@ public class FirmwareObjectService {
     private String verificationState(StorageObject object, FirmwareUpload upload) {
         if (upload == null) return "UNTRACKED";
         if (upload.getStatus() != FirmwareUploadStatus.VERIFIED) return "UNVERIFIED";
-        // Verification belongs to the exact object version, not just its path.
-        boolean matches = object.providerObjectVersion() != null
-                && object.providerObjectVersion().equals(upload.getProviderObjectVersion())
-                && Objects.equals(upload.getExpectedSize(), object.contentLength())
-                && object.checksum() != null && upload.getObservedChecksum() != null
-                && upload.getChecksumAlgorithm().equalsIgnoreCase(object.checksum().algorithm())
-                && Objects.equals(upload.getObservedChecksum(), object.checksum().value());
-        return matches ? "VERIFIED" : "CHANGED";
+        return FirmwareUploadSupport.matchesListedObject(upload, object) ? "VERIFIED" : "CHANGED";
     }
 
     private Comparator<FirmwareObjectPage.Item> itemComparator(String sort) {

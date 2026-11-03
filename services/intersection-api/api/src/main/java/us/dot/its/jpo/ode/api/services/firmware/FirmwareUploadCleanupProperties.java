@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.services;
+package us.dot.its.jpo.ode.api.services.firmware;
 
 import java.time.Duration;
 
