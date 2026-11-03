@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -24,43 +23,16 @@ import {
   useCreateFirmwareUploadUrlMutation,
   useGetFirmwareUploadOptionsQuery,
 } from '../api/firmwareApiSlice'
-import { calculateFileChecksum, formatFileSize, uploadFileToSignedUrl } from './firmwareUpload'
+import { formatFileSize, getErrorMessage } from './firmwareUpload'
+import FirmwareUploadProgress from './FirmwareUploadProgress'
+import { runSignedUpload, UploadStage } from './signedUpload'
 
-const DEFAULT_CHECKSUM_ALGORITHM = 'CRC32C'
 const SAFE_FILE_COMPONENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
-
-type UploadStage = 'idle' | 'checksum' | 'requesting-url' | 'uploading' | 'verifying' | 'complete'
 
 type FirmwareUploadFormProps = {
   open: boolean
   onClose: () => void
   onSuccess: () => void
-}
-
-const stageLabel: Record<UploadStage, string> = {
-  idle: 'Ready to upload',
-  checksum: 'Calculating checksum…',
-  'requesting-url': 'Requesting upload URL…',
-  uploading: 'Uploading firmware…',
-  verifying: 'Verifying uploaded firmware…',
-  complete: 'Upload complete',
-}
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) return error.message
-  if (typeof error === 'object' && error !== null && 'data' in error) {
-    const data = (error as { data?: unknown }).data
-    if (typeof data === 'string' && data) return data
-    if (typeof data === 'object' && data !== null) {
-      const response = data as {
-        message?: string
-        detail?: string
-        error?: string
-      }
-      return response.message || response.detail || response.error || 'The firmware API rejected the request.'
-    }
-  }
-  return 'An unexpected error occurred while uploading the firmware.'
 }
 
 const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProps) => {
@@ -125,33 +97,19 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
     }
 
     try {
-      // The API signs an upload for the checksum and size calculated here
-      // The browser uploads directly to storage, then asks the API to verify the result
-      setStage('checksum')
-      const checksum = await calculateFileChecksum(file, DEFAULT_CHECKSUM_ALGORITHM)
-
-      setStage('requesting-url')
-      const uploadInstructions = await createUploadUrl({
-        vendor_name: vendorName.trim(),
-        model_name: modelName.trim(),
-        version: version.trim(),
-        file_name: file.name,
-        content_length: file.size,
-        content_type: file.type || 'application/octet-stream',
-        checksum_algorithm: DEFAULT_CHECKSUM_ALGORITHM,
-        checksum,
-      }).unwrap()
-
-      setStage('uploading')
-      await uploadFileToSignedUrl(file, uploadInstructions, setProgress)
-
-      setStage('verifying')
-      const verification = await completeUpload(uploadInstructions.upload_id).unwrap()
-      if (verification.status !== 'VERIFIED') {
-        throw new Error('The firmware API did not verify the uploaded file.')
-      }
-
-      setStage('complete')
+      await runSignedUpload({
+        file,
+        requestUploadUrl: (upload) =>
+          createUploadUrl({
+            vendor_name: vendorName.trim(),
+            model_name: modelName.trim(),
+            version: version.trim(),
+            ...upload,
+          }).unwrap(),
+        completeUpload: (uploadId) => completeUpload(uploadId).unwrap(),
+        onStage: setStage,
+        onProgress: setProgress,
+      })
       toast.success('Firmware uploaded and verified successfully')
       onSuccess()
     } catch (error) {
@@ -280,31 +238,7 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
               </Alert>
             )}
 
-            {(isWorking || stage === 'complete') && (
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                  <CircularProgress
-                    variant="determinate"
-                    value={stage === 'complete' || stage === 'verifying' ? 100 : progress}
-                    aria-label="Firmware upload progress"
-                  />
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary">{`${
-                      stage === 'complete' || stage === 'verifying' ? 100 : progress
-                    }%`}</Typography>
-                  </Box>
-                </Box>
-                <Typography>{stageLabel[stage]}</Typography>
-              </Stack>
-            )}
+            <FirmwareUploadProgress stage={stage} progress={progress} />
 
             {errorMessage && (
               <Alert
