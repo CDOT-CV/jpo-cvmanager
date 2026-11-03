@@ -1,147 +1,170 @@
-import { useEffect, useState } from 'react'
+import { ErrorMessage } from '@hookform/error-message'
+import { useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
-import { ErrorMessage } from '@hookform/error-message'
-import {
-  selectApiData,
-  selectOrganizations,
-  selectSelectedOrganizations,
-  selectRsus,
-  selectSelectedRsus,
-  selectSubmitAttempt,
 
-  // actions
-  setSelectedOrganizations,
-  setSelectedRsus,
-  setSubmitAttempt,
-  updateStates,
-  validateFormContents,
-  mapFormToRequestJson,
-} from './adminEditIntersectionSlice'
-import { useSelector, useDispatch } from 'react-redux'
-
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
-import { AdminIntersection } from '../../models/Intersection'
-import { useNavigate, useParams } from 'react-router-dom'
-import { useGetIntersectionQuery, usePatchIntersectionMutation } from '../api/adminIntersectionApiSlice'
 import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    FormControl,
+    InputLabel,
+    MenuItem,
+    Select,
+    TextField,
+    Typography,
 } from '@mui/material'
 import toast from 'react-hot-toast'
-import { AdminButton } from '../../styles/components/AdminButton'
+import { useSelector } from 'react-redux'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
+import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import '../../styles/fonts/museo-slab.css'
-import { SideBarHeader } from '../../styles/components/SideBarHeader'
+import {
+    useGetIntersectionAllowedSelectionsQuery,
+    useGetIntersectionQuery,
+    usePatchIntersectionMutation,
+} from '../api/adminIntersectionApiSlice'
 
-export type AdminEditIntersectionFormType = AdminIntersection & {
-  orig_intersection_id: string
-  organizations_to_add: string[]
-  organizations_to_remove: string[]
+export type AdminEditIntersectionFormType = {
+  orig_intersection_id?: string
+  intersection_id: string
+  ref_pt?: {
+    latitude: string
+    longitude: string
+  }
+  bbox?: {
+    latitude1: string
+    longitude1: string
+    latitude2: string
+    longitude2: string
+  }
+  intersection_name?: string
+  origin_ip?: string
+  organizations: number[]
   rsus: string[]
-  rsus_to_add: string[]
-  rsus_to_remove: string[]
 }
 
 const AdminEditIntersection = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
-  const apiData = useSelector(selectApiData)
-  const organizations = useSelector(selectOrganizations)
-  const selectedOrganizations = useSelector(selectSelectedOrganizations)
-  const rsus = useSelector(selectRsus)
-  const selectedRsus = useSelector(selectSelectedRsus)
-  const submitAttempt = useSelector(selectSubmitAttempt)
-  const editIntersectionState = useSelector((state: RootState) => state.adminEditIntersection)
+  const navigate = useNavigate()
+  const { intersectionId } = useParams<{ intersectionId: string }>()
+
+  const { data: intersectionInfo, isLoading: isLoadingIntersection } = useGetIntersectionQuery(intersectionId!)
+  const { data: allowedSelections, isLoading: isLoadingAllowedSelections } = useGetIntersectionAllowedSelectionsQuery()
+  const [patchIntersection, { isLoading: isPatchingIntersection }] = usePatchIntersectionMutation()
+  const allowedOrganizations = useSelector((state: RootState) =>
+    selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
+  )
 
   const [open, setOpen] = useState(true)
-  const navigate = useNavigate()
+  const [submitAttempt, setSubmitAttempt] = useState(false)
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<AdminEditIntersectionFormType>({
-    defaultValues: {
-      orig_intersection_id: '',
-      intersection_id: '',
-      ref_pt: {
-        latitude: '',
-        longitude: '',
-      },
-      bbox: {
-        latitude1: '',
-        longitude1: '',
-        latitude2: '',
-        longitude2: '',
-      },
-      intersection_name: '',
-      origin_ip: '',
-      organizations_to_add: [],
-      organizations_to_remove: [],
-      rsus_to_add: [],
-      rsus_to_remove: [],
-    },
+    values: intersectionInfo
+      ? {
+          orig_intersection_id: intersectionInfo.intersection_id,
+          intersection_id: intersectionInfo.intersection_id,
+          ref_pt: {
+            latitude: intersectionInfo.ref_pt?.latitude ?? '',
+            longitude: intersectionInfo.ref_pt?.longitude ?? '',
+          },
+          bbox: {
+            latitude1: intersectionInfo.bbox?.latitude1 ?? '',
+            longitude1: intersectionInfo.bbox?.longitude1 ?? '',
+            latitude2: intersectionInfo.bbox?.latitude2 ?? '',
+            longitude2: intersectionInfo.bbox?.longitude2 ?? '',
+          },
+          intersection_name: intersectionInfo.intersection_name,
+          origin_ip: intersectionInfo.origin_ip,
+          organizations: intersectionInfo.organizations,
+          rsus: intersectionInfo.rsus,
+        }
+      : undefined,
   })
+  const watchedOrganizations = watch('organizations')
+  const watchedRsus = watch('rsus')
 
-  const { intersectionId } = useParams<{ intersectionId: string }>()
-
-  const { data: intersectionData, isLoading } = useGetIntersectionQuery(intersectionId, {
-    skip: !intersectionId,
-  })
-  const [patchIntersection] = usePatchIntersectionMutation()
-
-  useEffect(() => {
-    if (intersectionData) {
-      dispatch(updateStates(intersectionData))
-      const intersection = intersectionData.intersection_data
-      setValue('orig_intersection_id', intersection.intersection_id)
-      setValue('intersection_id', intersection.intersection_id)
-      setValue('ref_pt.latitude', intersection.ref_pt?.latitude?.toString())
-      setValue('ref_pt.longitude', intersection.ref_pt?.longitude?.toString())
-      setValue('bbox.latitude1', intersection.bbox?.latitude1?.toString())
-      setValue('bbox.longitude1', intersection.bbox?.longitude1?.toString())
-      setValue('bbox.latitude2', intersection.bbox?.latitude2?.toString())
-      setValue('bbox.longitude2', intersection.bbox?.longitude2?.toString())
-      setValue('intersection_name', intersection.intersection_name)
-      setValue('origin_ip', intersection.origin_ip)
-    }
-  }, [intersectionData, dispatch, setValue])
-
-  const onSubmit = (data: AdminEditIntersectionFormType) => {
-    if (!validateFormContents(editIntersectionState)) {
-      dispatch(setSubmitAttempt(true))
+  const onSubmit = async (data: AdminEditIntersectionFormType) => {
+    setSubmitAttempt(true)
+    if (data.organizations.length === 0) {
+      toast.error('Must select at least one organization')
       return
     }
-    const json = mapFormToRequestJson(data, editIntersectionState)
-    patchIntersection(json)
-      .unwrap()
-      .then(() => {
-        toast.success('Intersection updated successfully')
-        setOpen(false)
-        navigate('/dashboard/admin/intersections')
+    try {
+      console.log('Intersection Ref Pt', data.ref_pt, intersectionInfo?.ref_pt)
+      const refPt =
+        data.ref_pt &&
+        data.ref_pt !== intersectionInfo?.ref_pt &&
+        data.ref_pt.latitude &&
+        data.ref_pt.latitude != intersectionInfo?.ref_pt?.latitude &&
+        data.ref_pt.longitude &&
+        data.ref_pt.longitude != intersectionInfo?.ref_pt?.longitude
+          ? data.ref_pt
+          : undefined
+      const bbox =
+        data.bbox &&
+        data.bbox !== intersectionInfo?.bbox &&
+        data.bbox.latitude1 &&
+        data.bbox.latitude1 != intersectionInfo?.bbox?.latitude1 &&
+        data.bbox.longitude1 &&
+        data.bbox.longitude1 != intersectionInfo?.bbox?.longitude1 &&
+        data.bbox.latitude2 &&
+        data.bbox.latitude2 != intersectionInfo?.bbox?.latitude2 &&
+        data.bbox.longitude2 &&
+        data.bbox.longitude2 != intersectionInfo?.bbox?.longitude2
+          ? data.bbox
+          : undefined
+
+      const patchData = {
+        intersection_id: data.intersection_id !== data.orig_intersection_id ? data.intersection_id : undefined,
+        ref_pt: refPt,
+        bbox: bbox,
+        intersection_name:
+          data.intersection_name !== intersectionInfo?.intersection_name ? data.intersection_name : undefined,
+        origin_ip: data.origin_ip !== intersectionInfo?.origin_ip ? data.origin_ip : undefined,
+        organizations_to_add: data.organizations
+          .filter((org) => !intersectionInfo?.organizations.some((o) => o === org))
+          .map((org) => org),
+        organizations_to_remove: intersectionInfo?.organizations
+          .filter((org) => !data.organizations.some((o) => o === org))
+          .map((org) => org),
+        rsus_to_add: data.rsus.filter((rsu) => !intersectionInfo?.rsus.some((o) => o === rsu)).map((rsu) => rsu),
+        rsus_to_remove: intersectionInfo?.rsus.filter((rsu) => !data.rsus.some((o) => o === rsu)).map((rsu) => rsu),
+      }
+
+      // Remove undefined fields
+      Object.keys(patchData).forEach((key) => {
+        const value = patchData[key as keyof typeof patchData]
+        if (value === undefined || (Array.isArray(value) && value.length === 0)) {
+          delete patchData[key as keyof typeof patchData]
+        }
       })
-      .catch((error) => {
-        const detail =
-          error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object'
-            ? (error.data as { detail?: string }).detail
-            : undefined
-        toast.error(detail ? `Failed to update Intersection: ${detail}` : 'Failed to update Intersection')
-      })
+
+      await patchIntersection({ intersection_id: data.orig_intersection_id!, patch: patchData }).unwrap()
+      toast.success('Intersection updated successfully')
+      setOpen(false)
+      navigate('/dashboard/admin/intersections')
+    } catch (error: any) {
+      toast.error(
+        'Failed to update intersection: ' +
+          (error?.data?.message || error?.message || error?.data?.detail || 'Unknown error')
+      )
+    }
   }
+
+  const isLoading = isLoadingIntersection || isLoadingAllowedSelections
 
   return (
     <Dialog open={open}>
-      {apiData && !isLoading ? (
+      {!isLoading && intersectionInfo && allowedSelections ? (
         <>
           <DialogContent sx={{ width: '600px', padding: '5px 10px' }}>
             <SideBarHeader
@@ -314,25 +337,28 @@ const AdminEditIntersection = () => {
 
               <Form.Group controlId="organizations">
                 <FormControl fullWidth margin="normal">
-                  <InputLabel>Organizations</InputLabel>
+                  <InputLabel htmlFor="organizations" required>
+                    Organizations
+                  </InputLabel>
                   <Select
                     id="organizations"
                     label="Organizations"
                     multiple
-                    value={selectedOrganizations.map((org) => org.name)}
-                    defaultValue={selectedOrganizations.map((org) => org.name)}
+                    required
+                    value={watchedOrganizations || []}
+                    {...register('organizations', { required: true })}
                     onChange={(event) => {
-                      const selectedOrgs = event.target.value as string[]
-                      dispatch(setSelectedOrganizations(organizations.filter((org) => selectedOrgs.includes(org.name))))
+                      const value = event.target.value as number[]
+                      setValue('organizations', value)
                     }}
                   >
-                    {organizations.map((org) => (
-                      <MenuItem key={org.name} value={org.name}>
+                    {allowedOrganizations.map((org) => (
+                      <MenuItem key={org.id} value={org.id}>
                         {org.name}
                       </MenuItem>
                     ))}
                   </Select>
-                  {selectedOrganizations.length === 0 && submitAttempt && (
+                  {watchedOrganizations?.length === 0 && submitAttempt && (
                     <ErrorMessageText role="alert">Must select an organization</ErrorMessageText>
                   )}
                 </FormControl>
@@ -340,21 +366,24 @@ const AdminEditIntersection = () => {
 
               <Form.Group controlId="rsus">
                 <FormControl fullWidth margin="normal">
-                  <InputLabel>RSUs</InputLabel>
+                  <InputLabel htmlFor="rsus" required>
+                    RSUs
+                  </InputLabel>
                   <Select
                     id="rsus"
                     label="RSUs"
                     multiple
-                    value={selectedRsus.map((rsu) => rsu.name)}
-                    defaultValue={selectedRsus.map((rsu) => rsu.name)}
+                    required
+                    value={watchedRsus || []}
+                    {...register('rsus', { required: true })}
                     onChange={(event) => {
-                      const selectedRsus = event.target.value as string[]
-                      dispatch(setSelectedRsus(rsus.filter((rsu) => selectedRsus.includes(rsu.name))))
+                      const value = event.target.value as string[]
+                      setValue('rsus', value)
                     }}
                   >
-                    {rsus.map((rsu) => (
-                      <MenuItem key={rsu.name} value={rsu.name}>
-                        {rsu.name}
+                    {allowedSelections.rsus?.map((rsu) => (
+                      <MenuItem key={rsu} value={rsu}>
+                        {rsu}
                       </MenuItem>
                     ))}
                   </Select>
@@ -379,29 +408,25 @@ const AdminEditIntersection = () => {
               form="edit-intersection-form"
               type="submit"
               variant="contained"
+              disabled={isPatchingIntersection}
               style={{ position: 'absolute', bottom: 10, right: 10 }}
               className="museo-slab capital-case"
             >
-              Apply Changes
+              {isPatchingIntersection ? 'Saving...' : 'Apply Changes'}
             </Button>
           </DialogActions>
         </>
+      ) : isLoading ? (
+        <DialogContent sx={{ width: '600px', padding: '5px 10px' }}>
+          <Typography variant={'h4'}>Loading...</Typography>
+        </DialogContent>
       ) : (
-        !isLoading && (
-          <DialogContent>
-            <Typography variant={'h4'}>
-              Unknown Intersection ID. Either this Intersection does not exist, or you do not have access to it.
-            </Typography>
-            <AdminButton
-              onClick={() => {
-                setOpen(false)
-                navigate('/dashboard/admin/intersections')
-              }}
-            >
-              Close
-            </AdminButton>
-          </DialogContent>
-        )
+        <DialogContent sx={{ width: '600px', padding: '5px 10px' }}>
+          <Typography variant={'h4'}>
+            Unknown Intersection ID. Either this intersection does not exist, or you do not have access to it.{' '}
+            <Link to="../">Intersections</Link>
+          </Typography>
+        </DialogContent>
       )}
     </Dialog>
   )

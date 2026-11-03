@@ -1,5 +1,11 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`AdminEditRsu > should take a snapshot 1`] = `
+<div
+  aria-hidden="true"
+/>
+`;
+
 exports[`should take a snapshot 1`] = `
 <div
   aria-hidden="true"
