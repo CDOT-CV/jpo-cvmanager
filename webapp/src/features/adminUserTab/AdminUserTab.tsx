@@ -1,31 +1,31 @@
-import { useState, useRef, useCallback } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import { confirmAlert } from 'react-confirm-alert'
+import { useSelector } from 'react-redux'
+import { Options } from '../../components/AdminDeletionOptions'
+import AdminTable, { buildAdminTableQueryParams } from '../../components/AdminTable'
+import { selectOrganizationId } from '../../generalSlices/userSlice'
 import AdminAddUser from '../adminAddUser/AdminAddUser'
 import AdminEditUser from '../adminEditUser/AdminEditUser'
-import AdminTable, { buildAdminTableQueryParams } from '../../components/AdminTable'
-import { confirmAlert } from 'react-confirm-alert'
-import { Options } from '../../components/AdminDeletionOptions'
-import { selectOrganizationName } from '../../generalSlices/userSlice'
-import { useSelector } from 'react-redux'
 
-import '../adminRsuTab/Admin.css'
 import { Action } from '@material-table/core'
-import { Route, Routes, useNavigate } from 'react-router-dom'
-import { NotFound } from '../../pages/404'
-import toast from 'react-hot-toast'
 import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
 import { useTheme } from '@mui/material'
+import toast from 'react-hot-toast'
+import { Route, Routes, useNavigate } from 'react-router-dom'
+import { useAdminTableQuerySync } from '../../hooks/useAdminTableQuerySync'
+import { NotFound } from '../../pages/404'
+import '../adminRsuTab/Admin.css'
 import {
   useDeleteMultipleUsersMutation,
   useDeleteUserMutation,
   useGetUsersQuery,
   useLazyGetUsersQuery,
 } from '../api/userApiSlice'
-import { useAdminTableQuerySync } from '../../hooks/useAdminTableQuerySync'
 
 const AdminUserTab = () => {
   const navigate = useNavigate()
   const theme = useTheme()
-  const organization = useSelector(selectOrganizationName)
+  const organization = useSelector(selectOrganizationId)
 
   const tableRef = useRef<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -34,7 +34,7 @@ const AdminUserTab = () => {
     size: 20,
     sort: 'first_name,asc',
     search: '',
-    organization: organization || '',
+    organization: organization || -1,
   })
 
   const [trigger] = useLazyGetUsersQuery()

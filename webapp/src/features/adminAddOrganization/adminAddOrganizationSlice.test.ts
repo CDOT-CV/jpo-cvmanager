@@ -1,14 +1,13 @@
-import reducer from './adminAddOrganizationSlice'
-import {
+import apiHelper from '../../apis/api-helper'
+import EnvironmentVars from '../../EnvironmentVars'
+import { RootState } from '../../store'
+import reducer, {
   // async thunks
   addOrg,
 
   // selectors
   selectLoading,
 } from './adminAddOrganizationSlice'
-import apiHelper from '../../apis/api-helper'
-import EnvironmentVars from '../../EnvironmentVars'
-import { RootState } from '../../store'
 
 describe('admin add organization reducer', () => {
   it('should handle initial state', () => {

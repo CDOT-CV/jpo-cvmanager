@@ -1,32 +1,32 @@
 import { useMemo } from 'react'
+import { confirmAlert } from 'react-confirm-alert'
+import { useDispatch, useSelector } from 'react-redux'
+import { Options } from '../../components/AdminDeletionOptions'
+import AdminTable from '../../components/AdminTable'
+import { selectOrganizationId } from '../../generalSlices/userSlice'
 import AdminAddIntersection from '../adminAddIntersection/AdminAddIntersection'
 import AdminEditIntersection, { AdminEditIntersectionFormType } from '../adminEditIntersection/AdminEditIntersection'
-import AdminTable from '../../components/AdminTable'
-import { confirmAlert } from 'react-confirm-alert'
-import { Options } from '../../components/AdminDeletionOptions'
-import { setEditIntersectionRowData, selectColumns } from './adminIntersectionTabSlice'
-import { selectOrganizationName } from '../../generalSlices/userSlice'
 import { clear } from '../adminEditIntersection/adminEditIntersectionSlice'
-import { useSelector, useDispatch } from 'react-redux'
-import { useGetIntersectionsQuery, useDeleteIntersectionMutation } from '../api/adminIntersectionApiSlice'
+import { useDeleteIntersectionMutation, useGetIntersectionsQuery } from '../api/adminIntersectionApiSlice'
+import { selectColumns, setEditIntersectionRowData } from './adminIntersectionTabSlice'
 
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
 import { Action } from '@material-table/core'
-import { Route, Routes, useNavigate } from 'react-router-dom'
-import { NotFound } from '../../pages/404'
-import toast from 'react-hot-toast'
 import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
 import { useTheme } from '@mui/material'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import toast from 'react-hot-toast'
+import { Route, Routes, useNavigate } from 'react-router-dom'
+import { NotFound } from '../../pages/404'
+import { RootState } from '../../store'
 
 const AdminIntersectionTab = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const navigate = useNavigate()
   const theme = useTheme()
 
-  const organization = useSelector(selectOrganizationName)
-  const { data, isFetching, refetch } = useGetIntersectionsQuery(organization ?? '', {
-    skip: !organization,
+  const organizationId = useSelector(selectOrganizationId)
+  const { data, isFetching, refetch } = useGetIntersectionsQuery(organizationId ?? -1, {
+    skip: !organizationId,
   })
   const [deleteIntersectionMutation] = useDeleteIntersectionMutation()
 

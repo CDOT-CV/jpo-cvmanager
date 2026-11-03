@@ -1,7 +1,7 @@
 import fetchMock from 'jest-fetch-mock'
+import EnvironmentVars from '../../EnvironmentVars'
 import { setupStore } from '../../store'
 import { adminIntersectionApiSlice } from './adminIntersectionApiSlice'
-import EnvironmentVars from '../../EnvironmentVars'
 
 const BASE_URL = `${EnvironmentVars.CVIZ_API_SERVER_URL}/admin/intersections`
 
@@ -52,13 +52,13 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
 
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       expect(fetchMock).toHaveBeenCalledTimes(1)
       const request = getRequest()
       expect(request.url).toBe(`${BASE_URL}`)
       expect(request.headers.get('Authorization')).toBe('Bearer test-token')
-      expect(request.headers.get('Organization')).toBe('test-org')
+      expect(request.headers.get('Organization')).toBe('1')
       expect(request.method).toBe('GET')
     })
 
@@ -66,9 +66,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
 
-      const result = await store.dispatch(
-        adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org')
-      )
+      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       expect(result.data).toEqual({ intersection_data: mockIntersectionData })
     })
@@ -77,9 +75,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ message: 'Internal Server Error' }), { status: 500 })
 
-      const result = await store.dispatch(
-        adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org')
-      )
+      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       expect(result.error).toBeDefined()
       expect(result.error).toHaveProperty('status', 500)
@@ -115,9 +111,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify(singleIntersectionResponse))
 
-      const result = await store.dispatch(
-        adminIntersectionApiSlice.endpoints.getIntersection.initiate('1001')
-      )
+      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersection.initiate('1001'))
 
       expect(result.data).toEqual(singleIntersectionResponse)
     })
@@ -133,9 +127,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify(allowedSelectionsResponse))
 
-      await store.dispatch(
-        adminIntersectionApiSlice.endpoints.getIntersectionAllowedSelections.initiate()
-      )
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersectionAllowedSelections.initiate())
 
       expect(getRequest().url).toBe(`${BASE_URL}/allowed-selections`)
     })
@@ -167,9 +159,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Created' }))
 
-      await store.dispatch(
-        adminIntersectionApiSlice.endpoints.createIntersection.initiate(createBody)
-      )
+      await store.dispatch(adminIntersectionApiSlice.endpoints.createIntersection.initiate(createBody))
 
       const request = getRequest()
       expect(request.url).toBe(`${BASE_URL}`)
@@ -182,9 +172,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce('', { status: 200 })
 
-      const result = await store.dispatch(
-        adminIntersectionApiSlice.endpoints.createIntersection.initiate(createBody)
-      )
+      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.createIntersection.initiate(createBody))
 
       expect('data' in result).toBe(true)
     })
@@ -207,9 +195,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Updated' }))
 
-      await store.dispatch(
-        adminIntersectionApiSlice.endpoints.patchIntersection.initiate(patchBody)
-      )
+      await store.dispatch(adminIntersectionApiSlice.endpoints.patchIntersection.initiate(patchBody))
 
       const request = getRequest()
       expect(request.url).toBe(`${BASE_URL}`)
@@ -223,9 +209,7 @@ describe('adminIntersectionApiSlice', () => {
       const responseBody = { success: true, message: 'Updated' }
       fetchMock.mockResponseOnce(JSON.stringify(responseBody))
 
-      const result = await store.dispatch(
-        adminIntersectionApiSlice.endpoints.patchIntersection.initiate(patchBody)
-      )
+      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.patchIntersection.initiate(patchBody))
 
       expect('data' in result).toBe(true)
       if ('data' in result) {
@@ -239,9 +223,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Deleted' }))
 
-      await store.dispatch(
-        adminIntersectionApiSlice.endpoints.deleteIntersection.initiate('1001')
-      )
+      await store.dispatch(adminIntersectionApiSlice.endpoints.deleteIntersection.initiate('1001'))
 
       const request = getRequest()
       expect(request.url).toBe(`${BASE_URL}/1001`)
@@ -253,9 +235,7 @@ describe('adminIntersectionApiSlice', () => {
       const responseBody = { success: true, message: 'Deleted' }
       fetchMock.mockResponseOnce(JSON.stringify(responseBody))
 
-      const result = await store.dispatch(
-        adminIntersectionApiSlice.endpoints.deleteIntersection.initiate('1001')
-      )
+      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.deleteIntersection.initiate('1001'))
 
       expect('data' in result).toBe(true)
       if ('data' in result) {
@@ -267,9 +247,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ message: 'Not found' }), { status: 404 })
 
-      const result = await store.dispatch(
-        adminIntersectionApiSlice.endpoints.deleteIntersection.initiate('9999')
-      )
+      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.deleteIntersection.initiate('9999'))
 
       expect('error' in result).toBe(true)
       if ('error' in result) {
@@ -283,7 +261,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
 
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       const state = store.getState()
       const tags = state.adminIntersectionApi.provided
@@ -299,7 +277,7 @@ describe('adminIntersectionApiSlice', () => {
 
       // Populate cache
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       // Delete intersection — triggers refetch of invalidated queries
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Deleted' }))
@@ -315,7 +293,7 @@ describe('adminIntersectionApiSlice', () => {
 
       // Populate cache
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       // Create intersection — triggers refetch of LIST
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Created' }))
@@ -324,7 +302,7 @@ describe('adminIntersectionApiSlice', () => {
         orig_intersection_id: '2001',
         intersection_id: '2001',
         ref_pt: { latitude: '40.0', longitude: '-105.0' },
-        organizations: ['test-org'],
+        organizations: ['1'],
         rsus: ['10.0.0.20'],
       }
       await store.dispatch(adminIntersectionApiSlice.endpoints.createIntersection.initiate(createBody))
@@ -337,7 +315,7 @@ describe('adminIntersectionApiSlice', () => {
 
       // Populate cache
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       // Patch intersection — triggers refetch
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Updated' }))
@@ -369,7 +347,7 @@ describe('adminIntersectionApiSlice', () => {
       })
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: [] }))
 
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       const request = getRequest()
       expect(request.headers.has('Authorization')).toBe(false)

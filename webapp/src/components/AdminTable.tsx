@@ -1,18 +1,18 @@
-import React from 'react'
 import MaterialTable, {
-  Action,
-  Column,
-  MTableAction,
-  MTableCell,
-  MTableToolbar,
-  Query,
-  QueryResult,
+    Action,
+    Column,
+    MTableAction,
+    MTableCell,
+    MTableToolbar,
+    Query,
+    QueryResult,
 } from '@material-table/core'
 import { makeStyles } from '@mui/styles'
+import React from 'react'
 
-import '../features/adminRsuTab/Admin.css'
-import { alpha, Tooltip, useTheme, Button, Typography, Box } from '@mui/material'
 import { AddCircleOutline, DeleteOutline, ModeEditOutline, Refresh } from '@mui/icons-material'
+import { alpha, Box, Button, Tooltip, Typography, useTheme } from '@mui/material'
+import '../features/adminRsuTab/Admin.css'
 
 interface AdminTableProps {
   actions: (Action<any> | ((row: any) => Action<any>))[]
@@ -77,7 +77,7 @@ const getActionIcon = (title: string) => {
 export const buildAdminTableQueryParams = (
   query,
   columns,
-  organization: string | undefined,
+  organization: number | undefined,
   orderByDefault: string,
   orderDirectionDefault: string = 'asc'
 ) => {
@@ -102,7 +102,7 @@ export const buildAdminTableQueryParams = (
     size: query.pageSize,
     sort: `${orderBy},${orderDirection}`,
     search: query.search || '',
-    organization: organization || '', // Add organization parameter
+    organization: organization || -1, // Add organization parameter
   }
   return params
 }
@@ -164,6 +164,7 @@ const AdminTable = (props: AdminTableProps) => {
           headerStyle: {
             backgroundColor: theme.palette.background.paper,
           },
+          emptyRowsWhenPaging: false, // Prevents tall empty rows
           pageSize: props.defaultPageSize ?? 25,
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,
