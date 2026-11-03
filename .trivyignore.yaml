@@ -55,11 +55,6 @@ vulnerabilities:
     purls: ["pkg:deb/debian/libexpat1"]
     statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
     expired_at: 2026-11-30
-  # CRITICAL; fixed in 3.0.1; firmware-upgrade-runner, firmware-upgrade-scheduler, repository
-  - id: CVE-2024-49768
-    purls: ["pkg:pypi/waitress"]
-    statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
-    expired_at: 2026-11-30
   # CRITICAL; fixed in 2.11.8-r1; ota-nginx
   - id: CVE-2024-56171
     purls: ["pkg:apk/alpine/libxml2"]
