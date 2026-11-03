@@ -1,8 +1,10 @@
 package us.dot.its.jpo.ode.api.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
@@ -20,4 +22,8 @@ public interface RsuCredentialRepository extends JpaRepository<RsuCredential, In
     boolean existsByNickname(String nickname);
 
     boolean existsByNicknameAndOwnerOrganizationIn(String nickname, List<Organization> organizations);
+
+    @Modifying
+    @Transactional
+    void removeByOwnerOrganization(Organization organization);
 }
