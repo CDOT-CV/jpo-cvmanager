@@ -21,16 +21,17 @@ import static us.dot.its.jpo.snmp.client.SnmpException.Kind.*;
 
 /**
  * NTCIP 1218 device procedures built on the generic SNMP client.
- * Direct callers should share an instance for local write coordination. Task recipes use the
- * executor's endpoint serialization; separate executors or external writers need caller coordination.
+ * Instances share bounded endpoint locks for local procedure coordination. Task recipes also use
+ * the executor's serialization to keep follow-up snapshots and callbacks with their procedure.
+ * Separate executors or external writers still need caller coordination for whole tasks.
  * Communication failures and malformed device data are reported as {@link SnmpException}.
  */
 public final class Ntcip1218Client {
     private static final Logger log = LoggerFactory.getLogger(Ntcip1218Client.class);
     private static final String ROOT = "1.3.6.1.4.1.1206.4.2.18.";
+    private static final ReentrantLock[] LOCKS = endpointLocks();
     private final SnmpClient client;
     private final Clock clock;
-    private final ReentrantLock[] locks = new ReentrantLock[256];
 
     /**
      * Borrows a generic client; this helper does not close it or own its transports.
@@ -40,7 +41,6 @@ public final class Ntcip1218Client {
     public Ntcip1218Client(SnmpClient client, Clock clock) {
         this.client = Objects.requireNonNull(client);
         this.clock = Objects.requireNonNull(clock);
-        for (int i = 0; i < locks.length; i++) locks[i] = new ReentrantLock(true);
     }
 
     /**
@@ -329,11 +329,17 @@ public final class Ntcip1218Client {
         if (value instanceof SnmpValue.Octets octets) return octets;
         throw new SnmpException(INVALID_OUTPUT, false);
     }
-    // Striped locks bound memory use for direct callers. A hash collision may serialize unrelated
-    // devices; it cannot let writes to the same endpoint overlap within this client instance.
+    private static ReentrantLock[] endpointLocks() {
+        var locks = new ReentrantLock[256];
+        for (int i = 0; i < locks.length; i++) locks[i] = new ReentrantLock(true);
+        return locks;
+    }
+
+    // One bounded set is shared across helper instances, including task-scoped wrappers.
+    // Hash collisions may serialize unrelated endpoints; locks do not coordinate other JVMs.
     private <T> T exclusive(Ntcip1218Device device, String name, boolean write, Function<OperationLog, T> action) {
         var target = device.target();
-        ReentrantLock lock = locks[Math.floorMod(Objects.hash(target.address(), target.port()), locks.length)];
+        ReentrantLock lock = LOCKS[Math.floorMod(Objects.hash(target.address(), target.port()), LOCKS.length)];
         try (var trace = new OperationLog(log, target, name, write)) {
             trace.step("device_lock");
             try {

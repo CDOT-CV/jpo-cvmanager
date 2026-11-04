@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -340,6 +342,48 @@ class Ntcip1218ClientTest {
         assertTrue(failure.writeOutcomeUnknown());
         assertEquals(1, agent.writes.size());
         assertTrue(client.readForwarding(DEVICE).isEmpty());
+    }
+
+    @Test void helperInstancesCoordinateConcurrentCreatesForTheSameEndpoint() throws Exception {
+        var firstRead = new CountDownLatch(1);
+        var releaseRead = new CountDownLatch(1);
+        var secondStarted = new CountDownLatch(1);
+        var secondRead = new CountDownLatch(1);
+        var reads = new AtomicInteger();
+        var agent = new MemoryAgent() {
+            @Override public List<SnmpBinding> walk(SnmpTarget target, SnmpOid root) {
+                var result = super.walk(target, root);
+                if (reads.incrementAndGet() == 1) {
+                    firstRead.countDown();
+                    try {
+                        if (!releaseRead.await(5, TimeUnit.SECONDS)) throw new AssertionError("First read was not released");
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new AssertionError(e);
+                    }
+                } else secondRead.countDown();
+                return result;
+            }
+        };
+        var request = new ForwardingRequest(MessageType.MAP, "198.51.100.20", false);
+        try (var workers = Executors.newVirtualThreadPerTaskExecutor()) {
+            var first = workers.submit(() -> client(agent).addForwarding(DEVICE, request));
+            try {
+                assertTrue(firstRead.await(5, TimeUnit.SECONDS));
+                var second = workers.submit(() -> {
+                    secondStarted.countDown();
+                    return client(agent).addForwarding(DEVICE, request);
+                });
+                assertTrue(secondStarted.await(5, TimeUnit.SECONDS));
+                assertFalse(secondRead.await(150, TimeUnit.MILLISECONDS));
+                releaseRead.countDown();
+                assertEquals(1, first.get(5, TimeUnit.SECONDS).value().index());
+                assertEquals(2, second.get(5, TimeUnit.SECONDS).value().index());
+            } finally {
+                releaseRead.countDown();
+            }
+        }
+        assertEquals(2, agent.writes.size());
     }
 
     @Test void profilesAreValidatedBeforeBatchCanRun() {

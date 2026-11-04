@@ -103,7 +103,9 @@ var values = result.value(measurements);
   After deleting a malformed row, another bad row may still prevent a complete snapshot.
 - SET is never retried automatically. Check device state before retrying an uncertain write.
 
-- Tasks for one IP/port run one at a time within an executor. Other devices can run in parallel.
+- [`Ntcip1218Client`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218Client.java) instances share a bounded set of endpoint locks within one JVM.
+  This prevents concurrent procedures from allocating the same row through different helpers.
+- Tasks for one IP/port run one at a time within an executor, including snapshots and callbacks. Other devices can run in parallel.
 - Separate executors or application replicas need their own coordination for writes.
 - Walks use GETNEXT by default. Optional GETBULK can reduce round trips; benchmark it on your devices.
 
