@@ -386,6 +386,13 @@ class Ntcip1218ClientTest {
         assertEquals(2, agent.writes.size());
     }
 
+    @Test void leapSecondDecodesAsTheLastRepresentableSecondWithoutHidingInvalidSeconds() {
+        var leap = new SnmpValue.Octets("07e80c1f173b3c07");
+        assertEquals(LocalDateTime.of(2024, 12, 31, 23, 59, 59, 700_000_000), NtcipDateAndTime.decode(leap));
+        assertThrows(IllegalArgumentException.class,
+                () -> NtcipDateAndTime.decode(new SnmpValue.Octets("07e80c1f173b3d07")));
+    }
+
     @Test void profilesAreValidatedBeforeBatchCanRun() {
         assertEquals(DEVICE, new Ntcip1218Device(DEVICE.target()));
         assertEquals(DEVICE, new Ntcip1218Device(DEVICE.target().address(), DEVICE.target().credentials()));

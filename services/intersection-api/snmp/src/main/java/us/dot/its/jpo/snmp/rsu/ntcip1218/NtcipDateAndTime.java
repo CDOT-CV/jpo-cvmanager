@@ -30,17 +30,22 @@ public final class NtcipDateAndTime {
      * Decodes UTC calendar fields without applying the machine's timezone.
      *
      * @param value eight-byte date without an offset field
-     * @return decoded UTC calendar fields
+     * @return decoded UTC calendar fields; leap seconds are represented as second 59
      * @throws IllegalArgumentException if the value is not eight octets or has invalid date/time fields
      */
     public static LocalDateTime decode(SnmpValue.Octets value) {
         byte[] bytes = value.bytes();
         if (bytes.length != 8 || Byte.toUnsignedInt(bytes[7]) > 9) throw new IllegalArgumentException("Invalid DateAndTime length/decisecond");
 
+        int second = Byte.toUnsignedInt(bytes[6]);
+        if (second > 60) throw new IllegalArgumentException("Invalid DateAndTime second");
+        // DateAndTime permits leap second 60; java.time calendar fields cannot represent it.
+        if (second == 60) second = 59;
+
         try {
             return LocalDateTime.of(Short.toUnsignedInt(ByteBuffer.wrap(bytes).getShort()), Byte.toUnsignedInt(bytes[2]),
                     Byte.toUnsignedInt(bytes[3]), Byte.toUnsignedInt(bytes[4]), Byte.toUnsignedInt(bytes[5]),
-                    Byte.toUnsignedInt(bytes[6]), Byte.toUnsignedInt(bytes[7]) * 100_000_000);
+                    second, Byte.toUnsignedInt(bytes[7]) * 100_000_000);
         } catch (DateTimeException failure) {
             // Row readers translate validation failures to INVALID_OUTPUT and retain write uncertainty.
             throw new IllegalArgumentException("Invalid DateAndTime calendar fields");
