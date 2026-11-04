@@ -1,4 +1,15 @@
+# Corretto 21.0.13.0.11 fixes CVE-2026-114820 before Debian 13 packages do.
+FROM amazoncorretto:21@sha256:f9a740a8c4b33f8356490a533618dbd0f2a3e72442de309c73572d9b1e4b40fa AS java-runtime
+
+# Dereference the RPM runtime and truststore symlinks for the Debian image.
+RUN cp -aL "$JAVA_HOME" /opt/java-runtime
+
 FROM python:3.12-slim
+
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+COPY --from=java-runtime /opt/java-runtime/ ${JAVA_HOME}/
 
 WORKDIR /home
 
@@ -8,8 +19,8 @@ COPY addons/images/firmware_manager/upgrade_runner/*.py .
 COPY common/*.py ./common/
 
 RUN pip3 install -r requirements.txt 
-# The Yunex CLI needs no desktop libraries; headless Java avoids pulling in libxml2.
-RUN apt-get update && apt-get install -y --no-install-recommends default-jdk-headless iputils-ping
+# The Yunex CLI needs no desktop libraries or Debian OpenJDK packages.
+RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 iputils-ping
 
 CMD ["/home/upgrade_runner.py"]
 ENTRYPOINT ["python3"]

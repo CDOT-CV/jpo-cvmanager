@@ -88,6 +88,8 @@ The Firmware Manager is also able to run a bash script on Commsignia RSUs after 
 
 ### Yunex
 
+The upgrade runner uses Amazon Corretto 21.0.13.0.11 from a digest-pinned official image to run the unchanged `xfer_yunex.jar`. This build fixes [CVE-2026-114820](https://github.com/corretto/corretto-21/blob/21.0.13.0.11/CHANGELOG.md), which is not yet fixed in Debian 13 OpenJDK packages. When refreshing the Java image digest in `services/Dockerfile.fmur`, verify the Corretto release notes, run the XFER CLI smoke checks, and re-scan the final image. Existing vulnerabilities inside the vendor JAR remain accepted.
+
 Each upgrade requires 4 total files tarred up into a single TAR file:
 
 - Core upgrade file - Provided by Yunex
