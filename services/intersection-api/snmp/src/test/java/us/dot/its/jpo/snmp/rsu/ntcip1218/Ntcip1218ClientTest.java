@@ -386,6 +386,18 @@ class Ntcip1218ClientTest {
         assertEquals(2, agent.writes.size());
     }
 
+    @ParameterizedTest
+    @CsvSource({"8.10.1.4, 255, true", "8.10.1.4, 256, false", "8.10.1.5, 65535, true", "8.10.1.5, 65536, false"})
+    void certificateHourColumnsUseTheirOwnBounds(String suffix, int value, boolean valid) {
+        var agent = new MemoryAgent();
+        agent.data.put(new SnmpOid("1.3.6.1.4.1.1206.4.2.18." + suffix + ".1"), new SnmpValue.IntegerValue(value));
+        var client = client(agent);
+        java.util.function.Supplier<Map<Integer, Integer>> read = suffix.endsWith(".4")
+                ? () -> client.readCertificateExpirationHours(DEVICE) : () -> client.readCertificateRequestHours(DEVICE);
+        if (valid) assertEquals(Map.of(1, value), read.get());
+        else assertEquals(SnmpException.Kind.INVALID_OUTPUT, assertThrows(SnmpException.class, read::get).kind());
+    }
+
     @Test void leapSecondDecodesAsTheLastRepresentableSecondWithoutHidingInvalidSeconds() {
         var leap = new SnmpValue.Octets("07e80c1f173b3c07");
         assertEquals(LocalDateTime.of(2024, 12, 31, 23, 59, 59, 700_000_000), NtcipDateAndTime.decode(leap));

@@ -62,9 +62,9 @@ public final class Ntcip1218Client {
 
     private List<ForwardingRow> readTable(Ntcip1218Device device, ForwardingTable table) {
         Map<Integer, Map<Integer, SnmpValue>> rows = new java.util.TreeMap<>();
+        String prefix = table.root().value() + ".1.";
         try {
             for (SnmpBinding binding : client.walk(device.target(), table.root())) {
-                String prefix = table.root().value() + ".1.";
                 if (!binding.oid().value().startsWith(prefix)) throw new IllegalArgumentException();
                 String[] suffix = binding.oid().value().substring(prefix.length()).split("\\.");
                 if (suffix.length != 2) throw new IllegalArgumentException();
@@ -129,21 +129,20 @@ public final class Ntcip1218Client {
             trace.step("select_row");
             if (index > 127) throw new IllegalStateException("Forwarding index exceeds compatibility limit 127");
             trace.rowSelected(index);
-            List<SnmpBinding> expected = createBindings(request, index);
+            Map<Integer, SnmpValue> expected = createColumnValues(request);
 
             trace.step("create_row");
             trace.writeStarting();
-            client.set(device.target(), expected);
+            client.set(device.target(), bindings(table, index, expected));
 
             try {
                 trace.step("verify_row");
                 ForwardingRow row = readRow(device, table, index)
                         .orElseThrow(() -> new SnmpException(VERIFICATION, true));
-                for (SnmpBinding binding : expected) {
-                    String[] parts = binding.oid().value().split("\\.");
-                    int column = Integer.parseInt(parts[parts.length - 2]);
+                for (var entry : expected.entrySet()) {
+                    int column = entry.getKey();
                     // createAndGo is a SET instruction; an active row reads back as status 1.
-                    SnmpValue value = column == table.statusColumn() ? new SnmpValue.IntegerValue(1) : binding.value();
+                    SnmpValue value = column == table.statusColumn() ? new SnmpValue.IntegerValue(1) : entry.getValue();
                     if (!value.equals(row.columns().get(column))) throw new SnmpException(VERIFICATION, true);
                 }
 
@@ -246,6 +245,14 @@ public final class Ntcip1218Client {
      * @throws IllegalArgumentException if the row index is outside the MIB's 1-255 range
      */
     public List<SnmpBinding> createBindings(ForwardingRequest request, int index) {
+        return bindings(request.messageType().table(), index, createColumnValues(request));
+    }
+
+    private static List<SnmpBinding> bindings(ForwardingTable table, int index, Map<Integer, SnmpValue> values) {
+        return values.entrySet().stream().map(e -> new SnmpBinding(table.cell(e.getKey(), index), e.getValue())).toList();
+    }
+
+    private Map<Integer, SnmpValue> createColumnValues(ForwardingRequest request) {
         var table = request.messageType().table();
         Map<Integer, SnmpValue> values = new LinkedHashMap<>();
         values.put(2, request.messageType().psid());
@@ -268,7 +275,7 @@ public final class Ntcip1218Client {
         if (table == ForwardingTable.RECEIVE) values.put(12, new SnmpValue.IntegerValue(0));
         else values.put(table.statusColumn(), new SnmpValue.IntegerValue(4));
 
-        return values.entrySet().stream().map(e -> new SnmpBinding(table.cell(e.getKey(), index), e.getValue())).toList();
+        return values;
     }
 
     /** Returns the firmware version as text; a missing or non-octet value is a read failure. */
@@ -298,16 +305,16 @@ public final class Ntcip1218Client {
      * Values remain raw: 0 means expiring that day, 254 means at least 254 hours, and 255 means expired.
      * @return immutable row-index/hour map
      */
-    public Map<Integer, Integer> readCertificateExpirationHours(Ntcip1218Device device) { return hours(device, "8.10.1.4"); }
+    public Map<Integer, Integer> readCertificateExpirationHours(Ntcip1218Device device) { return hours(device, "8.10.1.4", 255); }
 
     /**
      * Reads the configured renewal lead time in hours before certificate expiration, keyed by row.
      * Unlike expiration hours, these are plain values in 0-65535, not expiration sentinels.
      * @return immutable row-index/lead-time map
      */
-    public Map<Integer, Integer> readCertificateRequestHours(Ntcip1218Device device) { return hours(device, "8.10.1.5"); }
+    public Map<Integer, Integer> readCertificateRequestHours(Ntcip1218Device device) { return hours(device, "8.10.1.5", 65535); }
 
-    private Map<Integer, Integer> hours(Ntcip1218Device device, String suffix) {
+    private Map<Integer, Integer> hours(Ntcip1218Device device, String suffix, int maximum) {
         SnmpOid root = new SnmpOid(ROOT + suffix);
         Map<Integer, Integer> result = new LinkedHashMap<>();
         for (SnmpBinding binding : client.walk(device.target(), root)) {
@@ -315,7 +322,7 @@ public final class Ntcip1218Client {
             String index = binding.oid().value().substring(root.value().length() + 1);
             try {
                 int row = Integer.parseInt(index), value = integer(binding.value());
-                if (row < 1 || value < 0 || value > (suffix.endsWith(".4") ? 255 : 65535) || result.put(row, value) != null) throw new IllegalArgumentException();
+                if (row < 1 || value < 0 || value > maximum || result.put(row, value) != null) throw new IllegalArgumentException();
             } catch (IllegalArgumentException e) { throw new SnmpException(INVALID_OUTPUT, false); }
         }
         return Map.copyOf(result);
