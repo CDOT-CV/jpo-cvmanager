@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.Integer32;
@@ -121,6 +123,47 @@ class Ntcip1218ForwardingTasksTest {
             assertThrows(IllegalArgumentException.class, () -> tasks.deleteWithSnapshot(device,
                     ForwardingTable.RECEIVE, 256, request.destination(), 46800, new SnapshotAction("save", rows -> {})));
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void selectedRowRecipeDeletesIpv6DestinationsIncludingIncompleteRows(boolean incomplete) throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client)) {
+            var device = new Ntcip1218Device(agent.target());
+            run(executor, tasks.create(device, request));
+            var table = ForwardingTable.TRANSMIT;
+            agent.values.put(new OID(table.cell(3, 1).value()), new OctetString("2001:db8::1"));
+            if (incomplete) {
+                agent.values.remove(new OID(table.cell(table.startColumn(), 1).value()));
+                agent.integer(table.cell(table.statusColumn(), 1).value(), 3);
+            }
+            var callbacks = new AtomicInteger();
+            var result = run(executor, tasks.deleteWithSnapshot(device, table, 1, "2001:db8::1", 44920,
+                    new SnapshotAction("save", rows -> {
+                        assertTrue(rows.isEmpty());
+                        callbacks.incrementAndGet();
+                    })));
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED, result.status());
+            assertEquals(SnmpTaskResult.WriteState.VERIFIED, result.writeState());
+            assertEquals(true, Ntcip1218ForwardingTasks.changed(result));
+            assertEquals(1, callbacks.get());
+            assertEquals(2, agent.writes.get());
+            assertEquals(List.of("GET", "SET", "GET"), result.steps().getFirst().commands().stream()
+                    .map(SnmpCommandResult::operation).toList());
+        }
+    }
+
+    @Test void selectedRowRecipeValidatesDestinationBytesBeforeSubmission() {
+        var device = new Ntcip1218Device("192.0.2.10", CREDS);
+        var callback = new SnapshotAction("save", rows -> {});
+        for (String invalid : java.util.Arrays.asList(null, "x".repeat(65), "\u00e9".repeat(33))) {
+            assertThrows(IllegalArgumentException.class, () -> tasks.deleteWithSnapshot(device,
+                    ForwardingTable.RECEIVE, 1, invalid, 46800, callback));
+        }
+        assertNotNull(tasks.deleteWithSnapshot(device, ForwardingTable.RECEIVE, 1, "\u00e9".repeat(32), 46800, callback));
+        assertNotNull(tasks.deleteWithSnapshot(device, ForwardingTable.RECEIVE, 1, "", 46800, callback));
+        assertThrows(IllegalArgumentException.class,
+                () -> tasks.delete(device, MessageType.MAP, "2001:db8::1"));
     }
 
     @Test void defaultProcedureDoesNotReadUnrelatedTablesButExplicitSnapshotRequiresThem() throws Exception {

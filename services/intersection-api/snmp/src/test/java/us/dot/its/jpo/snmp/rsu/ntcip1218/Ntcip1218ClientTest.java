@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import us.dot.its.jpo.snmp.client.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -126,7 +127,9 @@ class Ntcip1218ClientTest {
         assertEquals(2, walks.get()); assertEquals(2, gets.get());
     }
 
-    @Test void partialMissingRowAfterDeleteDoesNotConfirmAbsence() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void partialMissingRowAfterDeleteDoesNotConfirmAbsence(boolean selectedRow) {
         var agent = new MemoryAgent() {
             @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) {
                 var result = new ArrayList<>(super.get(target, oids));
@@ -136,8 +139,10 @@ class Ntcip1218ClientTest {
         };
         var client = client(agent);
         client.addForwarding(DEVICE, new ForwardingRequest(MessageType.BSM, "198.51.100.20", true));
-        var failure = assertThrows(SnmpException.class,
-                () -> client.deleteForwarding(DEVICE, MessageType.BSM, "198.51.100.20"));
+        var failure = assertThrows(SnmpException.class, () -> {
+            if (selectedRow) client.deleteForwarding(DEVICE, ForwardingTable.RECEIVE, 1, "198.51.100.20", 46800);
+            else client.deleteForwarding(DEVICE, MessageType.BSM, "198.51.100.20");
+        });
         assertEquals(SnmpException.Kind.INVALID_OUTPUT, failure.kind());
         assertTrue(failure.writeOutcomeUnknown());
         assertEquals(2, agent.writes.size());
@@ -216,6 +221,125 @@ class Ntcip1218ClientTest {
             assertFalse(create.writeOutcomeUnknown());
         }
         assertEquals(1, agent.writes.size());
+    }
+
+    @ParameterizedTest
+    @EnumSource(ForwardingTable.class)
+    void selectedRowDeleteRecoversMalformedTables(ForwardingTable table) {
+        var message = table == ForwardingTable.RECEIVE ? MessageType.BSM : MessageType.MAP;
+        var request = new ForwardingRequest(message, "198.51.100.20", false);
+        for (int malformed = 0; malformed < 3; malformed++) {
+            var agent = new MemoryAgent();
+            var client = client(agent);
+            for (var binding : client.createBindings(request, 1)) agent.data.put(binding.oid(), binding.value());
+            if (malformed == 0) {
+                // An incomplete notReady row still has enough destination evidence for deletion.
+                agent.data.remove(table.cell(2, 1));
+                agent.data.put(table.cell(table.statusColumn(), 1), new SnmpValue.IntegerValue(3));
+            } else if (malformed == 1) {
+                agent.data.put(table.cell(5, 1), new SnmpValue.IntegerValue(99));
+            } else {
+                agent.data.put(table.cell(table.startColumn(), 1), new SnmpValue.Octets("07e8011e0c2200002b0000"));
+            }
+
+            assertEquals(SnmpException.Kind.INVALID_OUTPUT,
+                    assertThrows(SnmpException.class, () -> client.readForwarding(DEVICE)).kind());
+            assertThrows(SnmpException.class, () -> client.addForwarding(DEVICE, request));
+            assertTrue(agent.writes.isEmpty());
+
+            assertTrue(client.deleteForwarding(DEVICE, table, 1, request.destination(), message.port()).changed());
+            assertEquals(1, agent.writes.size());
+            assertEquals(List.of(), client.readForwarding(DEVICE));
+            assertEquals(1, client.addForwarding(DEVICE, request).value().index());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2001:db8::1", "device.example", ""})
+    void selectedRowDeleteMatchesExistingDestinationTextWithoutAllowingItOnCreate(String destination) {
+        for (var table : ForwardingTable.values()) {
+            var agent = new MemoryAgent();
+            var client = client(agent);
+            var message = table == ForwardingTable.RECEIVE ? MessageType.BSM : MessageType.MAP;
+            for (var binding : client.createBindings(new ForwardingRequest(message, "198.51.100.20", false), 1)) {
+                agent.data.put(binding.oid(), binding.value());
+            }
+            agent.data.put(table.cell(3, 1), SnmpValue.Octets.text(destination));
+            assertEquals(destination, client.readForwarding(DEVICE).getFirst().destination());
+            assertTrue(client.deleteForwarding(DEVICE, table, 1, destination, message.port()).changed());
+            assertEquals(1, agent.writes.size());
+        }
+        assertThrows(IllegalArgumentException.class,
+                () -> new ForwardingRequest(MessageType.MAP, destination, false));
+    }
+
+    @Test void selectedRowDestinationUsesByteLengthAndExactOctets() {
+        var agent = new MemoryAgent();
+        var client = client(agent);
+        var table = ForwardingTable.TRANSMIT;
+        String destination = "\u00e9".repeat(32);
+        agent.data.put(table.cell(3, 1), SnmpValue.Octets.text(destination));
+        agent.data.put(table.cell(4, 1), new SnmpValue.IntegerValue(44920));
+        assertTrue(client.deleteForwarding(DEVICE, table, 1, destination, 44920).changed());
+        for (String invalid : java.util.Arrays.asList(null, "x".repeat(65), "\u00e9".repeat(33))) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> client.deleteForwarding(DEVICE, table, 1, invalid, 44920));
+        }
+        assertEquals(1, agent.writes.size());
+    }
+
+    @Test void selectedMalformedRowStillRequiresReadableMatchingDestinationAndPort() {
+        var table = ForwardingTable.RECEIVE;
+        var agent = new MemoryAgent();
+        var client = client(agent);
+        agent.data.put(table.cell(3, 1), SnmpValue.Octets.text("198.51.100.20"));
+        agent.data.put(table.cell(4, 1), new SnmpValue.IntegerValue(46800));
+        var stale = assertThrows(SnmpException.class,
+                () -> client.deleteForwarding(DEVICE, table, 1, "198.51.100.21", 46800));
+        assertEquals(SnmpException.Kind.VERIFICATION, stale.kind());
+        assertFalse(stale.writeOutcomeUnknown());
+        assertThrows(SnmpException.class,
+                () -> client.deleteForwarding(DEVICE, table, 1, "198.51.100.20", 46801));
+
+        agent.data.remove(table.cell(3, 1));
+        var missing = assertThrows(SnmpException.class,
+                () -> client.deleteForwarding(DEVICE, table, 1, "198.51.100.20", 46800));
+        assertEquals(SnmpException.Kind.INVALID_OUTPUT, missing.kind());
+        assertFalse(missing.writeOutcomeUnknown());
+        agent.data.put(table.cell(3, 1), SnmpValue.Octets.text("198.51.100.20"));
+        agent.data.put(table.cell(4, 1), SnmpValue.Octets.text("46800"));
+        assertThrows(SnmpException.class,
+                () -> client.deleteForwarding(DEVICE, table, 1, "198.51.100.20", 46800));
+        assertTrue(agent.writes.isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 0, 80, 65536})
+    void selectedRowDeleteCanRemoveAnOutOfRangeStoredPort(int port) {
+        var agent = new MemoryAgent();
+        var client = client(agent);
+        var table = ForwardingTable.TRANSMIT;
+        for (var binding : client.createBindings(new ForwardingRequest(MessageType.MAP, "198.51.100.20", false), 1)) {
+            agent.data.put(binding.oid(), binding.value());
+        }
+        agent.data.put(table.cell(4, 1), new SnmpValue.IntegerValue(port));
+        assertThrows(SnmpException.class, () -> client.readForwarding(DEVICE));
+        assertTrue(client.deleteForwarding(DEVICE, table, 1, "198.51.100.20", port).changed());
+        assertEquals(1, agent.writes.size());
+    }
+
+    @Test void selectedRecoveryDeleteDoesNotReplayALostSetReply() {
+        var agent = new MemoryAgent();
+        var table = ForwardingTable.RECEIVE;
+        agent.data.put(table.cell(3, 1), SnmpValue.Octets.text("198.51.100.20"));
+        agent.data.put(table.cell(4, 1), new SnmpValue.IntegerValue(46800));
+        agent.lostReply = true;
+        var client = client(agent);
+        var failure = assertThrows(SnmpException.class,
+                () -> client.deleteForwarding(DEVICE, table, 1, "198.51.100.20", 46800));
+        assertTrue(failure.writeOutcomeUnknown());
+        assertEquals(1, agent.writes.size());
+        assertTrue(client.readForwarding(DEVICE).isEmpty());
     }
 
     @Test void profilesAreValidatedBeforeBatchCanRun() {

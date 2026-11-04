@@ -83,13 +83,12 @@ public final class Ntcip1218ForwardingTasks {
     /**
      * Deletes a selected table/index regardless of message presets, then reads both tables and
      * runs the snapshot callback. Destination and port guard against a stale displayed row.
-     * @throws IllegalArgumentException if the index, IPv4 destination or port is invalid
+     * @param port raw port reported by the device, used only for comparison before deleting
+     * @throws IllegalArgumentException if the index is invalid, or destination is null or exceeds 64 UTF-8 bytes
      */
     public SnmpTask deleteWithSnapshot(Ntcip1218Device device, ForwardingTable table, int index,
             String destination, int port, SnapshotAction afterRead) {
-        Objects.requireNonNull(table).cell(table.statusColumn(), index);
-        SnmpTarget.validateIpv4(destination);
-        if (port < 1024 || port > 65535) throw new IllegalArgumentException("Invalid forwarding port");
+        Ntcip1218Client.validateRowSelection(table, index, destination);
         return task("delete-message-forwarding-row", device, table.name() + "." + index,
                 client -> client.deleteForwarding(device, table, index, destination, port),
                 true, Objects.requireNonNull(afterRead));

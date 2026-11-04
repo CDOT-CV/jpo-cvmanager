@@ -27,7 +27,7 @@ A **recipe** builds a [`SnmpTask`](src/main/java/us/dot/its/jpo/snmp/execution/S
 - Each target supplies its credentials. No username is assumed.
 - SNMPv3 defaults to SHA/AES-128. SHA-256/SHA-512 and DES are also supported.
 - An empty privacy password falls back to the authentication password.
-- Addresses are literal IPv4; OIDs are numeric. Missing values stay explicit SNMP exception values.
+- Device addresses are literal IPv4; OIDs are numeric. Missing values stay explicit SNMP exception values.
 
 Sessions are cached by the full credential profile, including both passwords and
 algorithms. Identical profiles share a transport; different profiles have separate
@@ -63,8 +63,10 @@ try (var client = new Snmp4jClient();
 - Use `createWithSnapshot` or `deleteWithSnapshot` to also read both forwarding tables.
   Pass a [`SnapshotAction`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218ForwardingTasks.java) when the application needs to save that snapshot. This can be used for synchronizing the results with PostgreSQL.
 - Each create adds a row. Delete with `forwardingTasks.delete(device, MessageType.MAP, "198.51.100.3")`.
-- Use the table/index overload of `deleteWithSnapshot` to remove a manually configured row by its actual table/index,
-  checking the displayed destination and port.
+- Use the table/index overload of `deleteWithSnapshot` to remove an existing row,
+  checking its destination and raw port. Other fields may be incomplete or malformed.
+- New forwarding destinations require IPv4. Selected-row deletion accepts existing
+  destination text, including IPv6, up to 64 UTF-8 bytes.
 - Deleting a missing entry succeeds without a change.
 
 **Reuse** the client, executor and recipe factory. Close the executor
@@ -97,7 +99,8 @@ var values = result.value(measurements);
 - Verified device procedures return [`SnmpWriteResult<T>`](src/main/java/us/dot/its/jpo/snmp/client/SnmpWriteResult.java); a plain SET acknowledges receipt only.
 - `Ntcip1218ForwardingTasks.changed(result)`: `true` for a verified change,
   `false` for a delete no-op, `null` if the procedure did not finish.
-- A later database failure does not erase a verified device change.
+- A later snapshot or database failure does not erase a verified device change.
+  After deleting a malformed row, another bad row may still prevent a complete snapshot.
 - SET is never retried automatically. Check device state before retrying an uncertain write.
 
 - Tasks for one IP/port run one at a time within an executor. Other devices can run in parallel.

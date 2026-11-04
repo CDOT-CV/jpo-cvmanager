@@ -78,24 +78,31 @@ public final class Ntcip1218Client {
         }
     }
 
-    /** Verify every column of one row without walking unrelated configurations again. */
-    private Optional<ForwardingRow> readRow(Ntcip1218Device device, ForwardingTable table, int index) {
+    /** Reads every raw column so recovery deletes need not validate unrelated fields. */
+    private Map<Integer, SnmpValue> readRowColumns(Ntcip1218Device device, ForwardingTable table, int index) {
         var oids = java.util.stream.IntStream.rangeClosed(2, table.lastColumn())
                 .mapToObj(column -> table.cell(column, index)).toList();
         var bindings = client.get(device.target(), oids);
         if (bindings.size() != oids.size()) throw new SnmpException(INVALID_OUTPUT, false);
         var columns = new LinkedHashMap<Integer, SnmpValue>();
-        int missing = 0;
         for (int i = 0; i < bindings.size(); i++) {
             var binding = bindings.get(i);
             if (!binding.oid().equals(oids.get(i))) throw new SnmpException(INVALID_OUTPUT, false);
-            if (binding.value() instanceof SnmpValue.ExceptionValue exception
-                    && exception.kind() == SnmpValue.ExceptionValue.Kind.NO_SUCH_INSTANCE) missing++;
             columns.put(i + 2, binding.value());
         }
-        // A deleted row must be absent in every requested column. Partial absence is malformed
-        // output, not proof that a delete succeeded.
-        if (missing == bindings.size()) return Optional.empty();
+        return columns;
+    }
+
+    private static boolean absent(Map<Integer, SnmpValue> columns) {
+        // Require absence in every column; partial absence never proves a delete succeeded.
+        return columns.values().stream().allMatch(value -> value instanceof SnmpValue.ExceptionValue exception
+                && exception.kind() == SnmpValue.ExceptionValue.Kind.NO_SUCH_INSTANCE);
+    }
+
+    /** Verifies a complete row without walking unrelated configurations again. */
+    private Optional<ForwardingRow> readRow(Ntcip1218Device device, ForwardingTable table, int index) {
+        var columns = readRowColumns(device, table, index);
+        if (absent(columns)) return Optional.empty();
 
         try {
             return Optional.of(new ForwardingRow(table, index, columns));
@@ -174,30 +181,45 @@ public final class Ntcip1218Client {
     }
 
     /**
-     * Deletes a specific existing row, including unknown PSIDs and non-preset table assignments.
+     * Deletes a specific existing row, including malformed rows and configurations not created here.
      * Destination and port must still match the displayed row; a mismatch fails before any SET.
      * This check is not an atomic compare-and-set against independent external writers.
+     * Only destination and port must be readable; other columns may be missing or malformed.
      * @return verified deletion, or a successful no-op if the row is already absent
-     * @throws IllegalArgumentException if the index, IPv4 destination or port is invalid
+     * @param port raw port reported by the device, used only for comparison before deleting
+     * @throws IllegalArgumentException if the index is invalid, or destination is null or exceeds 64 UTF-8 bytes
      * @throws SnmpException if the row changed, communication fails, or absence cannot be verified
      */
     public SnmpWriteResult<Void> deleteForwarding(Ntcip1218Device device, ForwardingTable table,
             int index, String destination, int port) {
-        Objects.requireNonNull(table).cell(table.statusColumn(), index);
-        SnmpTarget.validateIpv4(destination);
-        if (port < 1024 || port > 65535) throw new IllegalArgumentException("Invalid forwarding port");
+        validateRowSelection(table, index, destination);
         return exclusive(device, "FORWARDING_DELETE_ROW", true, trace -> {
             trace.step("check_selected_row");
-            var row = readRow(device, table, index);
-            if (row.isEmpty()) {
+            var columns = readRowColumns(device, table, index);
+            if (absent(columns)) {
                 trace.event("no_matching_row");
                 return new SnmpWriteResult<>(false, null);
             }
-            if (!row.get().destination().equals(destination) || row.get().port() != port) {
+            // Guard the selected destination using raw columns. A bad PSID, date, filter or
+            // incomplete notReady row must not prevent its removal.
+            if (!(columns.get(3) instanceof SnmpValue.Octets)
+                    || !(columns.get(4) instanceof SnmpValue.IntegerValue)) {
+                throw new SnmpException(INVALID_OUTPUT, false);
+            }
+            if (!SnmpValue.Octets.text(destination).equals(columns.get(3))
+                    || !new SnmpValue.IntegerValue(port).equals(columns.get(4))) {
                 throw new SnmpException(VERIFICATION, false);
             }
             return destroyRow(device, table, index, trace);
         });
+    }
+
+    // Shared with the recipe factory so invalid selections fail before tasks are admitted.
+    static void validateRowSelection(ForwardingTable table, int index, String destination) {
+        Objects.requireNonNull(table).cell(table.statusColumn(), index);
+        if (destination == null || SnmpValue.Octets.text(destination).bytes().length > 64) {
+            throw new IllegalArgumentException("Forwarding destination must be at most 64 UTF-8 bytes");
+        }
     }
 
     private SnmpWriteResult<Void> destroyRow(Ntcip1218Device device, ForwardingTable table,

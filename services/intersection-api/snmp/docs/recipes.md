@@ -54,6 +54,9 @@ Use `changed(result)` to read the outcome. A later snapshot or callback failure
 preserves the verified device change. `SnapshotAction` is specific to forwarding;
 other recipes should use callbacks suited to their own data.
 
-The table/index overload of `deleteWithSnapshot` deletes a specific row, including non-preset PSIDs.
-It checks the displayed destination and port before writing, then verifies absence.
-Create methods continue to use the message presets.
+The table/index overload of `deleteWithSnapshot` deletes a specific row, including unknown PSIDs,
+IPv6 destinations and incomplete rows. It checks the raw destination and port before writing,
+then requires every column to report absence. An out-of-range stored port can be deleted
+when it matches exactly; unreadable destination/port fields block deletion.
+A malformed row elsewhere can still fail the snapshot; inspect `changed(result)` before retrying.
+Create methods continue to use IPv4 destinations and the message presets.
