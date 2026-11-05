@@ -33,6 +33,7 @@ public interface RsuGeoInfoMapper {
     @Mapping(source = "rsuOption.snmpMonitoring", target = "snmpMonitoring", defaultValue = "false")
     @Mapping(source = "model.name", target = "modelName")
     @Mapping(source = "model.manufacturer.name", target = "manufacturerName")
+    @Mapping(source = "firmwareVersion.version", target = "firmwareVersion")
     RsuGeoInfoPropertiesDto toPropertiesDto(Rsu rsu);
 
     @Named("mapPointToGeoJson")

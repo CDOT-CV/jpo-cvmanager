@@ -7,6 +7,7 @@ export type RsuProperties = {
   primary_route: string
   serial_number: string
   manufacturer_name: string
+  firmware_version?: string | null
   tim_deposit: boolean
 }
 
