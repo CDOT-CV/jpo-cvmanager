@@ -36,7 +36,7 @@ exports[`should take a snapshot 1`] = `
                 Test Org
               </h4>
               <div
-                class="MuiChip-root MuiChip-filled MuiChip-sizeSmall MuiChip-colorSecondary MuiChip-filledSecondary css-mocked-MuiChip-root"
+                class="MuiChip-root MuiChip-filled MuiChip-sizeSmall MuiChip-colorDefault MuiChip-filledDefault css-mocked-MuiChip-root"
               >
                 <span
                   class="MuiChip-label MuiChip-labelSmall css-mocked-MuiChip-label"
