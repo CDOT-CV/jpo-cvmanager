@@ -27,6 +27,7 @@ const mockResponse: EmailUnsubscribeGetResponse = {
   subscriptions: [
     {
       category: 'Incident Alerts',
+      organization: 'Test Org',
       description: 'Notifications for incident activity',
       required_role: 'user',
       immediate: true,
@@ -109,6 +110,7 @@ it('updates subscriptions through UI and submits expected payload', async () => 
       subscriptions: [
         {
           category: 'Incident Alerts',
+          organization: 'Test Org',
           description: 'Notifications for incident activity',
           required_role: 'user',
           immediate: true,
