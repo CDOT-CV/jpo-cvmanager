@@ -2,6 +2,9 @@ package us.dot.its.jpo.ode.api.controllers.users;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.tuple.Pair;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +32,7 @@ import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -58,19 +62,16 @@ public class SubscriptionControllerTest {
     private static final String email = "user@example.com";
 
     private static final List<UserEmailNotificationDto> validSubscriptionsList = Arrays.asList(
-            new UserEmailNotificationDto("Support Requests", "Receive support requests from users", "admin", true,
+            new UserEmailNotificationDto("Support Requests", "Test Org", "Receive support requests from users", "admin", true,
                     false, false, false, false,
                     true, false, false, false, false),
-            new UserEmailNotificationDto("Firmware Upgrade Failures",
+            new UserEmailNotificationDto("Firmware Upgrade Failures", "Test Org",
                     "Receive automated firmware upgrade failure emails",
                     "operator", true, false, false, false, false,
                     true, false, false, false, false));
 
     private static final Organization operatorOrg = new Organization();
     private static final Organization adminOrg = new Organization();
-
-    private static final List<Organization> operatorOrgList = List.of(operatorOrg);
-    private static final List<Organization> operatorAdminList = List.of(operatorOrg, adminOrg);
 
     @BeforeEach
     void setUp() {
@@ -113,9 +114,9 @@ public class SubscriptionControllerTest {
             when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
-            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of());
-            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
-            when(emailService.getAllEmailSubscriptionOptionsForUser(email, false, false))
+            when(authToken.getOrgRoles()).thenReturn(Map.of(1, Pair.of(operatorOrg, UserRole.USER)));
+            when(emailService.getAllEmailSubscriptionOptionsForUser(email,
+                    Map.of("Test Organization", UserRole.USER), false))
                     .thenReturn(validSubscriptionsList);
 
             mockMvc.perform(get("/users/subscriptions/email-subscriptions"))
@@ -133,9 +134,9 @@ public class SubscriptionControllerTest {
             when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
-            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(operatorOrgList);
-            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
-            when(emailService.getAllEmailSubscriptionOptionsForUser(email, true, false))
+            when(authToken.getOrgRoles()).thenReturn(Map.of(1, Pair.of(operatorOrg, UserRole.OPERATOR)));
+            when(emailService.getAllEmailSubscriptionOptionsForUser(email,
+                    Map.of("Test Organization", UserRole.OPERATOR), false))
                     .thenReturn(validSubscriptionsList);
 
             mockMvc.perform(get("/users/subscriptions/email-subscriptions"))
@@ -154,9 +155,11 @@ public class SubscriptionControllerTest {
             when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
-            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(operatorOrgList);
-            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(operatorAdminList);
-            when(emailService.getAllEmailSubscriptionOptionsForUser(email, true, true))
+            when(authToken.getOrgRoles()).thenReturn(Map.of(
+                    1, Pair.of(operatorOrg, UserRole.OPERATOR),
+                    2, Pair.of(adminOrg, UserRole.ADMIN)));
+            when(emailService.getAllEmailSubscriptionOptionsForUser(email,
+                    Map.of("Test Organization", UserRole.OPERATOR, "Admin Organization", UserRole.ADMIN), false))
                     .thenReturn(validSubscriptionsList);
 
             mockMvc.perform(get("/users/subscriptions/email-subscriptions"))
@@ -202,12 +205,18 @@ public class SubscriptionControllerTest {
             when(permissionService.isSuperUser()).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
-            doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionsList);
+            when(authToken.getOrgRoles()).thenReturn(Map.of(1, Pair.of(operatorOrg, UserRole.USER)));
+            doNothing().when(emailService).updateEmailSubscriptions(email,
+                    Map.of("Test Organization", UserRole.ADMIN), true, validSubscriptionsList);
 
             mockMvc.perform(post("/users/subscriptions/email-subscriptions")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(validSubscriptionsList)))
                     .andExpect(status().isOk());
+
+            // Super users are treated as ADMIN in each of their organizations
+            verify(emailService).updateEmailSubscriptions(email,
+                    Map.of("Test Organization", UserRole.ADMIN), true, validSubscriptionsList);
         }
 
         @Test
@@ -217,7 +226,9 @@ public class SubscriptionControllerTest {
             when(permissionService.isSuperUser()).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
-            doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionsList);
+            when(authToken.getOrgRoles()).thenReturn(Map.of(1, Pair.of(operatorOrg, UserRole.USER)));
+            doNothing().when(emailService).updateEmailSubscriptions(email,
+                    Map.of("Test Organization", UserRole.ADMIN), true, validSubscriptionsList);
 
             mockMvc.perform(post("/users/subscriptions/email-subscriptions")
                     .contentType(MediaType.APPLICATION_JSON)
