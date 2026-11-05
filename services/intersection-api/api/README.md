@@ -249,6 +249,7 @@ organization can view the full history.
 
 Query parameters (all optional):
 
+<!-- prettier-ignore -->
 | Parameter | Description |
 | --- | --- |
 | `page`, `size` | Zero-based page number and page size (1-200, default 100) |
@@ -263,3 +264,20 @@ request ID, OBU serial number, UTC request time, origin IP, the OBU's current
 firmware version, the requested firmware file, `status`, error message, and
 manufacturer name. The OTA server keeps only the newest `MAX_COUNT` successful
 requests per serial number.
+
+## RSU reboot
+
+- Supports Commsignia RSUs only.
+- Send `POST /devices/rsus/reboot/{rsuIp}` with the RSU's IPv4 address.
+- Requires operator access in the organization that owns the RSU's SSH credentials, or superuser access.
+- Uses SSH credentials stored in PostgreSQL. Non-root accounts need sudo access with the same password.
+- Returns `202` with a `requestId` and `status: ACCEPTED`. The command runs in the background; acceptance does not confirm a reboot.
+- Check logs using the request ID or RSU IP. A disconnect or `UNKNOWN` outcome does not confirm a restart. Check the device before retrying.
+- Commands are never retried automatically. Pending requests are not saved across API restarts.
+
+### Limits and SSH settings
+
+- Each API instance runs up to four commands at once, with no waiting queue. A request for a busy RSU returns `409`; full capacity returns `503`.
+- `RSU_REBOOT_CONCURRENCY` sets the command limit (default: `4`, range: 1?32).
+- `RSU_REBOOT_TIMEOUT` limits SSH setup and command execution (default: `60s`, range: 1?120 seconds). It does not wait for the RSU to restart.
+- Unknown or changed SSH host keys are accepted. No `known_hosts` file is required; SSH server identity is not verified.

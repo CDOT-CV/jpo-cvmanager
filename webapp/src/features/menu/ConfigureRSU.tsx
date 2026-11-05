@@ -17,7 +17,7 @@ import '../../components/css/SnmpwalkMenu.css'
 import { RootState } from '../../store'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import CloseIcon from '@mui/icons-material/Close'
-import { RoomOutlined } from '@mui/icons-material'
+import RoomOutlined from '@mui/icons-material/RoomOutlined'
 import { headerTabHeight } from '../../styles'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { getRsuCountsErrorMessage, useGetRsuCountsByIpQuery } from '../api/rsuCountsApiSlice'
@@ -183,21 +183,25 @@ const ConfigureRSU = () => {
               </ConfigMenu>
             </AccordionDetails>
           </Accordion>
-          <Divider />
-          <Accordion
-            elevation={0}
-            expanded={expanded === 'selected-rsu-reboot'}
-            onChange={handleChange('selected-rsu-reboot')}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel3bh-content" id="panel3bh-header">
-              <Typography>Reboot</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <ConfigMenu>
-                <RsuRebootMenu />
-              </ConfigMenu>
-            </AccordionDetails>
-          </Accordion>
+          {selectedRsu.properties.manufacturer_name?.toLowerCase() === 'commsignia' && (
+            <>
+              <Divider />
+              <Accordion
+                elevation={0}
+                expanded={expanded === 'selected-rsu-reboot'}
+                onChange={handleChange('selected-rsu-reboot')}
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel3bh-content" id="panel3bh-header">
+                  <Typography>Reboot</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <ConfigMenu>
+                    <RsuRebootMenu />
+                  </ConfigMenu>
+                </AccordionDetails>
+              </Accordion>
+            </>
+          )}
         </Box>
       )}
       {selectedConfigList.length > 0 && !selectedRsu && (
