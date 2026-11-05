@@ -226,16 +226,6 @@ vulnerabilities:
     purls: ["pkg:maven/org.springframework/spring-webflux"]
     statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
     expired_at: 2026-11-30
-  # CRITICAL in Trivy; fixed in 11.0.23; intersection-api, rsu-info-bridge, rsu-status-monitor
-  - id: CVE-2026-55276
-    purls: ["pkg:maven/org.apache.tomcat.embed/tomcat-embed-core"]
-    statement: >-
-      Temporary deferral authorized in PR #429: upgrading the three Spring Boot
-      services is outside the firmware/Alpine remediation scope. Apache rates this
-      effective web.xml logging defect LOW; Trivy reports CRITICAL. Upgrade embedded
-      Tomcat to a current compatible 11.0.x release (at least 11.0.23), then remove
-      this entry. Owner: @drewjj. Tracking: https://github.com/CDOT-CV/jpo-cvmanager/pull/429.
-    expired_at: 2026-12-04
   # CRITICAL; fixed in 11.0.25, 10.1.58, 9.0.121; intersection-api, rsu-info-bridge, rsu-status-monitor
   - id: CVE-2026-65182
     purls: ["pkg:maven/org.apache.tomcat.embed/tomcat-embed-core"]
