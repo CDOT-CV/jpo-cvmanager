@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import us.dot.its.jpo.snmp.client.*;
 import us.dot.its.jpo.snmp.execution.*;
+import us.dot.its.jpo.snmp.rsu.ntcip1218.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static us.dot.its.jpo.snmp.execution.SnmpStep.Kind.*;
 
@@ -384,6 +385,20 @@ class SnmpTaskExecutorTest {
             var next = result(executor.submit(task(target, new SnmpStep<>("next", LOCAL, ctx -> true))));
             assertEquals(SnmpTaskResult.Status.SUCCEEDED, next.status());
             assertEquals(0, executor.diagnostics().activeTargets());
+        }
+    }
+
+    @Test void existingNtcipProceduresUseTheSameScopeAndJournalEveryUnderlyingCall() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client, 2, 10)) {
+            var forwarding = new SnmpStep<>("forwarding", WRITE, ctx -> {
+                var ntcip = new Ntcip1218Client(ctx.client(), java.time.Clock.systemUTC());
+                return ntcip.addForwarding(new Ntcip1218Device(ctx.target()), new ForwardingRequest(MessageType.BSM, "198.51.100.20", true));
+            });
+            var outcome = result(executor.submit(task(agent.target(), forwarding)));
+            assertEquals(SnmpTaskResult.WriteState.VERIFIED, outcome.writeState());
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED, outcome.status());
+            assertEquals(List.of("WALK", "SET", "GET"), outcome.steps().getFirst().commands().stream().map(SnmpCommandResult::operation).toList());
+            assertEquals(1, outcome.value(forwarding).value().index());
         }
     }
 
