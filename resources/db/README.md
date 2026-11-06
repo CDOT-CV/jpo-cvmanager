@@ -6,7 +6,7 @@ CV Manager uses [Flyway](https://flywaydb.org/) to manage PostgreSQL schema chan
 
 ## Directory layout
 
-```
+```text
 resources/db/
   migration/
     V1__baseline.sql   # Full current schema (all tables, indexes, sequences)
@@ -19,12 +19,12 @@ resources/db/
 
 ## Naming convention
 
-```
+```text
 V{N}__{snake_case_description}.sql
 ```
 
 | Part          | Meaning                      | Example                   |
-|---------------|------------------------------|---------------------------|
+| ------------- | ---------------------------- | ------------------------- |
 | `N`           | Next integer in sequence     | `3`                       |
 | `description` | Snake-case summary of change | `add_rsu_telemetry_table` |
 
@@ -78,7 +78,7 @@ Table descriptions are stored as SQL comments in the database (applied by migrat
 `SELECT obj_description('public.<table>'::regclass)`. The table below summarizes each table for quick reference.
 
 | Table                                   | Description                                                                                                 |
-|-----------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `manufacturers`                         | RSU and OBU manufacturers supported by this deployment. Tested: Commsignia, Kapsch, Yunex.                  |
 | `rsu_models`                            | RSU hardware models. Linked to a manufacturer; used for display and firmware upgrade identification.        |
 | `firmware_images`                       | Known RSU firmware packages. Stores retrieval and install information used by the API.                      |
@@ -115,10 +115,10 @@ The Flyway image for Kubernetes is built and pushed to GHCR automatically by CI 
 merge to `develop` or `cdot-release*`. See `resources/kubernetes/README.md` for how to
 identify the correct image tag and apply the migration Job.
 
-**Views**
+### Views
 
 | View                    | Description                                                       |
-|-------------------------|-------------------------------------------------------------------|
+| ----------------------- | ----------------------------------------------------------------- |
 | `rsu_organization_name` | Joins `rsu_organization` with organization names for display use. |
 
 ### Critical data requirements
@@ -133,7 +133,7 @@ The admin UI enforces several data rules that the original schema did not encode
 regardless of which client writes the data.
 
 | Table           | Constraint                                  | Type     | Rationale                                                                                                                                 |
-|-----------------|---------------------------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `rsus`          | `milepost >= 0`                             | CHECK    | UI regex `/^\d*\.?\d*$/` only allows non-negative values; a negative milepost has no physical meaning.                                    |
 | `users`         | `first_name NOT NULL`, `last_name NOT NULL` | NOT NULL | Both fields are required on every create and edit form. NULLs are backfilled to `''` during migration.                                    |
 | `roles`         | `name IN ('admin', 'operator', 'user')`     | CHECK    | The application recognises exactly these three lowercase role names. An unrecognised role would silently succeed without this constraint. |
