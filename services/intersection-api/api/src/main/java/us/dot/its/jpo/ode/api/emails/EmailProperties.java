@@ -62,6 +62,7 @@ public class EmailProperties {
     }
 
     @Bean
+    @Primary
     @ConditionalOnProperty(name = "email.broker", havingValue = "POSTMARK")
     ApiClient apiClient() {
         return Postmark.getApiClient(postmark.getApiKey());
