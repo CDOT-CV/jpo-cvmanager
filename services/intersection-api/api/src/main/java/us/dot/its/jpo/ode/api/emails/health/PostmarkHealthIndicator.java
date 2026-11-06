@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.emails.health;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
@@ -10,14 +11,15 @@ import org.springframework.stereotype.Component;
 import com.postmarkapp.postmark.client.ApiClient;
 import com.postmarkapp.postmark.client.exception.PostmarkException;
 
-import lombok.RequiredArgsConstructor;
-
 @Component
 @ConditionalOnProperty(name = "management.health.postmark.enabled", havingValue = "true")
-@RequiredArgsConstructor
 public class PostmarkHealthIndicator implements HealthIndicator {
 
     private final ApiClient postmark;
+
+    public PostmarkHealthIndicator(@Qualifier("postmarkHealthCheck") ApiClient postmark) {
+        this.postmark = postmark;
+    }
 
     @Override
     public Health health() {

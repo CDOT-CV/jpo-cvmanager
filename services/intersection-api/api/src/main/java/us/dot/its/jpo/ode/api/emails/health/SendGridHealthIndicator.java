@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.emails.health;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
@@ -12,14 +13,15 @@ import com.sendgrid.Request;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 
-import lombok.RequiredArgsConstructor;
-
 @Component
 @ConditionalOnProperty(name = "management.health.sendgrid.enabled", havingValue = "true")
-@RequiredArgsConstructor
 public class SendGridHealthIndicator implements HealthIndicator {
 
     private final SendGrid sendGrid;
+
+    public SendGridHealthIndicator(@Qualifier("sendGridHealthCheck") SendGrid sendGrid) {
+        this.sendGrid = sendGrid;
+    }
 
     @Override
     public Health health() {
