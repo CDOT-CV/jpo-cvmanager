@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
@@ -67,6 +68,7 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
 
         logger.info("MongoDB Connection String: {}", uri);
         builder.applyConnectionString(new ConnectionString(uri));
+        builder.timeout(5, TimeUnit.SECONDS);
     }
 
     @Override

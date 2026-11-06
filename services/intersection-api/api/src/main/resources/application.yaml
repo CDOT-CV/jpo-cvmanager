@@ -89,6 +89,13 @@ spring:
     url: ${POSTGRES_SERVER_URL:jdbc:postgresql://cvmanager_postgres:5432}/postgres
     username: ${PG_DB_USER:postgres}
     password: ${PG_DB_PASS}
+    # Bound datasource waits so database health checks fail promptly when PostgreSQL is unavailable.
+    hikari:
+      connection-timeout: 5000
+      validation-timeout: 5000
+      data-source-properties:
+        connectTimeout: 5
+        socketTimeout: 5
   jpa:
     database: postgresql
   ### Spring Mail Settings (If using emailBroker SMTP)
