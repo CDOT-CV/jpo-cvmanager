@@ -32,10 +32,7 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
 
     protected Boolean getIsSuperUserFrom(Map<String, Object> claims) {
         Object superUserObj = claims.get("super_user");
-        if (superUserObj instanceof String superUserStr) {
-            return "1".equals(superUserStr);
-        }
-        return false;
+        return superUserObj instanceof Boolean superUserBool && superUserBool;
     }
 
     protected Map<Integer, Pair<Organization, UserRole>> getOrgRolesFrom(Map<String, Object> claims) {
