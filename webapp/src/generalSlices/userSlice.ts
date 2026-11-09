@@ -95,13 +95,23 @@ export const userSlice = createSlice({
       const organization =
         UserManager.getOrganization(state.value.authLoginData, action.payload) ?? state.value.organization
       state.value.organization = organization
-      if (organization) SecureStorageManager.setUserRole({ name: organization.name, role: organization.role })
+      if (organization)
+        SecureStorageManager.setUserRole({
+          organization: organization.organization,
+          name: organization.name,
+          role: organization.role,
+        })
     },
     changeOrganizationName: (state, action: PayloadAction<string>) => {
       const organization =
         UserManager.getOrganizationByName(state.value.authLoginData, action.payload) ?? state.value.organization
       state.value.organization = organization
-      if (organization) SecureStorageManager.setUserRole({ name: organization.name, role: organization.role })
+      if (organization)
+        SecureStorageManager.setUserRole({
+          organization: organization.organization,
+          name: organization.name,
+          role: organization.role,
+        })
     },
     deleteOrgAssociationByOrgName: (state, action: PayloadAction<string>) => {
       if (!state.value.authLoginData) {
@@ -127,6 +137,7 @@ export const userSlice = createSlice({
           state.value.organization = updatedOrgList[0] ?? null
           if (state.value.organization) {
             SecureStorageManager.setUserRole({
+              organization: state.value.organization.organization,
               name: state.value.organization.name,
               role: state.value.organization.role,
             })

@@ -67,7 +67,7 @@ const SecureStorageManager = {
       return authData['role']
     }
   },
-  setUserRole: (organization) => {
+  setUserRole: (organization: UserAuthOrganization) => {
     return secureLocalStorage.setItem(AUTH_DATA_SECURE_STORAGE_KEY, JSON.stringify(organization))
   },
   removeUserRole: () => {

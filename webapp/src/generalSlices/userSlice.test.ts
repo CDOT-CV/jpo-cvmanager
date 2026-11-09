@@ -340,6 +340,7 @@ describe('reducers', () => {
       },
     }
     SecureStorageManager.setUserRole = jest.fn()
+    SecureStorageManager.removeUserRole = jest.fn()
 
     const result = reducer(state as any, deleteOrgAssociationByOrgId(1))
 
