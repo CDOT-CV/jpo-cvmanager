@@ -17,9 +17,9 @@ import AdminTable from '../../components/AdminTable'
 import { selectLoadingGlobal } from '../../generalSlices/userSlice'
 import { AdminIntersection } from '../../models/Intersection'
 import {
-    useGetIntersectionsNotInOrganizationQuery,
-    useGetIntersectionsQuery,
-    useLazyGetIntersectionQuery,
+  useGetIntersectionsNotInOrganizationQuery,
+  useGetIntersectionsQuery,
+  useLazyGetIntersectionQuery,
 } from '../api/adminIntersectionApiSlice'
 import { usePatchOrganizationMutation } from '../api/organizationApiSlice'
 import '../css/multiselect.css'
@@ -86,7 +86,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     },
     {
       tooltip: 'Remove All Selected From Organization',
-      icon: 'delete',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       position: 'toolbarOnSelect',
       iconProps: {
         itemType: 'rowAction',

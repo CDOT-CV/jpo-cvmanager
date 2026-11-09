@@ -139,7 +139,7 @@ const AdminUserTab = () => {
     },
     {
       tooltip: 'Remove All Selected Users',
-      icon: 'delete',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       position: 'toolbarOnSelect',
       iconProps: {
         itemType: 'rowAction',

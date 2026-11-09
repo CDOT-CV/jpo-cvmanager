@@ -154,7 +154,7 @@ const AdminRsuTab = () => {
     },
     {
       tooltip: 'Remove All Selected From Organization',
-      icon: 'delete',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: {
         itemType: 'rowAction',
       },

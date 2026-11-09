@@ -127,7 +127,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     },
     {
       tooltip: 'Remove All Selected From Organization',
-      icon: 'delete',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       position: 'toolbarOnSelect',
       iconProps: {
         itemType: 'rowAction',

@@ -23,6 +23,9 @@ import {
   useCreateIntersectionMutation,
   useGetIntersectionAllowedSelectionsQuery,
 } from '../api/adminIntersectionApiSlice'
+import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
+import { useSelector } from 'react-redux'
+import { RootState } from '../../store'
 
 export type AdminAddIntersectionForm = {
   intersection_id: string
@@ -38,7 +41,7 @@ export type AdminAddIntersectionForm = {
   }
   intersection_name?: string
   origin_ip?: string
-  organizations: string[]
+  organizations: number[]
   rsus: string[]
 }
 
@@ -47,13 +50,16 @@ const AdminAddIntersection = () => {
   const [open, setOpen] = useState(true)
 
   // Local state for form selections
-  const [selectedOrganizations, setSelectedOrganizations] = useState<string[]>([])
+  const [selectedOrganizations, setSelectedOrganizations] = useState<number[]>([])
   const [selectedRsus, setSelectedRsus] = useState<string[]>([])
   const [submitAttempt, setSubmitAttempt] = useState(false)
 
   // RTK Query hooks
   const { data: allowedSelections } = useGetIntersectionAllowedSelectionsQuery()
   const [createIntersection] = useCreateIntersectionMutation()
+  const allowedOrganizations = useSelector((state: RootState) =>
+    selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
+  )
 
   const {
     register,
@@ -62,11 +68,7 @@ const AdminAddIntersection = () => {
     formState: { errors },
   } = useForm<AdminAddIntersectionForm>()
 
-  const organizations = allowedSelections?.organizations ?? []
-  const rsus = useMemo(
-    () => (allowedSelections?.rsus ?? []).map((rsu) => rsu?.replace('/32', '')),
-    [allowedSelections]
-  )
+  const rsus = useMemo(() => (allowedSelections?.rsus ?? []).map((rsu) => rsu?.replace('/32', '')), [allowedSelections])
 
   const handleClose = () => {
     setOpen(false)
@@ -257,11 +259,11 @@ const AdminAddIntersection = () => {
                 label="Organizations"
                 multiple
                 value={selectedOrganizations}
-                onChange={(event) => setSelectedOrganizations(event.target.value as string[])}
+                onChange={(event) => setSelectedOrganizations(event.target.value as number[])}
               >
-                {organizations.map((org) => (
-                  <MenuItem key={org} value={org}>
-                    {org}
+                {allowedOrganizations.map((org) => (
+                  <MenuItem key={org.id} value={org.id}>
+                    {org.name}
                   </MenuItem>
                 ))}
               </Select>
