@@ -8,7 +8,8 @@ import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu
 import RsuStatusDialog from './RsuStatusDialog'
 
 import { Action } from '@material-table/core'
-import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
+import DeleteOutline from '@mui/icons-material/DeleteOutline'
+import ModeEditOutline from '@mui/icons-material/ModeEditOutline'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { Typography, useTheme } from '@mui/material'
 import toast from 'react-hot-toast'

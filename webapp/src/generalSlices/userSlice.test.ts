@@ -13,6 +13,7 @@ import {
   logout,
   changeOrganization,
   changeOrganizationName,
+  deleteOrgAssociationByOrgId,
   setLoading,
   setLoginFailure,
 
@@ -33,7 +34,7 @@ import {
 import AuthApi from '../apis/auth-api'
 import apiHelper from '../apis/api-helper'
 import EnvironmentVars from '../EnvironmentVars'
-import { UserManager, LocalStorageManager } from '../managers'
+import { UserManager, LocalStorageManager, SecureStorageManager } from '../managers'
 import { setupJestCanvasMock } from 'jest-canvas-mock'
 
 beforeEach(() => {
@@ -323,6 +324,90 @@ describe('reducers', () => {
       value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
     })
     expect(UserManager.getOrganizationByName).toHaveBeenCalledWith('authLoginData', 'organizationName')
+  })
+
+  it('deleteOrgAssociationByOrgId removes the association and selects another organization', () => {
+    const organizations = [
+      { organization: 1, name: 'Alpha', role: 'ADMIN' },
+      { organization: 2, name: 'Beta', role: 'USER' },
+    ]
+    const state = {
+      ...initialState,
+      value: {
+        ...initialState.value,
+        authLoginData: { data: { organizations } } as any,
+        organization: organizations[0],
+      },
+    }
+    SecureStorageManager.setUserRole = jest.fn()
+    SecureStorageManager.removeUserRole = jest.fn()
+
+    const result = reducer(state as any, deleteOrgAssociationByOrgId(1))
+
+    expect(result.value.authLoginData?.data.organizations).toEqual([organizations[1]])
+    expect(result.value.organization).toEqual(organizations[1])
+    expect(SecureStorageManager.setUserRole).toHaveBeenCalledWith(organizations[1])
+    expect(SecureStorageManager.removeUserRole).not.toHaveBeenCalled()
+  })
+
+  it('deleteOrgAssociationByOrgId clears the selected organization when no associations remain', () => {
+    const organization = { organization: 1, name: 'Alpha', role: 'ADMIN' }
+    const state = {
+      ...initialState,
+      value: {
+        ...initialState.value,
+        authLoginData: { data: { organizations: [organization] } } as any,
+        organization,
+      },
+    }
+    SecureStorageManager.removeUserRole = jest.fn()
+
+    const result = reducer(state as any, deleteOrgAssociationByOrgId(1))
+
+    expect(result.value.authLoginData?.data.organizations).toEqual([])
+    expect(result.value.organization).toBeNull()
+    expect(SecureStorageManager.removeUserRole).toHaveBeenCalled()
+    expect(SecureStorageManager.setUserRole).not.toHaveBeenCalled()
+  })
+
+  it('deleteOrgAssociationByOrgId leaves the selected organization unchanged when deleting another association', () => {
+    const organizations = [
+      { organization: 1, name: 'Alpha', role: 'ADMIN' },
+      { organization: 2, name: 'Beta', role: 'USER' },
+    ]
+    const state = {
+      ...initialState,
+      value: {
+        ...initialState.value,
+        authLoginData: { data: { organizations } } as any,
+        organization: organizations[1],
+      },
+    }
+    SecureStorageManager.setUserRole = jest.fn()
+    SecureStorageManager.removeUserRole = jest.fn()
+
+    const result = reducer(state as any, deleteOrgAssociationByOrgId(1))
+
+    expect(result.value.authLoginData?.data.organizations).toEqual([organizations[1]])
+    expect(result.value.organization).toEqual(organizations[1])
+    expect(SecureStorageManager.setUserRole).not.toHaveBeenCalled()
+    expect(SecureStorageManager.removeUserRole).not.toHaveBeenCalled()
+  })
+
+  it('deleteOrgAssociationByOrgId does nothing without auth data or a matching association', () => {
+    expect(reducer(initialState, deleteOrgAssociationByOrgId(1))).toEqual(initialState)
+
+    const organization = { organization: 2, name: 'Beta', role: 'USER' }
+    const state = {
+      ...initialState,
+      value: {
+        ...initialState.value,
+        authLoginData: { data: { organizations: [organization] } } as any,
+        organization,
+      },
+    }
+
+    expect(reducer(state as any, deleteOrgAssociationByOrgId(1))).toEqual(state)
   })
 
   it('setLoading reducer updates state correctly', async () => {

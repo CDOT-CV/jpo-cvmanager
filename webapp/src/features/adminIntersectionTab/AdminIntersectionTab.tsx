@@ -9,7 +9,8 @@ import AdminEditIntersection, { AdminEditIntersectionFormType } from '../adminEd
 import { useDeleteIntersectionMutation, useGetIntersectionsQuery } from '../api/adminIntersectionApiSlice'
 
 import { Action } from '@material-table/core'
-import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
+import DeleteOutline from '@mui/icons-material/DeleteOutline'
+import ModeEditOutline from '@mui/icons-material/ModeEditOutline'
 import { useTheme } from '@mui/material'
 import toast from 'react-hot-toast'
 import { Route, Routes, useNavigate } from 'react-router-dom'

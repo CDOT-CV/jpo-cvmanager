@@ -238,3 +238,46 @@ also available through this API and the Firmware tab.
   and upload again. Use **Clean Up Records** for entries marked **Missing file**.
   Automatic cleanup expires stale uploads and removes old failed/expired records;
   it does not delete cloud files or verified firmware.
+
+## OBU OTA Request History
+
+The OBU OTA server (`services/addons/images/obu_ota_server`) records every OBU
+firmware download attempt in the PostgreSQL `obu_ota_requests` table. The API
+exposes that history read-only at `GET /admin/obu-ota-requests` for admins and
+superusers. Requests are not tied to an organization, so admins of any
+organization can view the full history.
+
+Query parameters (all optional):
+
+<!-- prettier-ignore -->
+| Parameter | Description |
+| --- | --- |
+| `page`, `size` | Zero-based page number and page size (1-200, default 100) |
+| `serial` | Case-insensitive substring of the OBU serial number |
+| `manufacturer` | Manufacturer name (case-insensitive exact match) |
+| `status` | `success` or `error` |
+| `start`, `end` | Inclusive ISO-8601 instants, for example `2026-06-01T00:00:00Z` |
+| `sort` | `request_datetime`, `obu_sn`, `obu_firmware_version`, or `requested_firmware_version`, followed by `,asc` or `,desc` (default `request_datetime,desc`) |
+
+The response contains `items` and `total_elements`. Each item includes the
+request ID, OBU serial number, UTC request time, origin IP, the OBU's current
+firmware version, the requested firmware file, `status`, error message, and
+manufacturer name. The OTA server keeps only the newest `MAX_COUNT` successful
+requests per serial number.
+
+## RSU reboot
+
+- Supports Commsignia RSUs only.
+- Send `POST /devices/rsus/reboot/{rsuIp}` with the RSU's IPv4 address.
+- Requires operator access in the organization that owns the RSU's SSH credentials, or superuser access.
+- Uses SSH credentials stored in PostgreSQL. Non-root accounts need sudo access with the same password.
+- Returns `202` with a `requestId` and `status: ACCEPTED`. The command runs in the background; acceptance does not confirm a reboot.
+- Check logs using the request ID or RSU IP. A disconnect or `UNKNOWN` outcome does not confirm a restart. Check the device before retrying.
+- Commands are never retried automatically. Pending requests are not saved across API restarts.
+
+### Limits and SSH settings
+
+- Each API instance runs up to four commands at once, with no waiting queue. A request for a busy RSU returns `409`; full capacity returns `503`.
+- `RSU_REBOOT_CONCURRENCY` sets the command limit (default: `4`, range: 1?32).
+- `RSU_REBOOT_TIMEOUT` limits SSH setup and command execution (default: `60s`, range: 1?120 seconds). It does not wait for the RSU to restart.
+- Unknown or changed SSH host keys are accepted. No `known_hosts` file is required; SSH server identity is not verified.
