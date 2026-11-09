@@ -44,8 +44,8 @@ public class IntersectionController {
                         @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
         })
         public ResponseEntity<List<IntersectionReferenceData>> getIntersections(
-                        @RequestHeader(name = "Organization", required = false) String organization,
-                        @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
+                @RequestHeader(name = "Organization", required = false) Integer orgId,
+                @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
                 if (testData) {
                         IntersectionReferenceData ref = new IntersectionReferenceData();
@@ -58,7 +58,7 @@ public class IntersectionController {
                         return ResponseEntity.ok(refList);
                 } else {
                         List<IntersectionReferenceData> allIntersections = processedMapRepo.getIntersectionIDs();
-                        if (organization == null) {
+                        if (orgId == null) {
                                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                                 String username = PermissionService.getUsername(auth);
                                 List<Integer> allowedIntersectionIds = permissionService
@@ -69,7 +69,7 @@ public class IntersectionController {
                                                 .collect(Collectors.toList()));
                         } else {
                                 List<Integer> allowedIntersectionIds = permissionService
-                                                .getAllowedIntersectionIdsByOrganization(organization);
+                                        .getAllowedIntersectionIdsByOrganization(orgId);
                                 return ResponseEntity.ok(allIntersections.stream()
                                                 .filter(intersection -> allowedIntersectionIds
                                                                 .contains(intersection.getIntersectionID()))
@@ -86,8 +86,8 @@ public class IntersectionController {
                         @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
         })
         public ResponseEntity<List<IntersectionReferenceData>> getIntersectionsByLocation(
-                        @RequestHeader(name = "Organization", required = false) String organization,
-                        @RequestParam(name = "longitude", required = true) double longitude,
+                @RequestHeader(name = "Organization", required = false) Integer orgId,
+                                @RequestParam(name = "longitude", required = true) double longitude,
                         @RequestParam(name = "latitude", required = true) double latitude,
                         @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
@@ -104,7 +104,7 @@ public class IntersectionController {
 
                         List<IntersectionReferenceData> allIntersections = processedMapRepo
                                         .getIntersectionsContainingPoint(longitude, latitude);
-                        if (organization == null) {
+                        if (orgId == null) {
                                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                                 String username = PermissionService.getUsername(auth);
                                 List<Integer> allowedIntersectionIds = permissionService
@@ -115,7 +115,7 @@ public class IntersectionController {
                                                 .collect(Collectors.toList()));
                         } else {
                                 List<Integer> allowedIntersectionIds = permissionService
-                                                .getAllowedIntersectionIdsByOrganization(organization);
+                                        .getAllowedIntersectionIdsByOrganization(orgId);
                                 return ResponseEntity.ok(allIntersections.stream()
                                                 .filter(intersection -> allowedIntersectionIds
                                                                 .contains(intersection.getIntersectionID()))
