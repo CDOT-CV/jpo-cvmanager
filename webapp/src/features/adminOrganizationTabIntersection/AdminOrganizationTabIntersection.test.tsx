@@ -62,7 +62,7 @@ vi.mock('../api/adminIntersectionApiSlice', async (importOriginal) => ({
 const ok = (value: any = undefined) => ({ unwrap: () => Promise.resolve(value) })
 const fail = (err: any = 'boom') => ({ unwrap: () => Promise.reject(err) })
 const intersectionResult = (orgCount: number) =>
-  ok({ intersection_data: { organizations: Array.from({ length: orgCount }, (_, i) => ({ id: i })) } })
+  ok({ organizations: Array.from({ length: orgCount }, (_, i) => ({ id: i })) })
 const row = (id: string) => ({ intersection_id: id, intersection_name: `Name ${id}` }) as any
 
 const renderComponent = (orgName = 'Org') =>
@@ -129,10 +129,7 @@ describe('AdminOrganizationTabIntersection', () => {
   it('passes table data and columns to the table', () => {
     renderComponent()
     expect(mocks.tableProps.current.data).toHaveLength(2)
-    expect(mocks.tableProps.current.columns.map((c: any) => c.field)).toEqual([
-      'intersection_id',
-      'intersection_name',
-    ])
+    expect(mocks.tableProps.current.columns.map((c: any) => c.field)).toEqual(['intersection_id', 'intersection_name'])
     expect(actions()).toHaveLength(4)
   })
 
@@ -273,7 +270,9 @@ describe('AdminOrganizationTabIntersection', () => {
     })
 
     it('blocks the whole deletion when only some rows are invalid', async () => {
-      mocks.fetchIntersection.mockImplementation((id: string) => (id === '20' ? intersectionResult(1) : intersectionResult(2)))
+      mocks.fetchIntersection.mockImplementation((id: string) =>
+        id === '20' ? intersectionResult(1) : intersectionResult(2)
+      )
       renderComponent()
       await confirmYes(0, [row('10'), row('20')])
       expect(mocks.patch).not.toHaveBeenCalled()
@@ -340,18 +339,18 @@ describe('AdminOrganizationTabIntersection', () => {
     })
 
     it('clears the selection when the organization changes', () => {
-      const ui = (name: string) => (
+      const ui = (id: number, name: string) => (
         <ThemeProvider theme={testTheme}>
           <Provider store={setupStore({})}>
-            <AdminOrganizationTabIntersection selectedOrgId={1} selectedOrgName={name} />
+            <AdminOrganizationTabIntersection selectedOrgId={id} selectedOrgName={name} />
           </Provider>
         </ThemeProvider>
       )
-      const { rerender } = render(ui('Org'))
+      const { rerender } = render(ui(1, 'Org'))
       selectIntersections([row('30')])
       expect((actions()[2].icon() as ReactElement<any>).props.value).toHaveLength(1)
 
-      rerender(ui('Other'))
+      rerender(ui(2, 'Other'))
       expect((actions()[2].icon() as ReactElement<any>).props.value).toHaveLength(0)
     })
   })

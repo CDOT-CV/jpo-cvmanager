@@ -151,7 +151,7 @@ describe('adminIntersectionApiSlice', () => {
       ref_pt: { latitude: '40.0', longitude: '-105.0' },
       intersection_name: 'New Intersection',
       origin_ip: '10.0.0.5',
-      organizations: ['test-org'],
+      organizations: [1],
       rsus: ['10.0.0.20'],
     }
 
@@ -181,11 +181,10 @@ describe('adminIntersectionApiSlice', () => {
   describe('patchIntersection', () => {
     const patchBody = {
       intersection_id: '1001',
-      orig_intersection_id: '1001',
       ref_pt: { latitude: '39.7392', longitude: '-104.9903' },
       intersection_name: 'Updated Intersection',
       origin_ip: '10.0.0.1',
-      organizations_to_add: ['new-org'],
+      organizations_to_add: [1],
       organizations_to_remove: [],
       rsus_to_add: ['10.0.0.15'],
       rsus_to_remove: ['10.0.0.11'],
@@ -195,10 +194,15 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Updated' }))
 
-      await store.dispatch(adminIntersectionApiSlice.endpoints.patchIntersection.initiate(patchBody))
+      await store.dispatch(
+        adminIntersectionApiSlice.endpoints.patchIntersection.initiate({
+          intersection_id: '1001',
+          patch: patchBody,
+        })
+      )
 
       const request = getRequest()
-      expect(request.url).toBe(`${BASE_URL}`)
+      expect(request.url).toBe(`${BASE_URL}/1001`)
       expect(request.method).toBe('PATCH')
       const body = await request.json()
       expect(body).toEqual(patchBody)
@@ -209,7 +213,12 @@ describe('adminIntersectionApiSlice', () => {
       const responseBody = { success: true, message: 'Updated' }
       fetchMock.mockResponseOnce(JSON.stringify(responseBody))
 
-      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.patchIntersection.initiate(patchBody))
+      const result = await store.dispatch(
+        adminIntersectionApiSlice.endpoints.patchIntersection.initiate({
+          intersection_id: '1001',
+          patch: patchBody,
+        })
+      )
 
       expect('data' in result).toBe(true)
       if ('data' in result) {
@@ -302,7 +311,7 @@ describe('adminIntersectionApiSlice', () => {
         orig_intersection_id: '2001',
         intersection_id: '2001',
         ref_pt: { latitude: '40.0', longitude: '-105.0' },
-        organizations: ['1'],
+        organizations: [1],
         rsus: ['10.0.0.20'],
       }
       await store.dispatch(adminIntersectionApiSlice.endpoints.createIntersection.initiate(createBody))
@@ -322,14 +331,18 @@ describe('adminIntersectionApiSlice', () => {
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
       const patchBody = {
         intersection_id: '1001',
-        orig_intersection_id: '1001',
         ref_pt: { latitude: '39.7392', longitude: '-104.9903' },
         organizations_to_add: [],
         organizations_to_remove: [],
         rsus_to_add: [],
         rsus_to_remove: [],
       }
-      await store.dispatch(adminIntersectionApiSlice.endpoints.patchIntersection.initiate(patchBody))
+      await store.dispatch(
+        adminIntersectionApiSlice.endpoints.patchIntersection.initiate({
+          intersection_id: '1001',
+          patch: patchBody,
+        })
+      )
 
       expect(fetchMock).toHaveBeenCalledTimes(3)
     })

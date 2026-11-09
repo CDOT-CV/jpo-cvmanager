@@ -61,7 +61,20 @@ const allowedSelections = {
 const renderComponent = () =>
   render(
     <ThemeProvider theme={testTheme}>
-      <Provider store={setupStore({})}>
+      <Provider
+        store={setupStore({
+          user: {
+            loading: false,
+            value: {
+              authLoginData: mocks.authLoginData,
+              organization: null,
+              loginFailure: false,
+              loginMessage: '',
+              routeNotFound: false,
+            },
+          },
+        })}
+      >
         <BrowserRouter>
           <AdminEditRsu />
         </BrowserRouter>
