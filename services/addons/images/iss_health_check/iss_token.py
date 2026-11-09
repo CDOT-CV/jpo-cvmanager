@@ -1,226 +1,162 @@
-from google.cloud import secretmanager
-import common.pgquery as pgquery
-import requests
-import json
-import uuid
+from contextlib import contextmanager
 import logging
+import uuid
+
+import requests
+from sqlalchemy import text
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
+
+import common.pgquery as pgquery
 import iss_health_check_environment
 
-
-# Set up logging
 logger = logging.getLogger(__name__)
 
+REQUEST_TIMEOUT_SECONDS = 30
 
-# GCP Secret Manager functions
-def create_secret(client, secret_id, parent):
-    """Create a new GCP secret in GCP Secret Manager
-    client: GCP Security Manager client
-    secret_id: ID of the secret being created
-    parent: GCP secret manager parent ID for the GCP project
-    """
-    client.create_secret(
-        request={
-            "parent": parent,
-            "secret_id": secret_id,
-            "secret": {"replication": {"automatic": {}}},
-        }
+# Recognize existing Fernet values during the plaintext upgrade.
+FERNET_TOKEN_PREFIX = "gAAAAA"
+
+
+def get_cipher():
+    """Encrypt with the first key; decrypt with any configured key."""
+    return MultiFernet(
+        [Fernet(key) for key in iss_health_check_environment.ISS_TOKEN_ENCRYPTION_KEYS]
     )
-    logger.debug("New secret created")
 
 
-def check_if_secret_exists(client, secret_id, parent):
-    """Check if a secret exists in GCP Secret Manager
-    client: GCP Security Manager client
-    secret_id: ID of the secret being checked
-    parent: GCP secret manager parent ID for the GCP project
-    """
-    for secret in client.list_secrets(
-        request=secretmanager.ListSecretsRequest(parent=parent)
-    ):
-        # secret names are in the form of "projects/project_id/secrets/secret_id"
-        if secret.name.split("/")[-1] == secret_id:
-            logger.debug(f"Secret {secret_id} exists")
-            return True
-    return False
+def encrypt_token(token):
+    return get_cipher().encrypt(token.encode()).decode()
 
 
-def get_latest_secret_version(client, secret_id, parent):
-    """Get latest value of a secret from GCP Secret Manager
-    client: GCP Security Manager client
-    secret_id: ID for the secret being retrieved
-    parent: GCP secret manager parent ID for the GCP project
-    """
-    response = client.access_secret_version(
-        request={"name": f"{parent}/secrets/{secret_id}/versions/latest"}
+def decrypt_token(encrypted_token):
+    return get_cipher().decrypt(encrypted_token.encode()).decode()
+
+
+def get_latest_token(connection):
+    """Read the current token, allowing plaintext from before the migration."""
+    query = (
+        "SELECT iss_key_id, common_name, token "
+        "FROM public.iss_keys "
+        "ORDER BY iss_key_id DESC LIMIT 1"
     )
-    return json.loads(response.payload.data.decode("UTF-8"))
+    data = connection.execute(text(query)).fetchall()
+    if not data:
+        return None
 
-
-def add_secret_version(client, secret_id, parent, data):
-    """Add a new version to an existing secret
-    client: GCP Security Manager client
-    secret_id: ID for the secret
-    parent: GCP secret manager parent ID for the GCP project
-    data: String value for the new version of the secret
-    """
-    response = client.add_secret_version(
-        request={
-            "parent": f"{parent}/secrets/{secret_id}",
-            "payload": {"data": str.encode(json.dumps(data))},
-        }
-    )
-    logger.debug(f"New secret version added: {response.name}")
-    return response
-
-
-def destroy_old_secret_versions(client, secret_id, parent, current_version_name):
-    """Destroy every non-destroyed version older than the current version.
-
-    Versions are compared by their numeric version IDs. This prevents one run
-    from destroying a newer version if two health-check jobs overlap.
-    """
-    secret_name = f"{parent}/secrets/{secret_id}"
-    current_version_id = int(current_version_name.rsplit("/", 1)[-1])
-
-    for version in client.list_secret_versions(request={"parent": secret_name}):
-        version_id = int(version.name.rsplit("/", 1)[-1])
-        if (
-            version_id >= current_version_id
-            or version.state == secretmanager.SecretVersion.State.DESTROYED
-        ):
-            continue
-
-        try:
-            client.destroy_secret_version(request={"name": version.name})
-            logger.info(f"Destroyed old secret version: {version.name}")
-        except Exception:
-            logger.exception(f"Failed to destroy old secret version: {version.name}")
-
-
-# Postgres functions
-def check_if_data_exists(table_name):
-    """Check if data exists in the table
-    table_name: name of the table
-    """
-    # create the query
-    query = f"SELECT * FROM {table_name}"
-    # execute the query
-    data = pgquery.query_db(query)
-    # check if data exists
-    if len(data) > 0:
-        return True
+    iss_key_id, common_name, stored_token = data[0]
+    if not stored_token.startswith(FERNET_TOKEN_PREFIX):
+        logger.info(f"Migrating unencrypted token: {common_name}")
+        token = stored_token
     else:
-        return False
+        try:
+            token = decrypt_token(stored_token)
+        except InvalidToken:
+            raise RuntimeError(
+                "Unable to decrypt the stored ISS token. Verify ISS_TOKEN_ENCRYPTION_KEY "
+                "matches the key used to store it."
+            ) from None
+
+    logger.debug(f"Received token: {common_name} with id {iss_key_id}")
+    return {"id": iss_key_id, "name": common_name, "token": token}
 
 
-def get_latest_data(table_name):
-    """Get latest value of a token from the table
-    table_name: name of the table
-    """
-    # create the query
-    query = f"SELECT * FROM {table_name} ORDER BY iss_key_id DESC LIMIT 1"
-    # execute the query
-    data = pgquery.query_db(query)
-    # return the data
-    toReturn = {}
-    toReturn["id"] = data[0][0] # id
-    toReturn["name"] = data[0][1] # common_name
-    toReturn["token"] = data[0][2] # token
-    logger.debug(f"Received token: {toReturn['name']} with id {toReturn['id']}")
-    return toReturn
+def store_token(connection, common_name, token):
+    connection.execute(
+        text(
+            "INSERT INTO public.iss_keys (common_name, token) "
+            "VALUES (:common_name, :token) "
+            "ON CONFLICT ((true)) DO UPDATE "
+            "SET common_name = EXCLUDED.common_name, token = EXCLUDED.token"
+        ),
+        {"common_name": common_name, "token": encrypt_token(token)},
+    )
+    connection.commit()
 
 
-def add_data(table_name, common_name, token):
-    """Add a new token to the table
-    table_name: name of the table
-    data: String value for the new token
-    """
-    # create the query
-    query = f"INSERT INTO {table_name} (common_name, token) VALUES ('{common_name}', '{token}')"
-    # execute the query
-    pgquery.write_db(query)
+@contextmanager
+def token_for_check():
+    """Hold the refresh lock until the caller finishes using the token."""
+    engine = pgquery.init_connection_engine()
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SET lock_timeout = '60s'"))
+            connection.execute(text("SELECT pg_advisory_lock(73021, 1)"))
+            connection.commit()
+            yield get_token(connection)
+    finally:
+        # This dedicated pool is closed so the session lock cannot leak to another job.
+        engine.dispose()
 
 
-# Main function
-def get_token():
-    if iss_health_check_environment.STORAGE_TYPE == "gcp":
-        client = secretmanager.SecretManagerServiceClient()
-        secret_id = "iss-token-secret"
-        parent = f"projects/{iss_health_check_environment.PROJECT_ID}"
+def get_token(connection):
+    """Generate a new ISS SCMS API token, store it, and revoke the previous one"""
+    stored = get_latest_token(connection)
+    if stored:
+        token = stored["token"]
+    elif iss_health_check_environment.ISS_API_KEY:
+        logger.debug("No stored token found, using ISS_API_KEY")
+        token = iss_health_check_environment.ISS_API_KEY
+    else:
+        raise RuntimeError(
+            "No stored ISS token found and ISS_API_KEY is not set. "
+            "Set ISS_API_KEY to a valid ISS SCMS API key."
+        )
 
-        # Check to see if the GCP secret exists
-        data_exists = check_if_secret_exists(client, secret_id, parent)
-
-        if data_exists:
-            # Grab the latest token data
-            value = get_latest_secret_version(client, secret_id, parent)
-            friendly_name = value["name"]
-            token = value["token"]
-            logger.debug(f"Received token: {friendly_name}")
-        else:
-            # If there is no available ISS token secret, create secret
-            logger.debug("Secret does not exist, creating secret")
-            create_secret(client, secret_id, parent)
-            # Use iss_health_check_environment variable for first run with new secret
-            token = iss_health_check_environment.ISS_API_KEY
-    elif iss_health_check_environment.STORAGE_TYPE == "postgres":
-        key_table_name = iss_health_check_environment.ISS_KEY_TABLE_NAME
-
-        # check to see if data exists in the table
-        data_exists = check_if_data_exists(key_table_name)
-
-        if data_exists:
-            # grab the latest token data
-            value = get_latest_data(key_table_name)
-            id = value["id"]
-            friendly_name = value["name"]
-            token = value["token"]
-            logger.debug(f"Received token: {friendly_name} with id {id}")
-        else:
-            # if there is no data, use iss_health_check_environment variable for first run
-            token = iss_health_check_environment.ISS_API_KEY
-
-    # Pull new ISS SCMS API token
     iss_base = iss_health_check_environment.ISS_SCMS_TOKEN_REST_ENDPOINT
-
-    # Create HTTP request headers
     iss_headers = {"x-api-key": token}
 
-    # Create the POST body
     new_friendly_name = (
         f"{iss_health_check_environment.ISS_API_KEY_NAME}_{str(uuid.uuid4())}"
     )
     iss_post_body = {"friendlyName": new_friendly_name, "expireDays": 1}
 
-    # Create new ISS SCMS API Token to ensure its freshness
     logger.debug("POST: " + iss_base)
-    response = requests.post(iss_base, json=iss_post_body, headers=iss_headers)
+    response = requests.post(
+        iss_base,
+        json=iss_post_body,
+        headers=iss_headers,
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    # The response body may contain a token, so it is never logged
+    if not response.ok:
+        raise RuntimeError(
+            f"Failed to create a new ISS SCMS API token. Status: {response.status_code}"
+        )
     try:
         new_token = response.json()["Item"]
     except requests.JSONDecodeError:
-        logger.error("Failed to decode JSON response from ISS SCMS API. Response: " + response.text)
-        exit(1)
+        raise RuntimeError(
+            "Unexpected response from ISS SCMS API: response is not valid JSON"
+        ) from None
+    except (KeyError, TypeError):
+        raise RuntimeError(
+            "Unexpected response from ISS SCMS API: missing 'Item' field"
+        ) from None
+    if not isinstance(new_token, str) or not new_token:
+        raise RuntimeError("Unexpected response from ISS SCMS API: invalid token")
     logger.debug(f"Received new token: {new_friendly_name}")
 
-    if data_exists:
-        # If exists, delete previous API key to prevent key clutter
-        iss_delete_body = {"friendlyName": friendly_name}
-        requests.delete(iss_base, json=iss_delete_body, headers=iss_headers)
-        logger.debug(f"Old token has been deleted from ISS SCMS: {friendly_name}")
+    # Store the new token before revoking the old one so a failed write
+    # does not leave the service without a valid token
+    store_token(connection, new_friendly_name, new_token)
 
-    version_data = {"name": new_friendly_name, "token": new_token}
-
-    if iss_health_check_environment.STORAGE_TYPE == "gcp":
-        # Add new version to the secret
-        new_version = add_secret_version(client, secret_id, parent, version_data)
-        # Only clean up after the new token has been stored successfully.
-        new_version = add_secret_version(client, secret_id, parent, version_data)
+    if stored:
+        iss_delete_body = {"friendlyName": stored["name"]}
         try:
-            destroy_old_secret_versions(client, secret_id, parent, new_version.name)
-        except Exception:
-            logger.exception("Failed to destroy old secret versions; continuing with new token")
-    elif iss_health_check_environment.STORAGE_TYPE == "postgres":
-        # add new entry to the table
-        add_data(key_table_name, new_friendly_name, new_token)
+            delete_response = requests.delete(
+                iss_base,
+                json=iss_delete_body,
+                headers=iss_headers,
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+            if not delete_response.ok:
+                logger.warning(
+                    "Failed to revoke previous ISS token: HTTP %s",
+                    delete_response.status_code,
+                )
+        except requests.RequestException:
+            logger.warning(
+                "Failed to revoke previous ISS token; using the persisted token"
+            )
 
     return new_token
