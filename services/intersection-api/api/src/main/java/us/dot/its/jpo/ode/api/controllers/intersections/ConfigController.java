@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.controllers.intersections;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +13,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,7 +28,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.config.Config;
 import us.dot.its.jpo.conflictmonitor.monitor.models.config.DefaultConfig;
@@ -220,47 +216,6 @@ public class ConfigController {
         } else {
             throw new ResponseStatusException(response.getStatusCode(),
                     String.format("The ConflictMonitor API was unable to retrieve default configuration parameters: ",
-                            response.getBody()));
-        }
-    }
-
-    @Operation(summary = "Retrieve All Overridden Intersection Config Parameters", description = "Retrieve all overridden intersection configuration parameters")
-    @GetMapping(value = "/intersection/all", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role"),
-    })
-    public @ResponseBody ResponseEntity<List<IntersectionConfig<?>>> intersection_config_all(
-            @RequestHeader(name = "Organization", required = false) String organization) {
-
-        String resourceURL = String.format(intersectionConfigAllTemplate, props.getCmServerURL());
-        ResponseEntity<IntersectionConfigMap> response = restTemplate.getForEntity(resourceURL,
-                IntersectionConfigMap.class);
-        if (response.getStatusCode().is2xxSuccessful()) {
-            IntersectionConfigMap configMap = response.getBody();
-            ArrayList<IntersectionConfig<?>> results = new ArrayList<>(configMap.listConfigs());
-
-            if (organization == null) {
-                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-                String username = PermissionService.getUsername(auth);
-                List<Integer> allowedIntersectionIds = permissionService.getAllowedIntersectionIdsByEmail(username);
-                return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body(results
-                        .stream()
-                        .filter(intersection -> allowedIntersectionIds.contains(intersection.getIntersectionID()))
-                        .collect(Collectors.toList()));
-            } else {
-                List<Integer> allowedIntersectionIds = permissionService
-                        .getAllowedIntersectionIdsByOrganization(organization);
-                return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body(results
-                        .stream()
-                        .filter(intersection -> allowedIntersectionIds.contains(intersection.getIntersectionID()))
-                        .collect(Collectors.toList()));
-            }
-        } else {
-            throw new ResponseStatusException(response.getStatusCode(),
-                    String.format(
-                            "The ConflictMonitor API was unable to retrieve overridden configuration parameters: ",
                             response.getBody()));
         }
     }
