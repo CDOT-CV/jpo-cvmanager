@@ -95,7 +95,8 @@ class CvManagerAuthTokenTest {
                 .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
 
-        CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+        CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser",
+                organizationRepository);
 
         assertFalse(token.isSuperUser());
         assertTrue(token.getAllOrgs().isEmpty());
@@ -361,7 +362,8 @@ class CvManagerAuthTokenTest {
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
             Map<String, Object> cvmanagerData = createCvManagerData(true, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
-            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser",
+                    organizationRepository);
 
             assertTrue(token.isSuperUser());
         }
@@ -372,7 +374,8 @@ class CvManagerAuthTokenTest {
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
             Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
-            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser",
+                    organizationRepository);
 
             assertFalse(token.isSuperUser());
         }
