@@ -10,25 +10,27 @@ import { DropdownList, Multiselect } from 'react-widgets'
 import { Options } from '../../components/AdminDeletionOptions'
 import AdminTable from '../../components/AdminTable'
 import {
-    addOrModifyOrgAssociationByOrgName,
-    deleteOrgAssociationByOrgId,
-    selectAuthLoginData,
-    selectEmail,
-    selectLoadingGlobal,
+  addOrModifyOrgAssociationByOrgName,
+  deleteOrgAssociationByOrgId,
+  selectAuthLoginData,
+  selectEmail,
+  selectLoadingGlobal,
 } from '../../generalSlices/userSlice'
 
 import { Action, Column } from '@material-table/core'
 import toast from 'react-hot-toast'
 import '../adminRsuTab/Admin.css'
 
-import { AddCircleOutline, Close, DeleteOutline } from '@mui/icons-material'
+import AddCircleOutline from '@mui/icons-material/AddCircleOutline'
+import Close from '@mui/icons-material/Close'
+import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import { IconButton, useTheme } from '@mui/material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../store'
 import {
-    useGetAllUsersNotInOrganizationQuery,
-    useLazyGetUserOrganizationsQuery,
-    usePatchOrganizationMutation,
+  useGetAllUsersNotInOrganizationQuery,
+  useLazyGetUserOrganizationsQuery,
+  usePatchOrganizationMutation,
 } from '../api/organizationApiSlice'
 import { useGetUserAllowedSelectionsQuery, useGetUsersQuery } from '../api/userApiSlice'
 

@@ -1,18 +1,21 @@
 import MaterialTable, {
-    Action,
-    Column,
-    MTableAction,
-    MTableCell,
-    MTableToolbar,
-    Query,
-    QueryResult,
+  Action,
+  Column,
+  MTableAction,
+  MTableCell,
+  MTableToolbar,
+  Query,
+  QueryResult,
 } from '@material-table/core'
 import { makeStyles } from '@mui/styles'
 import React from 'react'
 
-import { AddCircleOutline, DeleteOutline, ModeEditOutline, Refresh } from '@mui/icons-material'
 import { alpha, Box, Button, Tooltip, Typography, useTheme } from '@mui/material'
 import '../features/adminRsuTab/Admin.css'
+import AddCircleOutline from '@mui/icons-material/AddCircleOutline'
+import DeleteOutline from '@mui/icons-material/DeleteOutline'
+import ModeEditOutline from '@mui/icons-material/ModeEditOutline'
+import Refresh from '@mui/icons-material/Refresh'
 
 interface AdminTableProps {
   actions: (Action<any> | ((row: any) => Action<any>))[]

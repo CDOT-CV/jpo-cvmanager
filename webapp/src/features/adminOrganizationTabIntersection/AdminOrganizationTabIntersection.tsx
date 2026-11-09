@@ -1,5 +1,6 @@
 import { Action, Column } from '@material-table/core'
-import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
+import AddCircleOutline from '@mui/icons-material/AddCircleOutline'
+import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useTheme } from '@mui/material'
 import Accordion from '@mui/material/Accordion'

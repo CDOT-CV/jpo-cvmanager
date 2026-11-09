@@ -11,7 +11,8 @@ import { useDeleteIntersectionMutation, useGetIntersectionsQuery } from '../api/
 import { selectColumns, setEditIntersectionRowData } from './adminIntersectionTabSlice'
 
 import { Action } from '@material-table/core'
-import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
+import DeleteOutline from '@mui/icons-material/DeleteOutline'
+import ModeEditOutline from '@mui/icons-material/ModeEditOutline'
 import { useTheme } from '@mui/material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import toast from 'react-hot-toast'
