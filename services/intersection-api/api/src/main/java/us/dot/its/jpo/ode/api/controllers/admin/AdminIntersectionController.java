@@ -195,7 +195,7 @@ public class AdminIntersectionController {
     /**
      * Updates an intersection's properties and modifies its organization/RSU
      * relationships.
-     * Request body validation runs after the permission checks.
+     * Request-body binding and validation occur before method-level permission checks.
      * Authorization (all enforced in this layer):
      * 1. @PreAuthorize: OPERATOR role AND access to the specific intersection.
      * 2. Method body: each org in organizations_to_add/remove must be in the user's
@@ -216,7 +216,7 @@ public class AdminIntersectionController {
     })
     @PatchMapping(path = "{intersection_number}", produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && " +
-            "@PermissionService.hasIntersection(#intersection_number, 'OPERATOR') && " +
+            "@PermissionService.hasIntersection(#intersectionNumber, 'OPERATOR') && " +
             "@PermissionService.hasRoleInOrgIds('ADMIN', #patch.organizationsToAdd) && " +
             "@PermissionService.hasRoleInOrgIds('ADMIN', #patch.organizationsToRemove) && " +
             "@PermissionService.hasRsus(#patch.rsusToAdd, 'OPERATOR') && " +

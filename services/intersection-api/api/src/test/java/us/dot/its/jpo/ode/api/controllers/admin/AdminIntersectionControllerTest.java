@@ -490,9 +490,10 @@ class AdminIntersectionControllerTest {
         }
 
         @Test
-        @DisplayName("returns 400 when orig_intersection_id is absent from request body")
-        void missingOrigIntersectionId_returns400() throws Exception {
-            // @RequestBody @Validated fires before @PreAuthorize — no auth stub needed
+        @WithMockUser
+        @DisplayName("uses the path ID when orig_intersection_id is absent from the request body")
+        void pathIdSuppliesOriginalIntersectionId() throws Exception {
+            allowPatchAsSuperUser();
             String bodyMissingOrigId = """
                     {
                       "intersection_id": 12109,
@@ -507,12 +508,16 @@ class AdminIntersectionControllerTest {
             mockMvc.perform(patch("/admin/intersections/12109")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(bodyMissingOrigId))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk());
+
+            verify(adminIntersectionService).patchIntersection(eq(12109), any(), anyList());
         }
 
         @Test
-        @DisplayName("returns 400 when ref_pt is absent from request body")
-        void missingRefPt_returns400() throws Exception {
+        @WithMockUser
+        @DisplayName("allows ref_pt to be omitted from a partial update")
+        void missingRefPt_isAllowedForPartialUpdate() throws Exception {
+            allowPatchAsSuperUser();
             String bodyMissingRefPt = """
                     {
                       "orig_intersection_id": 12109,
@@ -527,12 +532,16 @@ class AdminIntersectionControllerTest {
             mockMvc.perform(patch("/admin/intersections/12109")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(bodyMissingRefPt))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk());
+
+            verify(adminIntersectionService).patchIntersection(eq(12109), any(), anyList());
         }
 
         @Test
-        @DisplayName("returns 400 when organizations_to_add is explicitly null")
-        void nullOrganizationsToAdd_returns400() throws Exception {
+        @WithMockUser
+        @DisplayName("allows organizations_to_add to be null when omitted from a partial update")
+        void nullOrganizationsToAdd_isAllowedForPartialUpdate() throws Exception {
+            allowPatchAsSuperUser();
             String bodyWithNullOrgs = """
                     {
                       "orig_intersection_id": 12109,
@@ -548,7 +557,15 @@ class AdminIntersectionControllerTest {
             mockMvc.perform(patch("/admin/intersections/12109")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(bodyWithNullOrgs))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk());
+
+            verify(adminIntersectionService).patchIntersection(eq(12109), any(), anyList());
+        }
+
+        private void allowPatchAsSuperUser() {
+            when(permissionService.isSuperUser()).thenReturn(true);
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
         }
 
         @Test
@@ -946,6 +963,7 @@ class AdminIntersectionControllerTest {
         }
 
         @Test
+        @WithMockUser
         @DisplayName("returns 400 when intersection_id is missing")
         void missingIntersectionId_returns400() throws Exception {
             String body = """
@@ -963,6 +981,7 @@ class AdminIntersectionControllerTest {
         }
 
         @Test
+        @WithMockUser
         @DisplayName("returns 400 when ref_pt is missing")
         void missingRefPt_returns400() throws Exception {
             String body = """
@@ -980,6 +999,7 @@ class AdminIntersectionControllerTest {
         }
 
         @Test
+        @WithMockUser
         @DisplayName("returns 400 when ref_pt.latitude is missing")
         void missingRefPtLatitude_returns400() throws Exception {
             String body = """
@@ -998,6 +1018,7 @@ class AdminIntersectionControllerTest {
         }
 
         @Test
+        @WithMockUser
         @DisplayName("returns 400 when organizations list is empty")
         void emptyOrganizations_returns400() throws Exception {
             String body = """
@@ -1016,6 +1037,7 @@ class AdminIntersectionControllerTest {
         }
 
         @Test
+        @WithMockUser
         @DisplayName("returns 400 when rsus contains invalid IPv4")
         void invalidIpv4InRsus_returns400() throws Exception {
             String body = """
