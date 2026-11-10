@@ -4,16 +4,16 @@ import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 
 import {
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    FormControl,
-    InputLabel,
-    MenuItem,
-    Select,
-    TextField,
-    Typography,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material'
 import toast from 'react-hot-toast'
 import { useSelector } from 'react-redux'
@@ -24,9 +24,9 @@ import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
 import {
-    useGetIntersectionAllowedSelectionsQuery,
-    useGetIntersectionQuery,
-    usePatchIntersectionMutation,
+  useGetIntersectionAllowedSelectionsQuery,
+  useGetIntersectionQuery,
+  usePatchIntersectionMutation,
 } from '../api/adminIntersectionApiSlice'
 
 export type AdminEditIntersectionFormType = {
@@ -367,16 +367,12 @@ const AdminEditIntersection = () => {
 
               <Form.Group controlId="rsus">
                 <FormControl fullWidth margin="normal">
-                  <InputLabel htmlFor="rsus" required>
-                    RSUs
-                  </InputLabel>
+                  <InputLabel htmlFor="rsus">RSUs</InputLabel>
                   <Select
                     id="rsus"
                     label="RSUs"
                     multiple
-                    required
                     value={watchedRsus || []}
-                    {...register('rsus', { required: true })}
                     onChange={(event) => {
                       const value = event.target.value as string[]
                       setValue('rsus', value)
