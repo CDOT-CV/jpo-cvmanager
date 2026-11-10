@@ -140,6 +140,11 @@ vulnerabilities:
     purls: ["pkg:deb/debian/perl-base"]
     statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
     expired_at: 2026-11-30
+  # CRITICAL; fixed in 4.2.17.Final, 4.1.137.Final; flyway, keycloak
+  - id: CVE-2026-75595
+    purls: ["pkg:maven/io.netty/netty-handler"]
+    statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
+    expired_at: 2026-11-30
   # CRITICAL; fixed in 5.36.0-7+deb12u4; firmware-upgrade-runner, firmware-upgrade-scheduler
   - id: CVE-2026-8376
     purls: ["pkg:deb/debian/perl-base"]
