@@ -1,5 +1,8 @@
 package us.dot.its.jpo.ode.api.repositories;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -7,9 +10,6 @@ import org.springframework.stereotype.Repository;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
-
-import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface IntersectionRepository extends JpaRepository<Intersection, Integer> {
@@ -32,15 +32,6 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
             @Param("intersectionNumber") Integer intersectionNumber);
 
     /**
-     * Fetches all intersections with their organization associations eagerly
-     * loaded.
-     */
-    @Query("SELECT DISTINCT i FROM Intersection i " +
-            "LEFT JOIN FETCH i.intersectionOrganizations io " +
-            "LEFT JOIN FETCH io.organization")
-    List<Intersection> findAllWithOrgs();
-
-    /**
      * Fetches intersections belonging to a single organization, with org
      * associations loaded.
      */
@@ -49,16 +40,6 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
             "LEFT JOIN FETCH io.organization " +
             "WHERE io.organization = :organization")
     List<Intersection> findAllByOrganization(Organization organization);
-
-    /**
-     * Fetches intersections belonging to any of the given organizations, with org
-     * associations loaded.
-     */
-    @Query("SELECT DISTINCT i FROM Intersection i " +
-            "LEFT JOIN FETCH i.intersectionOrganizations io " +
-            "LEFT JOIN FETCH io.organization o " +
-            "WHERE o.name IN :orgNames")
-    List<Intersection> findAllByOrgNamesWithOrgs(@Param("orgNames") List<String> orgNames);
 
     @Query("SELECT i.intersectionNumber " +
             "FROM Intersection i " +
