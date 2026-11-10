@@ -283,7 +283,7 @@ const AdminAddUser = () => {
                     <InputLabel id={`organization-label-${index}`}>Organization</InputLabel>
                     <Select
                       labelId={`organization-label-${index}`}
-                      value={orgRole.organization}
+                      value={orgRole.organization ?? ''}
                       label="Organization"
                       onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value as number)}
                       required
