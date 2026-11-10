@@ -320,3 +320,8 @@ vulnerabilities:
     purls: ["pkg:maven/org.asynchttpclient/async-http-client"]
     statement: "Temporary suppression for the Kafka Connect critical finding while upgrading AsyncHttpClient to a fixed release. Owner: jfrye6838. Tracking: https://github.com/CDOT-CV/jpo-cvmanager/pull/331"
     expired_at: 2026-11-30
+  # CRITICAL; fixed in 2026.10.18; api
+  - id: GHSA-6q48-6c7w-9gw2
+    purls: ["pkg:pypi/certifi"]
+    statement: "Temporary suppression for the api Python image finding while upgrading certifi from 2024.7.4 to 2026.10.18 or later. Owner: jfrye6838. Tracking: https://github.com/CDOT-CV/jpo-cvmanager/pull/331"
+    expired_at: 2026-11-30
