@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
@@ -58,7 +59,7 @@ import us.dot.its.jpo.ode.api.services.PermissionService;
         "spring.cache.cache-names=email-rate-limit",
 })
 @ActiveProfiles("integration-test")
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(print = MockMvcPrint.NONE)
 @Import(TestcontainersConfiguration.class)
 class EmailRateLimitTest {
 
@@ -89,6 +90,8 @@ class EmailRateLimitTest {
     void setUp() {
         // Bucket4j registers its filter while the web-server factory is customized,
         // which can happen after the auto-configured MockMvc has been built.
+        // Disable MockMvc printing so reapplying its customizers doesn't register
+        // another DeferredLinesWriter singleton in the same context.
         assertThat(webApplicationContext.getBeansOfType(ServletRateLimitFilter.class)).hasSize(1);
         DefaultMockMvcBuilder builder = webAppContextSetup(webApplicationContext);
         mockMvcBuilderCustomizers.forEach(customizer -> customizer.customize(builder));
