@@ -103,11 +103,10 @@ const AdminEditIntersection = () => {
       console.log('Intersection Ref Pt', data.ref_pt, intersectionInfo?.ref_pt)
       const refPt =
         data.ref_pt &&
-        data.ref_pt !== intersectionInfo?.ref_pt &&
-        data.ref_pt.latitude &&
-        data.ref_pt.latitude != intersectionInfo?.ref_pt?.latitude &&
-        data.ref_pt.longitude &&
-        data.ref_pt.longitude != intersectionInfo?.ref_pt?.longitude
+        data.ref_pt.latitude !== '' &&
+        data.ref_pt.longitude !== '' &&
+        (data.ref_pt.latitude != intersectionInfo?.ref_pt?.latitude ||
+          data.ref_pt.longitude != intersectionInfo?.ref_pt?.longitude)
           ? data.ref_pt
           : undefined
       const bbox =

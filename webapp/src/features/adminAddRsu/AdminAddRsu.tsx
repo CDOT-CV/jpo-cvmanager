@@ -536,7 +536,6 @@ const AdminAddRsu = () => {
                 multiple
                 required
                 value={selectedOrganizations || []}
-                {...register('organizations', { required: true })}
                 onChange={(event) => setSelectedOrganizations(event.target.value as number[])}
               >
                 {allowedOrganizations.map(({ id, name }) => (
