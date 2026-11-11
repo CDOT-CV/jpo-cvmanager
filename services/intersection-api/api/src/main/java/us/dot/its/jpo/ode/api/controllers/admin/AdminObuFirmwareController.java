@@ -58,7 +58,7 @@ public class AdminObuFirmwareController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public FirmwareUploadUrl createSignedUploadUrl(@Validated @RequestBody UploadUrlRequest request,
             Authentication authentication) {
-        log.info("POST /admin/obu-firmware/signed-upload-url. manufacturer={}, file={}",
+        log.debug("POST /admin/obu-firmware/signed-upload-url. manufacturer={}, file={}",
                 request.manufacturerName(), request.fileName());
         return uploadService.createSignedUploadUrl(request, authentication.getName());
     }
@@ -75,7 +75,7 @@ public class AdminObuFirmwareController {
     @PostMapping(value = "/uploads/{uploadId}/complete", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public UploadVerification completeUpload(@PathVariable UUID uploadId) {
-        log.info("POST /admin/obu-firmware/uploads/{}/complete", uploadId);
+        log.debug("POST /admin/obu-firmware/uploads/{}/complete", uploadId);
         return uploadService.completeUpload(uploadId);
     }
 }
