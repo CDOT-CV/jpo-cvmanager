@@ -114,8 +114,9 @@ var values = result.value(measurements);
   After deleting a malformed row, another bad row may still prevent a complete snapshot.
 - SET is never retried automatically. Check device state before retrying an uncertain write.
 
-- [`Ntcip1218Client`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218Client.java) instances share a bounded set of endpoint locks within one JVM.
-  This prevents concurrent procedures from allocating the same row through different helpers.
+- [`Ntcip1218Client`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218Client.java) instances share locks keyed by exact device address/port within one JVM.
+  Unrelated devices do not share locks. Entries are removed after all owners and waiters finish; memory follows active callers, not fleet size.
+  Waiting for the same endpoint counts against a task's deadline and can be interrupted.
 - Tasks for one IP/port run one at a time within an executor, including snapshots and callbacks. Other devices can run in parallel.
 - Separate executors or application replicas need their own coordination for writes.
 - Walks use GETNEXT by default. Optional GETBULK can reduce round trips; benchmark it on your devices.

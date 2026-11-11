@@ -460,6 +460,40 @@ class Ntcip1218ClientTest {
         assertTrue(agent.writes.isEmpty());
     }
 
+    @Test void endpointsThatCollidedInTheOldStripesCanProgressIndependently() throws Exception {
+        var firstDevice = new Ntcip1218Device("192.0.2.1", DEVICE.target().credentials());
+        var secondDevice = new Ntcip1218Device("192.0.2.166", DEVICE.target().credentials());
+        assertEquals(Math.floorMod(java.util.Objects.hash(firstDevice.target().address(), 161), 256),
+                Math.floorMod(java.util.Objects.hash(secondDevice.target().address(), 161), 256));
+        var entered = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var slow = new MemoryAgent() {
+            @Override public List<SnmpBinding> walk(SnmpTarget target, SnmpOid root) {
+                entered.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) throw new AssertionError("Slow read was not released");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(e);
+                }
+                return super.walk(target, root);
+            }
+        };
+        try (var workers = Executors.newVirtualThreadPerTaskExecutor()) {
+            var first = workers.submit(() -> client(slow).addForwarding(firstDevice,
+                    new ForwardingRequest(MessageType.MAP, "198.51.100.20", false)));
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS));
+                var second = workers.submit(() -> client(new MemoryAgent()).addForwarding(secondDevice,
+                        new ForwardingRequest(MessageType.MAP, "198.51.100.20", false)));
+                assertEquals(1, second.get(2, TimeUnit.SECONDS).value().index());
+            } finally {
+                release.countDown();
+            }
+            assertEquals(1, first.get(5, TimeUnit.SECONDS).value().index());
+        }
+    }
+
     @Test void scalarReadsPreserveUnknownCoordinatesAndErrors() {
         var agent = new MemoryAgent();
         agent.data.put(new SnmpOid("1.3.6.1.4.1.1206.4.2.18.6.6.0"), new SnmpValue.IntegerValue(900000001));

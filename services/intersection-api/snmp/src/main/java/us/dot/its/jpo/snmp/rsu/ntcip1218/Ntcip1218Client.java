@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +20,7 @@ import static us.dot.its.jpo.snmp.client.SnmpException.Kind.*;
 
 /**
  * NTCIP 1218 device procedures built on the generic SNMP client.
- * Instances share bounded endpoint locks for local procedure coordination. Task recipes also use
+ * Instances share endpoint locks for local procedure coordination; idle locks are removed. Task recipes also use
  * the executor's serialization to keep follow-up snapshots and callbacks with their procedure.
  * Separate executors or external writers still need caller coordination for whole tasks.
  * Communication failures and malformed device data are reported as {@link SnmpException}.
@@ -29,7 +28,7 @@ import static us.dot.its.jpo.snmp.client.SnmpException.Kind.*;
 public final class Ntcip1218Client {
     private static final Logger log = LoggerFactory.getLogger(Ntcip1218Client.class);
     private static final String ROOT = "1.3.6.1.4.1.1206.4.2.18.";
-    private static final ReentrantLock[] LOCKS = endpointLocks();
+    private static final EndpointLocks LOCKS = new EndpointLocks();
     private final SnmpClient client;
     private final Clock clock;
 
@@ -375,30 +374,20 @@ public final class Ntcip1218Client {
         if (value instanceof SnmpValue.Octets octets) return octets;
         throw new SnmpException(INVALID_OUTPUT, false);
     }
-    private static ReentrantLock[] endpointLocks() {
-        var locks = new ReentrantLock[256];
-        for (int i = 0; i < locks.length; i++) locks[i] = new ReentrantLock(true);
-        return locks;
-    }
-
-    // One bounded set is shared across helper instances, including task-scoped wrappers.
-    // Hash collisions may serialize unrelated endpoints; locks do not coordinate other JVMs.
+    // Shared across helper instances. Only callers for the same address/port wait on each other.
     private <T> T exclusive(Ntcip1218Device device, String name, boolean write, Function<OperationLog, T> action) {
         var target = device.target();
-        ReentrantLock lock = LOCKS[Math.floorMod(Objects.hash(target.address(), target.port()), LOCKS.length)];
         try (var trace = new OperationLog(log, target, name, write)) {
             trace.step("device_lock");
             try {
-                try {
-                    lock.lockInterruptibly();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); throw new SnmpException(CANCELLED, false);
-                }
-                try {
+                try (var held = LOCKS.acquire(target.agent())) {
                     T result = action.apply(trace);
                     trace.succeeded();
                     return result;
-                } finally { lock.unlock(); }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new SnmpException(CANCELLED, false);
+                }
             } catch (SnmpException failure) {
                 trace.failed(failure);
                 throw failure;
