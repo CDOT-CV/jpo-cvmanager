@@ -40,6 +40,7 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
 import us.dot.its.jpo.ode.api.models.admin.organization.UserRoleAssignment;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.organizations.NewOrganizationBody;
 import us.dot.its.jpo.ode.api.models.organizations.OrganizationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
@@ -137,6 +138,44 @@ class OrganizationManagementServiceTest {
         when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         lenient().when(organizationMapper.toDto(testOrg)).thenReturn(testOrgDto);
+    }
+
+    // =========================================================================
+    // createOrganization
+    // =========================================================================
+
+    @Test
+    void testCreateOrganization_SavesOrganizationAndReturnsSavedEntity() {
+        NewOrganizationBody body = new NewOrganizationBody("NewOrg", "new@org.com");
+        Organization savedOrg = new Organization();
+        savedOrg.setId(2);
+        savedOrg.setName(body.getName());
+        savedOrg.setEmail(body.getEmail());
+
+        when(organizationRepository.findByName(body.getName())).thenReturn(Optional.empty());
+        when(organizationRepository.save(any(Organization.class))).thenReturn(savedOrg);
+
+        Organization result = service.createOrganization(body);
+
+        assertSame(savedOrg, result);
+        ArgumentCaptor<Organization> savedOrgCaptor = ArgumentCaptor.forClass(Organization.class);
+        verify(organizationRepository).save(savedOrgCaptor.capture());
+        assertEquals(body.getName(), savedOrgCaptor.getValue().getName());
+        assertEquals(body.getEmail(), savedOrgCaptor.getValue().getEmail());
+    }
+
+    @Test
+    void testCreateOrganization_DuplicateNameThrowsConflictWithoutSaving() {
+        NewOrganizationBody body = new NewOrganizationBody("ExistingOrg", "existing@org.com");
+        when(organizationRepository.findByName(body.getName())).thenReturn(Optional.of(testOrg));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.createOrganization(body));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        assertTrue(exception.getReason().contains(body.getName()));
+        verify(organizationRepository, never()).save(any(Organization.class));
     }
 
     // =========================================================================
