@@ -60,7 +60,35 @@ public final class Ntcip1218Client {
         });
     }
 
+    /**
+     * Inspects rows for troubleshooting, retaining incomplete or malformed column values.
+     * Use the row's table, index and readable destination/port for guarded deletion.
+     * This diagnostic listing must not replace a complete validated database snapshot.
+     * @return immutable rows with per-row validation details, in table/index order
+     * @throws SnmpException if either table walk fails or its OID structure is malformed
+     */
+    public List<ForwardingRowInspection> inspectForwarding(Ntcip1218Device device) {
+        return exclusive(device, "FORWARDING_INSPECT", false, trace -> {
+            var rows = new ArrayList<ForwardingRowInspection>();
+            for (var table : ForwardingTable.values()) {
+                trace.step(table == ForwardingTable.RECEIVE ? "inspect_receive_rows" : "inspect_transmit_rows");
+                readTableColumns(device, table).forEach((index, columns) ->
+                        rows.add(new ForwardingRowInspection(table, index, columns)));
+            }
+            return List.copyOf(rows);
+        });
+    }
+
     private List<ForwardingRow> readTable(Ntcip1218Device device, ForwardingTable table) {
+        try {
+            return readTableColumns(device, table).entrySet().stream()
+                    .map(e -> new ForwardingRow(table, e.getKey(), e.getValue())).toList();
+        } catch (IllegalArgumentException failure) {
+            throw new SnmpException(INVALID_OUTPUT, false);
+        }
+    }
+
+    private Map<Integer, Map<Integer, SnmpValue>> readTableColumns(Ntcip1218Device device, ForwardingTable table) {
         Map<Integer, Map<Integer, SnmpValue>> rows = new java.util.TreeMap<>();
         String prefix = table.root().value() + ".1.";
         try {
@@ -72,7 +100,7 @@ public final class Ntcip1218Client {
                 table.cell(column, index);
                 if (rows.computeIfAbsent(index, ignored -> new LinkedHashMap<>()).put(column, binding.value()) != null) throw new IllegalArgumentException();
             }
-            return rows.entrySet().stream().map(e -> new ForwardingRow(table, e.getKey(), e.getValue())).toList();
+            return rows;
         } catch (IllegalArgumentException e) {
             throw new SnmpException(INVALID_OUTPUT, false);
         }

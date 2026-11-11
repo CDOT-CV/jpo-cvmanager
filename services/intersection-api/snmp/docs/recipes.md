@@ -62,3 +62,9 @@ then requires every column to report absence. An out-of-range stored port can be
 when it matches exactly; unreadable destination/port fields block deletion.
 A malformed row elsewhere can still fail the snapshot; inspect `changed(result)` before retrying.
 Create methods continue to use IPv4 destinations and the message presets.
+
+For malformed-row discovery, run `Ntcip1218Client.inspectForwarding` inside a READ
+step using `ctx.client()`. Its diagnostic row type keeps invalid fields separate
+from complete `ForwardingRow` snapshots. Use the returned table/index and readable
+destination/port to build a selected-row delete task; do not persist a diagnostic
+listing as a complete device snapshot.

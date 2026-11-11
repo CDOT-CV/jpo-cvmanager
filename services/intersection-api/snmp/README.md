@@ -78,6 +78,14 @@ before the client on shutdown.
 Imports come from `us.dot.its.jpo.snmp` packages `client`, `execution`, `snmp4j`
 and `rsu.ntcip1218`, plus `java.time` and `java.util`.
 
+## Inspect malformed rows
+
+- `readForwarding(device)` returns only a complete, validated snapshot.
+- `inspectForwarding(device)` returns diagnostic [`ForwardingRowInspection`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/ForwardingRowInspection.java) entries, including malformed rows.
+- Each entry has `table()`, `index()`, optional `destination()`/`port()`, and `validationError()`.
+  Use these values with the table/index delete overload; unreadable guards require separate repair.
+- Diagnostic rows must not replace the database snapshot. Walk failures still fail the whole inspection.
+
 ## Read status values
 
 Use a generic `SnmpTarget(address, credentials)` and group known measurement OIDs

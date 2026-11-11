@@ -266,6 +266,24 @@ class Ntcip1218ForwardingTasksTest {
         }
     }
 
+    @Test void diagnosticInspectionCanFindAndDeleteAnIncompleteRowThroughTrackedCalls() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client)) {
+            var device = new Ntcip1218Device(agent.target());
+            run(executor, tasks.create(device, request));
+            agent.values.remove(new OID(ForwardingTable.TRANSMIT.cell(6, 1).value()));
+            var inspect = new SnmpStep<>("inspect-forwarding", SnmpStep.Kind.READ,
+                    ctx -> new Ntcip1218Client(ctx.client(), Clock.systemUTC()).inspectForwarding(device));
+            var result = run(executor, new SnmpTask("inspect-forwarding", device.target(), List.of(inspect)));
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED, result.status());
+            var row = result.value(inspect).getFirst();
+            assertTrue(row.validationError().isPresent());
+            var deleted = run(executor, tasks.deleteWithSnapshot(device, row.table(), row.index(),
+                    row.destination().orElseThrow(), row.port().orElseThrow(), new SnapshotAction("save", rows -> assertTrue(rows.isEmpty()))));
+            assertEquals(true, Ntcip1218ForwardingTasks.changed(deleted));
+            assertEquals(SnmpTaskResult.WriteState.VERIFIED, deleted.writeState());
+        }
+    }
+
     @Test void recipeHonorsSubmissionLimitBeforeSendingSet() throws Exception {
         try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client)) {
             var result = executor.submit(tasks.create(new Ntcip1218Device(agent.target()), request), options(1))
