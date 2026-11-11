@@ -97,7 +97,7 @@ spring:
       validation-timeout: 5000
       data-source-properties:
         connectTimeout: 5
-        socketTimeout: 5
+        socketTimeout: 60
   jpa:
     database: postgresql
   ### Spring Mail Settings (If using emailBroker SMTP)
