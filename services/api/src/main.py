@@ -1,19 +1,18 @@
-import logging
-
-import api_environment
-import smtp_error_handler
-from common import common_environment
 from flask import Flask
 from flask_restful import Api
-from healthcheck import HealthCheck
+import api_environment
+import logging
 
 # Custom script imports
 from middleware import Middleware
-from rsu_commands import RsuCommandRequest
+from healthcheck import HealthCheck
 from rsu_querycounts import RsuQueryCounts
 from rsu_querymsgfwd import RsuQueryMsgFwd
+from rsu_commands import RsuCommandRequest
 from rsu_snmp_fwd_fetch import RsuSnmpFwdFetch
 from wzdx_feed import WzdxFeed
+import smtp_error_handler
+from common import common_environment
 
 logging.info(
     "CVManager API running with LOGGING_LEVEL: " + str(common_environment.LOGGING_LEVEL)
