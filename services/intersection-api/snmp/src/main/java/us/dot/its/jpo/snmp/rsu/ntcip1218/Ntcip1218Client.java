@@ -112,7 +112,7 @@ public final class Ntcip1218Client {
     }
 
     /**
-     * Adds one row using the message type's table and port, then verifies every written column.
+     * Adds one row using the message type's table and the requested port, then verifies every written column.
      * Row allocation uses max+1 up to 127 to preserve the previous API's behavior.
      * @return verified change and the created row; each call adds a row rather than updating one
      * @throws SnmpException if communication or verification fails; a successful SET followed by
@@ -154,7 +154,7 @@ public final class Ntcip1218Client {
     }
 
     /**
-     * Deletes the highest row matching PSID and destination, preserving the previous API's selection.
+     * Deletes the highest row matching PSID, destination and the message preset's port.
      * No match is a successful no-op. A matching row is verified absent after the SET.
      * @return changed=true for verified deletion, or false when no matching row exists
      * @throws IllegalArgumentException if the destination is not a literal IPv4 address
@@ -162,13 +162,24 @@ public final class Ntcip1218Client {
      *         before attempting another delete
      */
     public SnmpWriteResult<Void> deleteForwarding(Ntcip1218Device device, MessageType message, String destination) {
+        return deleteForwarding(device, message, destination, Objects.requireNonNull(message).port());
+    }
+
+    /**
+     * Deletes the highest row matching PSID, destination and an explicit destination port.
+     * @return verified change, or a successful no-op when no row matches all three fields
+     * @throws IllegalArgumentException if the destination is not IPv4 or the port is out of range
+     * @throws SnmpException if communication or verification fails; inspect write uncertainty before retrying
+     */
+    public SnmpWriteResult<Void> deleteForwarding(Ntcip1218Device device, MessageType message, String destination, int port) {
         Objects.requireNonNull(message);
         SnmpTarget.validateIpv4(destination);
+        ForwardingRequest.validatePort(port);
         return exclusive(device, "FORWARDING_DELETE", true, trace -> {
             ForwardingTable table = message.table();
             trace.step("find_matching_row");
             Optional<ForwardingRow> match = readTable(device, table).stream()
-                    .filter(r -> r.psid().equals(message.psid()) && r.destination().equals(destination))
+                    .filter(r -> r.psid().equals(message.psid()) && r.destination().equals(destination) && r.port() == port)
                     .max(Comparator.comparingInt(ForwardingRow::index));
 
             if (match.isEmpty()) {
@@ -257,7 +268,7 @@ public final class Ntcip1218Client {
         Map<Integer, SnmpValue> values = new LinkedHashMap<>();
         values.put(2, request.messageType().psid());
         values.put(3, SnmpValue.Octets.text(request.destination()));
-        values.put(4, new SnmpValue.IntegerValue(request.messageType().port()));
+        values.put(4, new SnmpValue.IntegerValue(request.port()));
         values.put(5, new SnmpValue.IntegerValue(2));
 
         if (table == ForwardingTable.RECEIVE) {

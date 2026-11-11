@@ -431,6 +431,35 @@ class Ntcip1218ClientTest {
         assertEquals(20, agent.writes.size());
     }
 
+    @Test void explicitPortsAreCreatedVerifiedAndMatchedDuringDeletion() {
+        var agent = new MemoryAgent();
+        var client = client(agent);
+        var preset = new ForwardingRequest(MessageType.BSM, "198.51.100.20", false);
+        var custom = new ForwardingRequest(MessageType.BSM, preset.destination(), 44990, true);
+        assertEquals(46800, preset.port());
+        assertEquals(44990, client.addForwarding(DEVICE, custom).value().port());
+        client.addForwarding(DEVICE, preset);
+        client.addForwarding(DEVICE, custom);
+        assertTrue(client.deleteForwarding(DEVICE, MessageType.BSM, preset.destination()).changed());
+        assertEquals(List.of(1, 3), client.readForwarding(DEVICE).stream().map(ForwardingRow::index).toList());
+        assertFalse(client.deleteForwarding(DEVICE, MessageType.BSM, preset.destination()).changed());
+        assertTrue(client.deleteForwarding(DEVICE, MessageType.BSM, preset.destination(), 44990).changed());
+        assertEquals(List.of(1), client.readForwarding(DEVICE).stream().map(ForwardingRow::index).toList());
+        assertTrue(client.deleteForwarding(DEVICE, MessageType.BSM, preset.destination(), 44990).changed());
+        assertEquals(6, agent.writes.size());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 0, 1023, 65536})
+    void explicitCreateAndPresetDeletePortsMustFitTheMib(int port) {
+        var agent = new MemoryAgent();
+        assertThrows(IllegalArgumentException.class,
+                () -> new ForwardingRequest(MessageType.BSM, "198.51.100.20", port, false));
+        assertThrows(IllegalArgumentException.class,
+                () -> client(agent).deleteForwarding(DEVICE, MessageType.BSM, "198.51.100.20", port));
+        assertTrue(agent.writes.isEmpty());
+    }
+
     @Test void scalarReadsPreserveUnknownCoordinatesAndErrors() {
         var agent = new MemoryAgent();
         agent.data.put(new SnmpOid("1.3.6.1.4.1.1206.4.2.18.6.6.0"), new SnmpValue.IntegerValue(900000001));

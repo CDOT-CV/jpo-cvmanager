@@ -12,7 +12,7 @@ import us.dot.its.jpo.snmp.execution.*;
 
 /**
  * Reusable factory for forwarding tasks; building a task performs no device I/O.
- * Each procedure reads the affected table to find a row, then verifies the changed row.
+ * Each procedure reads the needed row or table, then verifies the changed row.
  * Snapshot variants also read both tables and may pass the validated snapshot to application code.
  * A snapshot or callback failure can fail the task without erasing an already verified change.
  */
@@ -47,37 +47,54 @@ public final class Ntcip1218ForwardingTasks {
                 client -> client.addForwarding(device, request), snapshot, afterRead);
     }
 
-    /**
-     * Deletes the highest matching row, or reports a successful no-op when none exists.
-     * @throws IllegalArgumentException if the destination is not a literal IPv4 address
-     */
+    /** Deletes the highest matching row using the message preset's destination port. */
     public SnmpTask delete(Ntcip1218Device device, MessageType message, String destination) {
-        return deleteTask(device, message, destination, false, null);
+        return delete(device, message, destination, Objects.requireNonNull(message).port());
     }
 
     /**
-     * Builds a delete/no-op task followed by a complete snapshot in its read-current-forwarding step.
-     * @throws IllegalArgumentException if the destination is not a literal IPv4 address
+     * Deletes the highest row matching PSID, destination and the supplied port.
+     * @throws IllegalArgumentException if the destination is not IPv4 or the port is out of range
      */
+    public SnmpTask delete(Ntcip1218Device device, MessageType message, String destination, int port) {
+        return deleteTask(device, message, destination, port, false, null);
+    }
+
+    /** Builds a preset-port delete followed by a complete snapshot. */
     public SnmpTask deleteWithSnapshot(Ntcip1218Device device, MessageType message, String destination) {
-        return deleteTask(device, message, destination, true, null);
+        return deleteWithSnapshot(device, message, destination, Objects.requireNonNull(message).port());
     }
 
     /**
-     * Builds a delete/no-op task, snapshot read and local callback within the same task deadline.
-     * The callback is skipped if the procedure or snapshot fails.
-     * @param afterRead bounded application work on the validated snapshot
-     * @throws IllegalArgumentException if the destination is not a literal IPv4 address
+     * Builds an explicit-port delete followed by a complete snapshot.
+     * @throws IllegalArgumentException if the destination is not IPv4 or the port is out of range
      */
-    public SnmpTask deleteWithSnapshot(Ntcip1218Device device, MessageType message, String destination, SnapshotAction afterRead) {
-        return deleteTask(device, message, destination, true, Objects.requireNonNull(afterRead));
+    public SnmpTask deleteWithSnapshot(Ntcip1218Device device, MessageType message, String destination, int port) {
+        return deleteTask(device, message, destination, port, true, null);
     }
 
-    private SnmpTask deleteTask(Ntcip1218Device device, MessageType message, String destination, boolean snapshot, SnapshotAction afterRead) {
+    /** Builds a preset-port delete, complete snapshot and bounded application callback. */
+    public SnmpTask deleteWithSnapshot(Ntcip1218Device device, MessageType message, String destination, SnapshotAction afterRead) {
+        return deleteWithSnapshot(device, message, destination, Objects.requireNonNull(message).port(), afterRead);
+    }
+
+    /**
+     * Builds an explicit-port delete, complete snapshot and bounded application callback.
+     * The callback is skipped if the procedure or snapshot fails.
+     * @throws IllegalArgumentException if the destination is not IPv4 or the port is out of range
+     */
+    public SnmpTask deleteWithSnapshot(Ntcip1218Device device, MessageType message, String destination, int port,
+            SnapshotAction afterRead) {
+        return deleteTask(device, message, destination, port, true, Objects.requireNonNull(afterRead));
+    }
+
+    private SnmpTask deleteTask(Ntcip1218Device device, MessageType message, String destination, int port,
+            boolean snapshot, SnapshotAction afterRead) {
         Objects.requireNonNull(message);
         SnmpTarget.validateIpv4(destination);
+        ForwardingRequest.validatePort(port);
         return task("delete-message-forwarding", device, message,
-                client -> client.deleteForwarding(device, message, destination), snapshot, afterRead);
+                client -> client.deleteForwarding(device, message, destination, port), snapshot, afterRead);
     }
 
     /**

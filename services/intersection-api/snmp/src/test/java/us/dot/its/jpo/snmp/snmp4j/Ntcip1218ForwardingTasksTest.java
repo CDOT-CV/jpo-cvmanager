@@ -241,6 +241,31 @@ class Ntcip1218ForwardingTasksTest {
         }
     }
 
+    @Test void recipeSupportsCustomPortsWithoutChangingPresetDeletion() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client)) {
+            var device = new Ntcip1218Device(agent.target());
+            var custom = new ForwardingRequest(MessageType.MAP, request.destination(), 44990, false);
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED, run(executor, tasks.create(device, custom)).status());
+            assertEquals(false, Ntcip1218ForwardingTasks.changed(run(executor,
+                    tasks.delete(device, MessageType.MAP, request.destination()))));
+            var callbacks = new AtomicInteger();
+            var removed = run(executor, tasks.deleteWithSnapshot(device, MessageType.MAP, request.destination(), 44990,
+                    new SnapshotAction("save", rows -> {
+                        assertTrue(rows.isEmpty());
+                        callbacks.incrementAndGet();
+                    })));
+            assertEquals(true, Ntcip1218ForwardingTasks.changed(removed));
+            assertEquals(1, callbacks.get());
+            assertEquals(2, agent.writes.get());
+            assertEquals(false, Ntcip1218ForwardingTasks.changed(run(executor,
+                    tasks.delete(device, MessageType.MAP, request.destination(), 44990))));
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED,
+                    run(executor, tasks.deleteWithSnapshot(device, MessageType.MAP, request.destination(), 44990)).status());
+            assertThrows(IllegalArgumentException.class,
+                    () -> tasks.delete(device, MessageType.MAP, request.destination(), 1023));
+        }
+    }
+
     @Test void recipeHonorsSubmissionLimitBeforeSendingSet() throws Exception {
         try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client)) {
             var result = executor.submit(tasks.create(new Ntcip1218Device(agent.target()), request), options(1))

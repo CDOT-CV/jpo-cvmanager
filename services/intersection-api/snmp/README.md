@@ -40,7 +40,7 @@ security state. Each peer keeps its own engine state. No global USM is replaced.
 ## Configure Message Forwarding
 
 Supports BSM, SPAT, MAP, SSM, SRM and TIM. The example below uses MAP;
-change [`MessageType`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/MessageType.java) to select another message type and its port/table.
+change [`MessageType`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/MessageType.java) to select another message type and its default port/table.
 
 Load credentials and check permissions in your application first.
 
@@ -59,10 +59,13 @@ try (var client = new Snmp4jClient();
 ```
 
 - Uses UDP and the jpo-ode standard MAP port. `true` includes IEEE 1609.2 security headers.
+- To override the default port, use `new ForwardingRequest(MessageType.BSM, "198.51.100.3", 44990, true)`.
+  Create ports must be 1024-65535. The application chooses deployment policy; no Spring configuration is required by this library.
 - Verifies only the changed row after the write. Schedules always use UTC.
 - Use `createWithSnapshot` or `deleteWithSnapshot` to also read both forwarding tables.
   Pass a [`SnapshotAction`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218ForwardingTasks.java) when the application needs to save that snapshot. This can be used for synchronizing the results with PostgreSQL.
 - Each create adds a row. Delete with `forwardingTasks.delete(device, MessageType.MAP, "198.51.100.3")`.
+  This matches the preset port as well as PSID and destination. Pass an explicit port for a custom-port row.
 - Use the table/index overload of `deleteWithSnapshot` to remove an existing row,
   checking its destination and raw port. Other fields may be incomplete or malformed.
 - New forwarding destinations require IPv4. Selected-row deletion accepts existing
