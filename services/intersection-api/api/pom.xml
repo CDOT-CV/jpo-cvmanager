@@ -284,12 +284,6 @@
 			<artifactId>postmark</artifactId>
 			<version>1.13.0</version>
 		</dependency>
-		<!-- Pin transitive tika-core (via com.postmarkapp:postmark) -->
-		<dependency>
-			<groupId>org.apache.tika</groupId>
-			<artifactId>tika-core</artifactId>
-			<version>3.3.3</version>
-		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
@@ -448,6 +442,13 @@
 				<version>2.0.5</version>
 				<type>pom</type>
 				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tika</groupId>
+				<artifactId>tika-core</artifactId>
+				<!-- CVE-2025-66516: postmark 1.13.0 (latest) still pulls tika-core 2.9.4.
+				     Remove this pin once postmark depends on tika-core >= 3.2.2. -->
+				<version>3.3.3</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
