@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
 import us.dot.its.jpo.ode.api.models.admin.organization.UserRoleAssignment;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.organizations.NewOrganizationBody;
 import us.dot.its.jpo.ode.api.models.organizations.OrganizationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
@@ -174,6 +175,19 @@ public class OrganizationManagementService {
         }
 
         return organizationMapper.toDto(savedOrg);
+    }
+
+    public Organization createOrganization(NewOrganizationBody newOrganizationBody) {
+        // Confirm that an organization with the same name does not already exist
+        if (organizationRepository.findByName(newOrganizationBody.getName()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Organization with name already exists: " + newOrganizationBody.getName());
+        }
+        Organization org = new Organization();
+        org.setName(newOrganizationBody.getName());
+        org.setEmail(newOrganizationBody.getEmail());
+        Organization savedOrg = organizationRepository.save(org);
+        return savedOrg;
     }
 
     /**

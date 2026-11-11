@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +32,7 @@ import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
+import us.dot.its.jpo.ode.api.models.organizations.NewOrganizationBody;
 import us.dot.its.jpo.ode.api.models.organizations.OrganizationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
@@ -202,5 +204,19 @@ public class OrganizationController {
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found: " + orgId));
         organizationManagementService.deleteOrganization(org);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Create Organization", description = "Creates a new organization with the specified details.")
+    @PostMapping(path = "", produces = "application/json")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Created"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER role"),
+            @ApiResponse(responseCode = "404", description = "Not Found - Organization not found"),
+            @ApiResponse(responseCode = "409", description = "Conflict - Organization with the same name already exists"),
+    })
+    public ResponseEntity<Integer> createOrganization(
+            @Parameter(description = "Organization details", required = true) @RequestBody NewOrganizationBody newOrganizationBody) {
+        Organization createdOrg = organizationManagementService.createOrganization(newOrganizationBody);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdOrg.getId());
     }
 }
