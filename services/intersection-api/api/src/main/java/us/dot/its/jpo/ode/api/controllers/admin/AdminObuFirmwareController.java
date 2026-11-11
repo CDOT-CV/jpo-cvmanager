@@ -93,7 +93,7 @@ public class AdminObuFirmwareController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public Publication setPublication(@PathVariable @Positive Integer obuFirmwareId,
             @Valid @RequestBody PublicationRequest request, Authentication authentication) {
-        log.info("PUT /admin/obu-firmware/images/{}/publication. published={}", obuFirmwareId, request.published());
+        log.debug("PUT /admin/obu-firmware/images/{}/publication. published={}", obuFirmwareId, request.published());
         return publicationService.setPublished(obuFirmwareId, request.published(), authentication.getName());
     }
 
@@ -110,7 +110,7 @@ public class AdminObuFirmwareController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public void deleteObject(@PathVariable String objectId,
             @RequestParam(name = "provider_object_version") @NotBlank String providerObjectVersion) {
-        log.info("DELETE /admin/obu-firmware/objects/{}", objectId);
+        log.debug("DELETE /admin/obu-firmware/objects/{}", objectId);
         deletionService.delete(objectId, providerObjectVersion);
     }
 
@@ -125,7 +125,7 @@ public class AdminObuFirmwareController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public void cleanupRecords(@PathVariable String objectId) {
-        log.info("DELETE /admin/obu-firmware/objects/{}/records", objectId);
+        log.debug("DELETE /admin/obu-firmware/objects/{}/records", objectId);
         deletionService.cleanupMissingObject(objectId);
     }
 
