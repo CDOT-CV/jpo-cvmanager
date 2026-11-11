@@ -88,7 +88,7 @@ The Firmware Manager is also able to run a bash script on Commsignia RSUs after 
 
 ### Yunex
 
-The upgrade runner installs Debian's `openjdk-21-jre-headless` package to run the unchanged `xfer_yunex.jar`. Keeping Java in the dpkg inventory lets Trivy detect runtime vulnerabilities. CVE-2026-114820 remains temporarily accepted until 2026-12-15 in `.trivyignore.yaml` while Debian 13 lacks a fixed package; this is not a claim that the outbound XFER upload path is unaffected. Rebuild with `--pull`, verify the XFER CLI, and inspect both the raw Trivy report and package inventory when Debian publishes the update, then remove the suppression. Existing vulnerabilities inside the vendor JAR remain accepted.
+The upgrade runner installs Debian's `openjdk-21-jre-headless` package to run the unchanged `xfer_yunex.jar`. Keeping Java in the dpkg inventory lets Trivy detect runtime vulnerabilities. CVE-2026-114820 is unfixed in Debian 13 and is recorded as an accepted risk in `.trivyignore.yaml` (see its `expired_at` and tracking issue); this is not a claim that the outbound XFER upload path is unaffected. When Debian publishes the update, rebuild with `--pull`, verify the XFER CLI, and confirm the finding is gone from the Trivy report, then remove the entry. Existing vulnerabilities inside the vendor JAR remain accepted.
 
 Each upgrade requires 4 total files tarred up into a single TAR file:
 
