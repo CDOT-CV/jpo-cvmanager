@@ -210,12 +210,13 @@ public class OrganizationController {
     @PostMapping(path = "", produces = "application/json")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Created"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER role"),
+            @ApiResponse(responseCode = "400", description = "Bad Request - Validation failed for the provided organization details"),
+                    @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER role"),
             @ApiResponse(responseCode = "404", description = "Not Found - Organization not found"),
             @ApiResponse(responseCode = "409", description = "Conflict - Organization with the same name already exists"),
     })
     public ResponseEntity<Integer> createOrganization(
-            @Parameter(description = "Organization details", required = true) @RequestBody NewOrganizationBody newOrganizationBody) {
+            @Parameter(description = "Organization details", required = true) @RequestBody @Valid NewOrganizationBody newOrganizationBody) {
         Organization createdOrg = organizationManagementService.createOrganization(newOrganizationBody);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdOrg.getId());
     }
