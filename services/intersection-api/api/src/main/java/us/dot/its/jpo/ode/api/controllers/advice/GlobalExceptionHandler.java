@@ -26,8 +26,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -83,11 +83,17 @@ public class GlobalExceptionHandler {
         return errorRes.build();
     }
 
-    @ExceptionHandler(NoHandlerFoundException.class)
+    /**
+     * Unmatched URLs fall through to Spring's default static resource handler
+     * (mapped to /**), which throws NoResourceFoundException
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleNoHandlerFound(NoHandlerFoundException ex) {
-        log.warn("No endpoint found: {}", ex.getRequestURL());
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    public ErrorResponse handleNoResourceFound(NoResourceFoundException ex) {
+        String endpoint = ex.getHttpMethod() + " /" + ex.getResourcePath();
+        log.warn("No endpoint found: {}", endpoint);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND,
+                "No endpoint " + endpoint + ".");
         return ErrorResponse.builder(ex, problemDetail).build();
     }
 

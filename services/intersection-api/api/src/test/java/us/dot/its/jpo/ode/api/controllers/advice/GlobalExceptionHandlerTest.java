@@ -20,7 +20,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -100,17 +100,17 @@ class GlobalExceptionHandlerTest {
     }
 
     @Nested
-    class HandleNoHandlerFoundTests {
+    class HandleNoResourceFoundTests {
 
         @Test
         void returnsNotFoundForUnmatchedEndpoint() {
-            NoHandlerFoundException ex = new NoHandlerFoundException(
-                    "GET", "/favicon.ico", HttpHeaders.EMPTY);
+            NoResourceFoundException ex = new NoResourceFoundException(
+                    HttpMethod.GET, "/favicon.ico", "favicon.ico");
 
-            ErrorResponse response = handler.handleNoHandlerFound(ex);
+            ErrorResponse response = handler.handleNoResourceFound(ex);
 
             assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-            assertTrue(response.getBody().getDetail().contains("/favicon.ico"));
+            assertEquals("No endpoint GET /favicon.ico.", response.getBody().getDetail());
         }
     }
 
