@@ -9,7 +9,8 @@
 --   1. Add email_type.organization_scoped and mark the system-wide types.
 --   2. Add user_email_notification.organization_id (nullable; NULL for
 --      system-wide types) with a FK to public.organizations.
---   3. Expand every existing organization-scoped subscription into one row per
+--   3. Sync the user_email_notification ID sequence, then expand every
+--      existing organization-scoped subscription into one row per
 --      organization the user belongs to, then remove the original
 --      organization-less rows for those types. System-wide rows are untouched.
 --   4. Replace the (user_id, email_type_id) unique constraint with
@@ -56,6 +57,10 @@ ALTER TABLE public.user_email_notification
 -- first so the expanded rows can coexist
 ALTER TABLE public.user_email_notification
 DROP CONSTRAINT IF EXISTS user_email_notification_unique;
+
+SELECT setval('public.user_email_notification_user_email_notification_id_seq',
+              COALESCE((SELECT MAX(user_email_notification_id) FROM public.user_email_notification), 0) + 1,
+              false);
 
 INSERT INTO public.user_email_notification
 (user_id, email_type_id, organization_id, immediate, hourly, daily, weekly, monthly)
