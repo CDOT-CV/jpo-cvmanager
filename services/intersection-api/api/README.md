@@ -435,15 +435,16 @@ batches return 403. Supply 1-100 unique literal IPv4 RSU addresses.
 ```
 
 `message_type` is one of `BSM`, `SPAT`, `MAP`, `SSM`, `SRM`, or `TIM`.
-The library selects the existing destination port mapping (MAP uses 44920).
+The API explicitly selects the existing message-type port presets (MAP uses 44920).
+Custom library ports are not exposed by these HTTP endpoints.
 `include_security` is required for creation and controls inclusion of IEEE 1609.2
 security headers. Credentials and the NTCIP profile come from PostgreSQL, not the
 request. The RSU's SNMP management port is 161.
 
 `DELETE /devices/rsus/message-forwarding` accepts the same body without
-`include_security`. It removes the highest-index row matching message type and
-destination. No match is a successful no-op. Creation always allocates a new row;
-it is not an upsert.
+`include_security`. It removes the highest-index row matching message type,
+destination and preset port. No match is a successful no-op. Creation always
+allocates a new row; it is not an upsert.
 
 Both endpoints return HTTP 200 once the batch has been processed, with outcomes
 keyed by RSU IP. Inspect each result rather than interpreting 200 as fleet-wide

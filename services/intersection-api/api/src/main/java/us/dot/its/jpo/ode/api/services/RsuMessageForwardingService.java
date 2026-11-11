@@ -49,29 +49,30 @@ public class RsuMessageForwardingService {
     private final Ntcip1218ForwardingTasks forwardingTasks;
 
     /**
-     * Creates a new row using the jpo-snmp library's message-type port mapping;
+     * Creates a new row using CV Manager's message-type port presets;
      * this is not an upsert.
      */
     public Map<String, MessageForwardingResult> create(CreateMessageForwardingRequest request) {
         validateRequest(request);
         if (request.getIncludeSecurity() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "include_security is required");
+        // The library supports custom ports; this HTTP API intentionally keeps the CV Manager presets.
         var forwarding = new ForwardingRequest(request.getMessageType(), request.getDestinationIp(),
-                request.getIncludeSecurity());
+                request.getMessageType().port(), request.getIncludeSecurity());
         return execute(request.getRsuIps(),
                 context -> forwardingTasks.createWithSnapshot(context.device(), forwarding, synchronizeDb(context)));
     }
 
     /**
      * Handles bulk deletion without caller-supplied row indexes. The message type
-     * selects the table; the highest row matching its PSID and destination is deleted
+     * selects the table and port; the highest row matching its PSID, destination and port is deleted
      * on each RSU. A confirmed absence is a successful, unchanged result.
      */
     public Map<String, MessageForwardingResult> delete(MessageForwardingRequest request) {
         validateRequest(request);
         return execute(request.getRsuIps(),
                 context -> forwardingTasks.deleteWithSnapshot(context.device(), request.getMessageType(),
-                        request.getDestinationIp(), synchronizeDb(context)));
+                        request.getDestinationIp(), request.getMessageType().port(), synchronizeDb(context)));
     }
 
     /**

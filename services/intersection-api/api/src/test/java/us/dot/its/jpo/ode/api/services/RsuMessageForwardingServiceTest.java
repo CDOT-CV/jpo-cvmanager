@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -77,6 +78,33 @@ class RsuMessageForwardingServiceTest {
             assertEquals(SnmpTaskResult.WriteState.NOT_SUBMITTED, noOp.writeState());
             assertEquals(2, client.writes.get());
             verify(snapshots, times(3)).replace(eq(7), eq(device.target().address()), anyList());
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"BSM,46800", "SPAT,44910", "MAP,44920", "SSM,44900", "SRM,44930", "TIM,47900"})
+    void preservesCvManagerPortsAndDoesNotBulkDeleteManualPorts(MessageType message, int expectedPort) {
+        var client = new MemoryClient();
+        try (var executor = executor(client)) {
+            var service = service(executor);
+            var request = request();
+            request.setMessageType(message);
+            assertEquals(true, service.create(request).get(device.target().address()).changed());
+            assertEquals(new SnmpValue.IntegerValue(expectedPort), client.data.get(message.table().cell(4, 1)));
+
+            // A row configured by another tool on a different port must survive preset bulk deletion.
+            var helper = new Ntcip1218Client(client, Clock.systemUTC());
+            for (var binding : helper.createBindings(new ForwardingRequest(message, request.getDestinationIp(), false), 2)) {
+                client.data.put(binding.oid(), binding.value());
+            }
+            client.data.put(message.table().cell(4, 2), new SnmpValue.IntegerValue(50000));
+            client.data.put(message.table().cell(message.table().statusColumn(), 2), new SnmpValue.IntegerValue(1));
+            var result = service.delete(request).get(device.target().address());
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED, result.execution().status());
+            assertEquals(true, result.changed());
+            assertFalse(client.data.containsKey(message.table().cell(4, 1)));
+            assertEquals(new SnmpValue.IntegerValue(50000), client.data.get(message.table().cell(4, 2)));
+            assertEquals(2, client.writes.get());
         }
     }
 
