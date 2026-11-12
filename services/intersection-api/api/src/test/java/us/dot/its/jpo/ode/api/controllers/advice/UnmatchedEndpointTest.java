@@ -1,7 +1,10 @@
 package us.dot.its.jpo.ode.api.controllers.advice;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpHeaders;
@@ -18,6 +21,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import static org.hamcrest.Matchers.emptyOrNullString;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -136,5 +140,18 @@ class UnmatchedEndpointTest {
                         .andExpect(jsonPath("$.instance").value(path));
             }
         }
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void unmappedRequestIsLoggedOnceByDispatcher(CapturedOutput output) throws Exception {
+        MockMvc standalone = standaloneSetup(new StubController())
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+        standalone.perform(get("/unmapped-endpoint"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+        assertThat(output).contains("No mapping for GET /unmapped-endpoint");
+        assertThat(output).doesNotContain("No endpoint found: /unmapped-endpoint");
     }
 }

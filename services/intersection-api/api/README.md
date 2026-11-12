@@ -141,15 +141,25 @@ Then open the following file in a browser: [index.html](./target/site/jacoco/ind
 
 The API uses Spring Boot Actuator. These endpoints are unauthenticated and honor the `BASE_ROUTE_PREFIX` context path:
 
-| Endpoint                    | Purpose                                                |
-| --------------------------- | ------------------------------------------------------ |
-| `/actuator/health`          | Overall status and the status of each health component. |
-| `/actuator/health/liveness` | Whether the application is running.                    |
-| `/actuator/health/readiness`| Whether the application is ready to accept traffic.    |
+| Endpoint                     | Purpose                                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| `/actuator/health`           | Overall status and the status of each health component. |
+| `/actuator/health/liveness`  | Whether the application is running.                     |
+| `/actuator/health/readiness` | Whether the application is ready to accept traffic.     |
 
-Only the `health` endpoint is exposed. Component statuses are shown, but diagnostic details are hidden (see `management` in `application.yaml`). The Docker Compose service runs a healthcheck against the readiness endpoint using `curl`.
+Only the `health` endpoint is exposed. Component statuses are shown only when authenticated. Diagnostic details are hidden (see `management` in `application.yaml`). The Docker Compose service runs a healthcheck against the readiness endpoint using `curl`.
 
-The overall `status` aggregates the component statuses; any unhealthy component can make it `DOWN`. The `groups` array identifies the configured liveness and readiness health groups. For example:
+### Unauthenticated
+
+The overall `status` aggregates the component statuses. The `groups` array identifies the configured liveness and readiness health groups.
+
+```json
+{ "groups": ["liveness", "readiness"], "status": "UP" }
+```
+
+### Authenticated
+
+Additionally includes the detailed status of each health component
 
 ```json
 {
@@ -176,32 +186,29 @@ The overall `status` aggregates the component statuses; any unhealthy component 
       "status": "UP"
     }
   },
-  "groups": [
-    "liveness",
-    "readiness"
-  ],
+  "groups": ["liveness", "readiness"],
   "status": "DOWN"
 }
 ```
 
 The standard component keys report:
 
-| Key                 | Health component                                               |
-| ------------------- | -------------------------------------------------------------- |
-| `db`                | Relational database connection.                                |
-| `diskSpace`         | Available disk space.                                           |
-| `livenessState`     | Application liveness state.                                     |
-| `ping`              | Actuator's basic ping indicator.                                |
-| `readinessState`    | Application readiness state.                                   |
-| `ssl`               | SSL certificate health, when SSL health checking applies.       |
+| Key              | Health component                                          |
+| ---------------- | --------------------------------------------------------- |
+| `db`             | Relational database connection.                           |
+| `diskSpace`      | Available disk space.                                     |
+| `livenessState`  | Application liveness state.                               |
+| `ping`           | Actuator's basic ping indicator.                          |
+| `readinessState` | Application readiness state.                              |
+| `ssl`            | SSL certificate health, when SSL health checking applies. |
 
 Email health is reported separately for the configured, active provider when `enable.email` is `true`:
 
-| Response key | Provider | Check |
-| ------------ | -------- | ----- |
+| Response key | Provider | Check                                                 |
+| ------------ | -------- | ----------------------------------------------------- |
 | `mail`       | SMTP     | Tests the SMTP connection; it does not send an email. |
-| `postmark`   | Postmark | Calls the read-only server-information endpoint. |
-| `sendGrid`   | SendGrid | Calls the read-only API scopes endpoint. |
+| `postmark`   | Postmark | Calls the read-only server-information endpoint.      |
+| `sendGrid`   | SendGrid | Calls the read-only API scopes endpoint.              |
 
 Only the active provider's component is included. When email is disabled, no email-provider component is included. A `DOWN` email component indicates a provider connectivity or authentication issue and contributes to the overall health status; the component name identifies which provider is affected. Other components may appear or be absent depending on the application's configured dependencies and runtime environment.
 

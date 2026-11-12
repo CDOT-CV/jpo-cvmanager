@@ -100,7 +100,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoHandlerFoundException.class)
     public void handleNoHandlerFound(NoHandlerFoundException ex, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        log.warn("No endpoint found: {}", ex.getRequestURL());
         writeNotFoundResponse(ex.getMessage(), request, response);
     }
 
