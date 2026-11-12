@@ -1,20 +1,30 @@
 package us.dot.its.jpo.ode.api.controllers.advice;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
@@ -27,9 +37,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
@@ -74,6 +86,8 @@ public class GlobalExceptionHandler {
     // Pattern to extract duplicate key details from PostgreSQL error messages
     private static final Pattern DUPLICATE_KEY_PATTERN = Pattern.compile("Key \\(([^)]+)\\)=\\(([^)]+)\\)");
 
+    private static final ObjectMapper NOT_FOUND_JSON_MAPPER = new ObjectMapper();
+
     @ExceptionHandler()
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleEntityNotFound(EntityNotFoundException ex) {
@@ -83,18 +97,70 @@ public class GlobalExceptionHandler {
         return errorRes.build();
     }
 
-    /**
-     * Unmatched URLs fall through to Spring's default static resource handler
-     * (mapped to /**), which throws NoResourceFoundException
-     */
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public void handleNoHandlerFound(NoHandlerFoundException ex, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        log.warn("No endpoint found: {}", ex.getRequestURL());
+        writeNotFoundResponse(ex.getMessage(), request, response);
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleNoResourceFound(NoResourceFoundException ex) {
+    public void handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
         String endpoint = ex.getHttpMethod() + " /" + ex.getResourcePath();
         log.warn("No endpoint found: {}", endpoint);
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND,
-                "No endpoint " + endpoint + ".");
-        return ErrorResponse.builder(ex, problemDetail).build();
+        writeNotFoundResponse("No endpoint " + endpoint + ".", request, response);
+    }
+
+    private void writeNotFoundResponse(String detail, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.setStatus(HttpStatus.NOT_FOUND.value());
+        response.addHeader(HttpHeaders.VARY, HttpHeaders.ACCEPT);
+        List<MediaType> accepted;
+        try {
+            accepted = new ServletServerHttpRequest(request).getHeaders().getAccept();
+        } catch (InvalidMediaTypeException ex) {
+            log.warn("Invalid Accept header for missing endpoint: {}", ex.getMessage());
+            return;
+        }
+
+        MediaType contentType = accepted.isEmpty() || accepts(accepted, MediaType.APPLICATION_PROBLEM_JSON)
+                ? MediaType.APPLICATION_PROBLEM_JSON
+                : accepts(accepted, MediaType.APPLICATION_JSON) ? MediaType.APPLICATION_JSON : null;
+        if (contentType == null) {
+            return;
+        }
+        Map<String, Object> problem = new HashMap<>();
+        problem.put("type", "about:blank");
+        problem.put("title", HttpStatus.NOT_FOUND.getReasonPhrase());
+        problem.put("status", HttpStatus.NOT_FOUND.value());
+        problem.put("detail", detail);
+        problem.put("instance", request.getRequestURI());
+
+        response.setContentType(contentType.toString());
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        if (HttpMethod.HEAD.matches(request.getMethod())) {
+            return;
+        }
+        response.getWriter().write(NOT_FOUND_JSON_MAPPER.writeValueAsString(problem));
+    }
+
+    private boolean accepts(List<MediaType> accepted, MediaType candidate) {
+        return accepted.stream()
+                .filter(mediaType -> mediaType.isCompatibleWith(candidate))
+                .max((left, right) -> {
+                    MediaType leftWithoutQuality = left.removeQualityValue();
+                    MediaType rightWithoutQuality = right.removeQualityValue();
+                    if (leftWithoutQuality.isMoreSpecific(rightWithoutQuality)) {
+                        return 1;
+                    }
+                    if (rightWithoutQuality.isMoreSpecific(leftWithoutQuality)) {
+                        return -1;
+                    }
+                    return Double.compare(left.getQualityValue(), right.getQualityValue());
+                })
+                .map(mediaType -> mediaType.getQualityValue() > 0)
+                .orElse(false);
     }
 
     @ResponseStatus(HttpStatus.CONFLICT)

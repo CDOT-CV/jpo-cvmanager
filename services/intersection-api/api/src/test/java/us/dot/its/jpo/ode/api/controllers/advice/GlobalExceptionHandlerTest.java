@@ -7,12 +7,13 @@ import jakarta.validation.Path;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.http.MockHttpInputMessage;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -23,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
 import us.dot.its.jpo.ode.api.services.PrometheusService;
@@ -103,14 +105,16 @@ class GlobalExceptionHandlerTest {
     class HandleNoResourceFoundTests {
 
         @Test
-        void returnsNotFoundForUnmatchedEndpoint() {
+        void returnsNotFoundForUnmatchedEndpoint() throws Exception {
             NoResourceFoundException ex = new NoResourceFoundException(
                     HttpMethod.GET, "/favicon.ico", "favicon.ico");
 
-            ErrorResponse response = handler.handleNoResourceFound(ex);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            handler.handleNoResourceFound(ex, new MockHttpServletRequest(), response);
 
-            assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-            assertEquals("No endpoint GET /favicon.ico.", response.getBody().getDetail());
+            assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
+            assertEquals("No endpoint GET /favicon.ico.",
+                    new ObjectMapper().readTree(response.getContentAsString()).get("detail").asText());
         }
     }
 
