@@ -290,15 +290,16 @@ public class GcpObjectStorageService implements ObjectStorageService {
         }
     }
 
+    // Missing configuration makes storage unavailable rather than failing the
+    // request outright, so callers that can work without storage can fall back
     private void validateConfiguration() {
         if (!StringUtils.hasText(gcpProperties.getBucketName())) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Object storage bucket is not configured");
+            throw new ObjectStorageUnavailableException("Object storage bucket is not configured");
         }
         Duration expiration = properties.getSignedUrlExpiration();
         if (expiration == null || expiration.isZero() || expiration.isNegative()
                 || expiration.compareTo(Duration.ofDays(7)) > 0) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+            throw new ObjectStorageUnavailableException(
                     "Object storage signed URL expiration must be between 1 second and 7 days");
         }
     }
