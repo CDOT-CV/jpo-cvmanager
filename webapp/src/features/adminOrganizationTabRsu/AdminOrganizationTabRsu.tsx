@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import AdminTable, { AdminTableAction, rowAction } from '../../components/AdminTable'
+import AdminTable from '../../components/AdminTable'
 import { Button, Typography, useTheme } from '@mui/material'
 import Accordion from '@mui/material/Accordion'
 import AccordionSummary from '@mui/material/AccordionSummary'
@@ -18,6 +18,8 @@ import {
 } from './adminOrganizationTabRsuSlice'
 import {
   getOrgData,
+  updateOrgTimDeposit,
+  updateOrgSnmpMonitoring,
   AdminOrgSingle,
   selectTimDeposit,
   selectSnmpMonitoring,
@@ -29,7 +31,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import '../adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../store'
-import { Column } from '@material-table/core'
+import { Action, Column } from '@material-table/core'
 import { AdminOrgRsu } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import toast from 'react-hot-toast'
 import AddCircleOutline from '@mui/icons-material/AddCircleOutline'
@@ -37,8 +39,6 @@ import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import { Multiselect } from 'react-widgets/cjs'
 import '../css/multiselect.css'
 import { useGetAllRsusNotInOrganizationQuery } from '../api/organizationApiSlice'
-import { usePatchRsuMutation } from '../api/rsuApiSlice'
-import { AdminRsuPatch } from '../../models/Rsu'
 
 interface AdminOrganizationTabRsuProps {
   selectedOrg: string
@@ -61,7 +61,6 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const timDepositStatus = useSelector(selectTimDeposit)
   const snmpMonitoringStatus = useSelector(selectSnmpMonitoring)
-  const [patchRsu] = usePatchRsuMutation()
   const [rsuColumns] = useState<Column<any>[]>([
     { title: 'IP Address', field: 'ip', id: 0, width: '18%' },
     { title: 'Primary Route', field: 'primary_route', id: 1, width: '18%' },
@@ -102,29 +101,26 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     },
   ])
 
-  const isViewerRsu = (row: AdminOrgRsu) => row.owner_organization !== selectedOrg
-
-  const rsuActions: AdminTableAction<AdminOrgRsu>[] = [
-    rowAction((rowData: AdminOrgRsu) => ({
+  const rsuActions: Action<AdminOrgRsu>[] = [
+    {
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: {
         itemType: 'rowAction',
       },
       position: 'row',
-      hidden: isViewerRsu(rowData),
-      onClick: (_event: any, row: AdminOrgRsu) => {
+      onClick: (event, rowData: AdminOrgRsu) => {
         const buttons = [
-          { label: 'Yes', onClick: () => rsuOnDelete(row) },
+          { label: 'Yes', onClick: () => rsuOnDelete(rowData) },
           { label: 'No', onClick: () => {} },
         ]
         const alertOptions = Options(
           'Delete RSU',
-          'Are you sure you want to delete "' + row.ip + '" from ' + selectedOrg + ' organization?',
+          'Are you sure you want to delete "' + rowData.ip + '" from ' + selectedOrg + ' organization?',
           buttons
         )
         confirmAlert(alertOptions)
       },
-    })),
+    },
     {
       tooltip: 'Remove All Selected From Organization',
       icon: 'delete',
@@ -217,18 +213,8 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     })
   }
 
-  const updateOwnedRsuOptions = async (ownedRsus: AdminOrgRsu[], patch: AdminRsuPatch, settingLabel: string) => {
-    const results = await Promise.allSettled(ownedRsus.map((rsu) => patchRsu({ rsuIp: rsu.ip, patch }).unwrap()))
-    const failedIps = ownedRsus.filter((_, i) => results[i].status === 'rejected').map((rsu) => rsu.ip)
-    updateTableData(selectedOrg)
-    if (failedIps.length > 0) {
-      toast.error(`Failed to update ${settingLabel} for RSUs: ${failedIps.join(', ')}`)
-    } else {
-      toast.success(`Successfully updated ${settingLabel} for ${ownedRsus.length} RSU(s) owned by ${selectedOrg}`)
-    }
-  }
-
-  const confirmOrgRsuOptionChange = async (title: string, settingLabel: string, patch: AdminRsuPatch) => {
+  // The org-level endpoints only update RSUs owned by the organization (enforced by the API)
+  const confirmOrgRsuOptionChange = async (title: string, updateOwnedRsus: () => Promise<any>) => {
     const result: any = await dispatch(getOrgData({ orgName: selectedOrg }))
     const orgRsus: AdminOrgRsu[] | undefined = result.payload?.success
       ? (result.payload.data?.org_data as AdminOrgSingle | undefined)?.org_rsus
@@ -263,21 +249,31 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
 
     confirmAlert(
       Options(title, message, [
-        { label: 'Yes', onClick: () => updateOwnedRsuOptions(ownedRsus, patch, settingLabel) },
+        {
+          label: 'Yes',
+          onClick: () =>
+            updateOwnedRsus().then((data: any) => {
+              if (data.payload?.success) {
+                toast.success(data.payload.message)
+              } else {
+                toast.error(data.payload?.message ?? 'Failed to update RSUs')
+              }
+            }),
+        },
         { label: 'No', onClick: () => {} },
       ])
     )
   }
 
   const handleOrgTimDepositChange = (newValue: boolean) =>
-    confirmOrgRsuOptionChange(`${newValue ? 'Enable' : 'Disable'} TIM Deposit`, 'TIM deposit', {
-      tim_deposit: newValue,
-    })
+    confirmOrgRsuOptionChange(`${newValue ? 'Enable' : 'Disable'} TIM Deposit`, () =>
+      dispatch(updateOrgTimDeposit({ orgName: selectedOrg, email: selectedOrgEmail, timDeposit: newValue }))
+    )
 
   const handleOrgSnmpMonitoringChange = (newValue: boolean) =>
-    confirmOrgRsuOptionChange(`${newValue ? 'Enable' : 'Disable'} SNMP Monitoring`, 'SNMP monitoring', {
-      snmp_monitoring: newValue,
-    })
+    confirmOrgRsuOptionChange(`${newValue ? 'Enable' : 'Disable'} SNMP Monitoring`, () =>
+      dispatch(updateOrgSnmpMonitoring({ orgName: selectedOrg, email: selectedOrgEmail, snmpMonitoring: newValue }))
+    )
 
   return (
     <div className="accordion">
@@ -389,13 +385,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         <AccordionDetails sx={{ padding: '8px 0px' }}>
           {loadingGlobal === false && [
             <div key="adminTable">
-              <AdminTable
-                title={''}
-                data={props.tableData}
-                columns={rsuColumns}
-                actions={rsuActions}
-                selectionProps={(row: AdminOrgRsu) => ({ disabled: isViewerRsu(row) })}
-              />
+              <AdminTable title={''} data={props.tableData} columns={rsuColumns} actions={rsuActions} />
             </div>,
           ]}
         </AccordionDetails>

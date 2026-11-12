@@ -129,7 +129,7 @@ const AdminRsuTab = () => {
           handleStatusClick(rowData)
         },
       },
-    ]).map((action) => rowAction((rowData: AdminEditRsuFormType) => ({ ...action, hidden: isViewerRsu(rowData) }))),
+    ]),
     rowAction((rowData: AdminEditRsuFormType) => ({
       icon: () => <ModeEditOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       tooltip: 'Edit RSU',

@@ -114,3 +114,15 @@ describe('RsuFirmwareMenu message block (multi_rsu type)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
+
+it('shows the owner-only notice instead of firmware controls for a viewer organization', () => {
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider store={setupStore({})}>
+        <RsuFirmwareMenu type="single_rsu" rsuIpList={['192.0.2.10']} isOwnerOrg={false} ownerOrganization="Owner Org" />
+      </Provider>
+    </ThemeProvider>
+  )
+  expect(screen.getByRole('alert')).toHaveTextContent('This RSU is owned by "Owner Org"')
+  expect(screen.queryByRole('button')).not.toBeInTheDocument()
+})

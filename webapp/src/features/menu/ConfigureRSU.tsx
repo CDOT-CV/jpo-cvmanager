@@ -27,8 +27,9 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { buildRsuCountTableRows } from './rsuCountTable'
 import { RsuMessageCountsTable } from './RsuMessageCountsTable'
 
-const ConfigMenu = ({ children }) => {
-  return <Box>{children}</Box>
+const ConfigMenu = ({ children, loading = false }: { children: React.ReactNode; loading?: boolean }) => {
+  // Owner-only menus wait for the ownership lookup so owners never see the "owner only" notice while it loads
+  return <Box>{loading ? <CircularProgress size={24} aria-label="Checking RSU ownership" /> : children}</Box>
 }
 
 const ConfigureRSU = () => {
@@ -64,8 +65,9 @@ const ConfigureRSU = () => {
   )
   const organization = useSelector(selectOrganizationName)
 
-  const { data: rsuDetail } = useGetRsuQuery(rsuIp!, { skip: !rsuIp })
-  const { data: allRsusPage } = useGetAllRsusQuery(
+  // currentData (not data) so a previously selected RSU's ownership is never applied to the new selection
+  const { currentData: rsuDetail, isFetching: singleOwnershipLoading } = useGetRsuQuery(rsuIp!, { skip: !rsuIp })
+  const { currentData: allRsusPage, isFetching: multiOwnershipLoading } = useGetAllRsusQuery(
     { organization: organization ?? '', size: 1000 },
     { skip: selectedConfigList.length === 0 || !organization }
   )
@@ -186,7 +188,7 @@ const ConfigureRSU = () => {
               <Typography>Message Forwarding</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <ConfigMenu>
+              <ConfigMenu loading={singleOwnershipLoading}>
                 <SnmpsetMenu
                   type="single_rsu"
                   rsuIpList={[selectedRsu.properties.ipv4_address]}
@@ -206,7 +208,7 @@ const ConfigureRSU = () => {
               <Typography>Firmware</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <ConfigMenu>
+              <ConfigMenu loading={singleOwnershipLoading}>
                 <RsuFirmwareMenu
                   type="single_rsu"
                   rsuIpList={[selectedRsu.properties.ipv4_address]}
@@ -228,7 +230,7 @@ const ConfigureRSU = () => {
                   <Typography>Reboot</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <ConfigMenu>
+                  <ConfigMenu loading={singleOwnershipLoading}>
                     <RsuRebootMenu isOwnerOrg={singleRsuIsOwnerOrg} ownerOrganization={rsuDetail?.owner_organization} />
                   </ConfigMenu>
                 </AccordionDetails>
@@ -260,7 +262,7 @@ const ConfigureRSU = () => {
                 <Typography>Message Forwarding</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <ConfigMenu>
+                <ConfigMenu loading={multiOwnershipLoading}>
                   <SnmpsetMenu
                     type="multi_rsu"
                     rsuIpList={selectedConfigList}
@@ -280,7 +282,7 @@ const ConfigureRSU = () => {
                 <Typography>Firmware</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <ConfigMenu>
+                <ConfigMenu loading={multiOwnershipLoading}>
                   <RsuFirmwareMenu
                     type="multi_rsu"
                     rsuIpList={selectedConfigList}

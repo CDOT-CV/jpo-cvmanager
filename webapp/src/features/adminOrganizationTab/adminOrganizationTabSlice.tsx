@@ -196,7 +196,7 @@ export const updateOrgTimDeposit = createAsyncThunk(
     if ((res.payload as any).success) {
       return {
         success: true,
-        message: 'Successfully updated TIM deposit for all RSUs in ' + orgName,
+        message: 'Successfully updated TIM deposit for all RSUs owned by ' + orgName,
         data: (res.payload as any).data,
       }
     } else {
@@ -228,7 +228,7 @@ export const updateOrgSnmpMonitoring = createAsyncThunk(
     if ((res.payload as any).success) {
       return {
         success: true,
-        message: 'Successfully updated SNMP monitoring for all RSUs in ' + orgName,
+        message: 'Successfully updated SNMP monitoring for all RSUs owned by ' + orgName,
         data: (res.payload as any).data,
       }
     } else {
