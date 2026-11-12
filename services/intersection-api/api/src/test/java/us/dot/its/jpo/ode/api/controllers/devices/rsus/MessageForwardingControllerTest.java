@@ -127,6 +127,7 @@ class MessageForwardingControllerTest {
     }
 
     @Test void viewerCanReadCachedAndLiveForwardingForOwnedRsu() throws Exception {
+        when(permissionService.hasRsu("192.0.2.10", "USER")).thenReturn(true);
         when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(permissionService.findUnauthorizedRsus(anyList(), eq("USER"))).thenReturn(List.of());
         var date = java.time.OffsetDateTime.parse("2026-10-15T16:00:00Z");
@@ -145,13 +146,40 @@ class MessageForwardingControllerTest {
         verifyNoInteractions(forwardingService);
     }
 
+    @Test void viewingOrganizationCanReadCacheWithoutGainingOwnershipPermissions() throws Exception {
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
+        when(permissionService.hasRsu("192.0.2.10", "USER")).thenReturn(true);
+        when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of("192.0.2.10"));
+        when(readService.cached("192.0.2.10")).thenReturn(List.of());
+
+        mvc.perform(get(PATH + "/192.0.2.10").with(user("operator")).header("Organization", "Viewing Org"))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        mvc.perform(get(PATH + "/192.0.2.10/live").with(user("operator")))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(PATH).with(user("operator")).contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete(PATH).with(user("operator")).contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete(PATH + "/192.0.2.10/rows/TRANSMIT/1").with(user("operator"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"destination_ip\":\"198.51.100.3\",\"destination_port\":44920}"))
+                .andExpect(status().isForbidden());
+
+        verify(permissionService).hasRsu("192.0.2.10", "USER");
+        verify(readService).cached("192.0.2.10");
+        verify(readService, never()).live(anyString());
+        verifyNoInteractions(forwardingService);
+    }
+
     @Test void bothReadPathsRejectForeignRsuAndNonliteralAddressesBeforeReading() throws Exception {
         when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(permissionService.findUnauthorizedRsus(anyList(), eq("USER"))).thenReturn(List.of("192.0.2.10"));
         for (var suffix : List.of("/192.0.2.10", "/192.0.2.10/live")) {
             mvc.perform(get(PATH + suffix).with(user("viewer"))).andExpect(status().isForbidden());
         }
-        mvc.perform(get(PATH + "/localhost/live").with(user("viewer"))).andExpect(status().isBadRequest());
+        for (var suffix : List.of("/localhost", "/localhost/live")) {
+            mvc.perform(get(PATH + suffix).with(user("viewer"))).andExpect(status().isBadRequest());
+        }
         verifyNoInteractions(readService);
     }
 

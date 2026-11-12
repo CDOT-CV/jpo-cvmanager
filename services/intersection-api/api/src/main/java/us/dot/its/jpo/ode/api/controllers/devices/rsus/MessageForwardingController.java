@@ -27,12 +27,13 @@ import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuMessageForwardingService;
 
 /**
- * Forwarding reads require USER access and ownership; creation/deletion
+ * Cached forwarding reads require USER access through an RSU organization
+ * association. Live reads require USER access and ownership; creation/deletion
  * requires OPERATOR access and ownership. Shared PermissionService helpers
  * apply the selected organization and currently define ownership through the
  * RSU's SSH credential. Keeping that rule in the helpers lets a future RSU
  * ownership model replace it without changing this controller.
- * 
+ *
  * Batch change responses report per-device outcomes; HTTP 200 alone does not
  * imply success.
  */
@@ -94,7 +95,11 @@ public class MessageForwardingController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @Operation(summary = "Get cached RSU message forwarding", description = "Returns PostgreSQL forwarding rows without contacting the RSU or requiring SNMP credentials.")
     public List<MessageForwardingConfiguration> cached(@PathVariable String rsuIp) {
-        authorizeRead(rsuIp);
+        RsuMessageForwardingReadService.validateAddress(rsuIp);
+        // Viewing cached data follows RSU organization access, not SSH credential ownership.
+        if (!permissionService.hasRsu(rsuIp, "USER")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Organization does not have access to the requested RSU");
+        }
         return readService.cached(rsuIp);
     }
 
@@ -102,11 +107,11 @@ public class MessageForwardingController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @Operation(summary = "Read forwarding directly from an RSU", description = "Reads both NTCIP 1218 forwarding tables using bounded SNMP execution. Does not update PostgreSQL. A failed read returns an error rather than a partial snapshot.")
     public List<MessageForwardingConfiguration> live(@PathVariable String rsuIp) {
-        authorizeRead(rsuIp);
+        authorizeLiveRead(rsuIp);
         return readService.live(rsuIp);
     }
 
-    private void authorizeRead(String rsuIp) {
+    private void authorizeLiveRead(String rsuIp) {
         RsuMessageForwardingReadService.validateAddress(rsuIp);
         if (!permissionService.findUnauthorizedRsus(List.of(rsuIp), "USER").isEmpty()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Organization does not own the requested RSU");

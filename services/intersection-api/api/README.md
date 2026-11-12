@@ -387,10 +387,12 @@ All forwarding operations live in one controller:
 | DELETE | `/devices/rsus/message-forwarding`                              | Delete forwarding rows using message presets      | OPERATOR     |
 | DELETE | `/devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}` | Delete one existing row by its actual table/index | OPERATOR     |
 
-Every route enforces RSU ownership using the existing selected-organization rules;
-super users retain their existing access. Cached reads require no SNMP credentials
-or connectivity and retain visibility of stored RSU 4.1/DSRC rows. Live reads
-require NTCIP 1218 and use the shared bounded executor and per-device serialization.
+Cached reads use the existing RSU organization-access rules; SSH-credential
+ownership is not required. Live reads and changes require ownership under the
+selected-organization rules. Super users retain their existing access.
+Cached reads require no SNMP credentials or connectivity and retain visibility
+of stored RSU 4.1/DSRC rows. Live reads require NTCIP 1218 and use the shared
+bounded executor and per-device serialization.
 They do not update PostgreSQL. An incomplete read returns an HTTP error (504 for
 timeouts), allowing the webapp to fall back to the cached view; an empty successful
 snapshot returns `[]`.
