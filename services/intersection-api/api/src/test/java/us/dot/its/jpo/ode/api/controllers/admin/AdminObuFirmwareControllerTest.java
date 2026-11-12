@@ -39,6 +39,7 @@ import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.Item;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.ManufacturerOption;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.ObjectPage;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.Publication;
+import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.ReplacedFirmware;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.UploadOptions;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.UploadUrlRequest;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.UploadVerification;
@@ -251,14 +252,18 @@ class AdminObuFirmwareControllerTest {
     void publishesAndWithdrawsFirmware() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         when(publicationService.setPublished(42, true, "admin@example.com"))
-                .thenReturn(new Publication(42, true, Instant.parse("2026-10-15T12:02:00Z"), "admin@example.com"));
+                .thenReturn(new Publication(42, true, Instant.parse("2026-10-15T12:02:00Z"), "admin@example.com",
+                        List.of(new ReplacedFirmware(10, "ob4-generic-ro-secureboot-y20.47.0-b220000.tar.sig"))));
 
         mockMvc.perform(put("/admin/obu-firmware/images/42/publication").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"published\":true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.obu_firmware_id").value(42))
                 .andExpect(jsonPath("$.published").value(true))
-                .andExpect(jsonPath("$.published_by").value("admin@example.com"));
+                .andExpect(jsonPath("$.published_by").value("admin@example.com"))
+                .andExpect(jsonPath("$.replaced[0].obu_firmware_id").value(10))
+                .andExpect(jsonPath("$.replaced[0].file_name")
+                        .value("ob4-generic-ro-secureboot-y20.47.0-b220000.tar.sig"));
 
         for (String body : List.of("{}", "{\"published\":null}", "not json")) {
             mockMvc.perform(put("/admin/obu-firmware/images/42/publication").contentType(MediaType.APPLICATION_JSON)
