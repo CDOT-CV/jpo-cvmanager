@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import us.dot.its.jpo.ode.api.mappers.ObuFirmwareMapper;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
+import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareDeviceType;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareFileMetadata;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareUpload;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
@@ -86,6 +87,14 @@ public class ObuFirmwareUploadService {
                 .orElseThrow(() -> new IllegalArgumentException("file_name must follow the "
                         + manufacturer.getName() + " OBU firmware naming convention, for example "
                         + parser.exampleFileName()));
+        // The OBU OTA server serves only OBU firmware, and only builds OBUs install
+        if (metadata.getDeviceType() != ObuFirmwareDeviceType.OBU) {
+            throw new IllegalArgumentException(
+                    "Only OBU firmware can be uploaded here. Manage RSU firmware under RSU Firmware.");
+        }
+        parser.unsupportedBuild(metadata).ifPresent(reason -> {
+            throw new IllegalArgumentException(reason);
+        });
 
         if (request.contentLength() == null || request.contentLength() <= 0) {
             throw new IllegalArgumentException("content_length must be greater than zero");
