@@ -155,12 +155,14 @@ export const forwardingUnavailableReason = (
     return 'A user role or higher is required to view message forwarding.'
   if (operation === 'write' && !selectIsOperatorOrAbove(state))
     return 'An operator or administrator must change message forwarding.'
+  // The map lists RSUs associated with the selected organization; the API checks read access.
+  if (operation === 'cached') return undefined
   const devices = ips.map((ip) =>
     state.rsu.value.selectedRsu?.properties.ipv4_address === ip
       ? state.rsu.value.selectedRsu
       : state.rsu.value.rsuData.find((rsu) => rsu.properties.ipv4_address === ip)
   )
-  if (operation !== 'cached' && devices.some((rsu) => rsu?.properties.snmp_protocol_code !== '1218')) {
+  if (devices.some((rsu) => rsu?.properties.snmp_protocol_code !== '1218')) {
     return 'Message forwarding changes and live refresh require NTCIP 1218 on every selected RSU. Legacy cached configurations remain available.'
   }
   if (
@@ -168,7 +170,7 @@ export const forwardingUnavailableReason = (
     (!selectOrganizationId(state) ||
       devices.some((rsu) => rsu?.properties.owner_organization_id !== selectOrganizationId(state)))
   ) {
-    return 'Message forwarding is available to the owning organization only.'
+    return 'Live refresh and forwarding changes require the owning organization.'
   }
   return undefined
 }

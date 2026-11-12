@@ -361,3 +361,27 @@ it.each([false, true])('refreshes after a verified delete and handles a failed l
     failure.mockRestore()
   }
 })
+
+it.each(['USER', 'OPERATOR'])('loads the cache for an associated %s without SSH credential ownership', async (role) => {
+  const cached = jest.spyOn(RsuMessageForwardingApi, 'cached').mockResolvedValue({
+    status: 200, message: '', body: { RsuFwdSnmpwalk: {} },
+  })
+  const live = jest.spyOn(RsuMessageForwardingApi, 'live')
+  const store = setupStore({
+    rsu: { value: { selectedRsu: { properties: {
+      ipv4_address: '192.0.2.10', snmp_protocol_code: '1218', owner_organization_id: 2,
+    } } } },
+    user: { value: { authLoginData: { token: 'fixture-token' },
+      organization: { name: 'Viewing Org', organization: 1, role } } },
+  })
+  try {
+    render(<ThemeProvider theme={testTheme}><Provider store={store}><SnmpwalkMenu /></Provider></ThemeProvider>)
+    await waitFor(() => expect(cached).toHaveBeenCalledWith('fixture-token', 'Viewing Org', '192.0.2.10'))
+    expect(screen.queryByRole('button', { name: 'Refresh Message Forwarding' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    expect(live).not.toHaveBeenCalled()
+  } finally {
+    cached.mockRestore()
+    live.mockRestore()
+  }
+})

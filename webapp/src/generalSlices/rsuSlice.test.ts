@@ -470,12 +470,14 @@ describe('forwarding availability', () => {
     expect(forwardingUnavailableReason(state, ['192.0.2.1'], 'write')).toContain('NTCIP 1218')
   })
 
-  it('allows user reads but hides writes, and rejects viewing organizations', () => {
-    expect(forwardingUnavailableReason(stateFor('1218', 'USER'), ['192.0.2.1'], 'cached')).toBeUndefined()
-    expect(forwardingUnavailableReason(stateFor('1218', 'USER'), ['192.0.2.1'], 'write')).toContain('operator')
-    expect(forwardingUnavailableReason(stateFor('1218', 'OPERATOR', 2), ['192.0.2.1'], 'cached')).toContain(
-      'owning organization'
-    )
+  it('allows associated users to view cache while retaining ownership checks for live reads and changes', () => {
+    const viewer = stateFor('1218', 'USER', 2)
+    expect(forwardingUnavailableReason(viewer, ['192.0.2.1'], 'cached')).toBeUndefined()
+    expect(forwardingUnavailableReason(viewer, ['192.0.2.1'], 'write')).toContain('operator')
+    const operator = stateFor('1218', 'OPERATOR', 2)
+    expect(forwardingUnavailableReason(operator, ['192.0.2.1'], 'cached')).toBeUndefined()
+    expect(forwardingUnavailableReason(operator, ['192.0.2.1'], 'live')).toContain('owning organization')
+    expect(forwardingUnavailableReason(operator, ['192.0.2.1'], 'write')).toContain('owning organization')
   })
 
   it('blocks the whole bulk selection when a device is unknown or unsupported', () => {
