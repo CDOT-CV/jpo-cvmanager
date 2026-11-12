@@ -8,8 +8,7 @@ import { NotFound } from './404'
 import VerticalTabs from '../components/VerticalTabs'
 import { headerTabHeight } from '../styles/index'
 import AdminIntersectionTab from '../features/adminIntersectionTab/AdminIntersectionTab'
-import AdminFirmwareTab from '../features/adminFirmwareTab/AdminFirmwareTab'
-import AdminObuFirmwareTab from '../features/adminObuFirmwareTab/AdminObuFirmwareTab'
+import FirmwareTabs from '../features/adminFirmwareTab/FirmwareTabs'
 
 function Admin() {
   const isAdmin = useSelector(selectIsAdminOrAbove)
@@ -48,12 +47,7 @@ function Admin() {
               {
                 path: 'firmware',
                 title: 'Firmware',
-                child: <AdminFirmwareTab />,
-              },
-              {
-                path: 'obu-firmware',
-                title: 'OBU Firmware',
-                child: <AdminObuFirmwareTab />,
+                child: <FirmwareTabs />,
               },
               {
                 path: 'users',
