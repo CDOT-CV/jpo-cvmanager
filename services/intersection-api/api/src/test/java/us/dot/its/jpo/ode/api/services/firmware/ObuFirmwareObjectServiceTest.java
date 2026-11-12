@@ -34,7 +34,11 @@ import us.dot.its.jpo.ode.api.models.storage.StorageObject;
 import us.dot.its.jpo.ode.api.models.storage.StorageObjectPage;
 import us.dot.its.jpo.ode.api.repositories.ObuFirmwareImageRepository;
 import us.dot.its.jpo.ode.api.repositories.ObuFirmwareUploadRepository;
+import us.dot.its.jpo.ode.api.storage.GcpObjectStorageProperties;
+import us.dot.its.jpo.ode.api.storage.GcpObjectStorageService;
+import us.dot.its.jpo.ode.api.storage.GcpStorageClientProvider;
 import us.dot.its.jpo.ode.api.storage.ObjectIds;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageProperties;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageService;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
@@ -143,6 +147,27 @@ class ObuFirmwareObjectServiceTest {
         assertThat(page.storageAvailable()).isFalse();
         assertThat(page.provider()).isNull();
         assertThat(page.objects()).extracting(Item::verificationStatus).containsExactly("UNKNOWN", "LOCAL");
+        verify(uploads, never()).findListingUploads(any(), any());
+    }
+
+    @Test
+    void listsOnlyCatalogEntriesWhenTheStorageBucketIsNotConfigured() {
+        // A deployment that serves only local firmware has no bucket. The real GCP
+        // adapter must report that as unavailable storage so the catalog still lists.
+        var unconfiguredGcp = new GcpObjectStorageService(mock(GcpStorageClientProvider.class),
+                new ObjectStorageProperties(), new GcpObjectStorageProperties());
+        var storageProperties = new ObjectStorageProperties();
+        storageProperties.setProvider("gcp");
+        service = new ObuFirmwareObjectService(
+                new ObjectStorageServiceRegistry(storageProperties, List.of(unconfiguredGcp)), uploads, images,
+                new ObuFirmwareParserRegistry(List.of(new CommsigniaObuFirmwareFileNameParser())));
+        when(images.findAllWithManufacturer()).thenReturn(List.of(
+                image(1, "ob4-generic-rw-y20.1.tar.sig", ObuFirmwareImage.LOCAL_STORAGE_PROVIDER, null)));
+
+        var page = service.list(0, 100, null, null, null, null);
+
+        assertThat(page.storageAvailable()).isFalse();
+        assertThat(page.objects()).extracting(Item::verificationStatus).containsExactly("LOCAL");
         verify(uploads, never()).findListingUploads(any(), any());
     }
 
