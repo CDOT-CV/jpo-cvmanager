@@ -16,12 +16,14 @@ import {
 import './css/SnmpwalkMenu.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
-import { Button, Typography, useTheme } from '@mui/material'
+import { Alert, Button, Typography, useTheme } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 
 interface RsuFirmwareMenuProps {
   type: string
   rsuIpList: string[]
+  isOwnerOrg?: boolean
+  ownerOrganization?: string
 }
 
 const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
@@ -54,6 +56,16 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
     afterClose: () => {},
     onClickOutside: () => {},
     onKeypressEscape: () => {},
+  }
+
+  if (props.isOwnerOrg === false) {
+    return (
+      <Alert severity="info">
+        {props.ownerOrganization
+          ? `This RSU is owned by "${props.ownerOrganization}". Only the owner organization can perform this action.`
+          : 'Only the owner organization can perform this action.'}
+      </Alert>
+    )
   }
 
   return (

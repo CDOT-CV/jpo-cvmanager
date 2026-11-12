@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import AdminTable from '../../components/AdminTable'
+import AdminTable, { AdminTableAction, rowAction } from '../../components/AdminTable'
 import { Button, Typography, useTheme } from '@mui/material'
 import Accordion from '@mui/material/Accordion'
 import AccordionSummary from '@mui/material/AccordionSummary'
@@ -29,7 +29,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import '../adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../store'
-import { Action, Column } from '@material-table/core'
+import { Column } from '@material-table/core'
 import { AdminOrgRsu } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import toast from 'react-hot-toast'
 import AddCircleOutline from '@mui/icons-material/AddCircleOutline'
@@ -100,26 +100,29 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     },
   ])
 
-  const rsuActions: Action<AdminOrgRsu>[] = [
-    {
+  const isViewerRsu = (row: AdminOrgRsu) => row.owner_organization !== selectedOrg
+
+  const rsuActions: AdminTableAction<AdminOrgRsu>[] = [
+    rowAction((rowData: AdminOrgRsu) => ({
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: {
         itemType: 'rowAction',
       },
       position: 'row',
-      onClick: (event, rowData: AdminOrgRsu) => {
+      hidden: isViewerRsu(rowData),
+      onClick: (_event: any, row: AdminOrgRsu) => {
         const buttons = [
-          { label: 'Yes', onClick: () => rsuOnDelete(rowData) },
+          { label: 'Yes', onClick: () => rsuOnDelete(row) },
           { label: 'No', onClick: () => {} },
         ]
         const alertOptions = Options(
           'Delete RSU',
-          'Are you sure you want to delete "' + rowData.ip + '" from ' + selectedOrg + ' organization?',
+          'Are you sure you want to delete "' + row.ip + '" from ' + selectedOrg + ' organization?',
           buttons
         )
         confirmAlert(alertOptions)
       },
-    },
+    })),
     {
       tooltip: 'Remove All Selected From Organization',
       icon: 'delete',
@@ -378,7 +381,13 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         <AccordionDetails sx={{ padding: '8px 0px' }}>
           {loadingGlobal === false && [
             <div key="adminTable">
-              <AdminTable title={''} data={props.tableData} columns={rsuColumns} actions={rsuActions} />
+              <AdminTable
+                title={''}
+                data={props.tableData}
+                columns={rsuColumns}
+                actions={rsuActions}
+                selectionProps={(row: AdminOrgRsu) => ({ disabled: isViewerRsu(row) })}
+              />
             </div>,
           ]}
         </AccordionDetails>

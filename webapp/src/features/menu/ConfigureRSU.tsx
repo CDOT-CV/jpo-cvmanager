@@ -207,7 +207,12 @@ const ConfigureRSU = () => {
             </AccordionSummary>
             <AccordionDetails>
               <ConfigMenu>
-                <RsuFirmwareMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} />
+                <RsuFirmwareMenu
+                  type="single_rsu"
+                  rsuIpList={[selectedRsu.properties.ipv4_address]}
+                  isOwnerOrg={singleRsuIsOwnerOrg}
+                  ownerOrganization={rsuDetail?.owner_organization}
+                />
               </ConfigMenu>
             </AccordionDetails>
           </Accordion>
@@ -235,6 +240,9 @@ const ConfigureRSU = () => {
       {selectedConfigList.length > 0 && !selectedRsu && (
         <Box sx={{ pl: 1, pr: 1 }}>
           <SideBarHeader onClick={() => dispatch(clearConfig())} title={'RSUs: ' + selectedConfigList.join(', ')} />
+          <Typography variant="caption" color="textSecondary" component="p" sx={{ px: 1, mb: 1 }}>
+            Only RSUs owned by your organization will be selected.
+          </Typography>
           <Box
             sx={{
               maxHeight: `calc(100vh - ${headerTabHeight + 185}px)`,
@@ -273,7 +281,12 @@ const ConfigureRSU = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <ConfigMenu>
-                  <RsuFirmwareMenu type="multi_rsu" rsuIpList={selectedConfigList} />
+                  <RsuFirmwareMenu
+                    type="multi_rsu"
+                    rsuIpList={selectedConfigList}
+                    isOwnerOrg={multiRsuIsOwnerOrg}
+                    ownerOrganization={multiRsuOwnerOrgs}
+                  />
                 </ConfigMenu>
               </AccordionDetails>
             </Accordion>

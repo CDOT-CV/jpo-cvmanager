@@ -4,6 +4,7 @@ import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { RootState } from '../store'
+import { rsuApiSlice } from '../features/api/rsuApiSlice'
 import {
   RsuCommandPostBody,
   RsuDsrcFwdConfigs,
@@ -27,7 +28,7 @@ const initialState = {
   includeSecurityHeader: false,
   addConfigPoint: false,
   configCoordinates: [] as number[][],
-    configList: [] as string[],
+  configList: [] as string[],
   msgFwdConfigType: 'database' as 'database' | 'rsu',
 }
 
@@ -291,7 +292,7 @@ export const startFirmwareUpgrade = createAsyncThunk(
 
 export const geoRsuQuery = createAsyncThunk(
   'config/geoRsuQuery',
-  async (vendor: string, { getState, rejectWithValue }) => {
+  async (vendor: string, { getState, dispatch, rejectWithValue }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
@@ -304,7 +305,21 @@ export const geoRsuQuery = createAsyncThunk(
     if (response?.status !== 200) {
       return rejectWithValue(response?.message || 'Failed to query RSUs by geometry')
     }
-    return response
+
+    const ownershipQuery = dispatch(
+      rsuApiSlice.endpoints.getAllRsus.initiate({ organization: organization ?? '', size: 1000 })
+    )
+    let ownedIps: Set<string>
+    try {
+      const rsuPage = await ownershipQuery.unwrap()
+      ownedIps = new Set(rsuPage.content.filter((rsu) => rsu.owner_organization === organization).map((rsu) => rsu.ip))
+    } catch {
+      return rejectWithValue('Failed to verify RSU ownership')
+    } finally {
+      ownershipQuery.unsubscribe()
+    }
+
+    return { ...response, body: (response.body ?? []).filter((ip) => ownedIps.has(ip)) }
   },
   {
     // Will guard thunk from being executed

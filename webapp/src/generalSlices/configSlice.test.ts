@@ -6,6 +6,7 @@ import reducer, {
   rebootRsu,
   checkFirmwareUpgrade,
   startFirmwareUpgrade,
+  geoRsuQuery,
 
   // reducers
   setDestIp,
@@ -26,7 +27,7 @@ describe('config reducer', () => {
         errorState: '',
         changeSuccess: false,
         rebootChangeSuccess: false,
-      rebootRequestedIp: undefined,
+        rebootRequestedIp: undefined,
         firmwareUpgradeAvailable: false,
         firmwareUpgradeName: '',
         firmwareUpgradeMsg: '',
@@ -448,6 +449,60 @@ describe('async thunks', () => {
     })
   })
 
+  describe('geoRsuQuery', () => {
+    const ring = [
+      [0, 0],
+      [1, 0],
+      [1, 1],
+      [0, 0],
+    ]
+    const getState = () =>
+      ({
+        user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
+        config: { value: { configCoordinates: ring } },
+      }) as unknown as RootState
+    const ownershipDispatch = (unwrap: () => Promise<unknown>) => {
+      const unsubscribe = jest.fn()
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? { unwrap, unsubscribe } : action))
+      return { dispatch, unsubscribe }
+    }
+
+    it('keeps only RSUs owned by the organization', async () => {
+      const api = jest
+        .spyOn(RsuApi, 'postRsuGeo')
+        .mockResolvedValue({ status: 200, body: ['10.0.0.1', '10.0.0.2'] } as any)
+      const { dispatch, unsubscribe } = ownershipDispatch(() =>
+        Promise.resolve({
+          content: [
+            { ip: '10.0.0.1', owner_organization: 'Org 1' },
+            { ip: '10.0.0.2', owner_organization: 'Org 2' },
+          ],
+        })
+      )
+      try {
+        const result = await geoRsuQuery('Select Vendor')(dispatch, getState, undefined)
+        expect(result.type).toBe('config/geoRsuQuery/fulfilled')
+        expect((result.payload as any).body).toEqual(['10.0.0.1'])
+        expect(unsubscribe).toHaveBeenCalled()
+      } finally {
+        api.mockRestore()
+      }
+    })
+
+    it('rejects when RSU ownership cannot be verified', async () => {
+      const api = jest.spyOn(RsuApi, 'postRsuGeo').mockResolvedValue({ status: 200, body: ['10.0.0.1'] } as any)
+      const { dispatch, unsubscribe } = ownershipDispatch(() => Promise.reject(new Error('boom')))
+      try {
+        const result = await geoRsuQuery('Select Vendor')(dispatch, getState, undefined)
+        expect(result.type).toBe('config/geoRsuQuery/rejected')
+        expect(result.payload).toBe('Failed to verify RSU ownership')
+        expect(unsubscribe).toHaveBeenCalled()
+      } finally {
+        api.mockRestore()
+      }
+    })
+  })
+
   describe('rebootRsu', () => {
     it('awaits acceptance from the Intersection API', async () => {
       const dispatch = jest.fn()
@@ -456,9 +511,10 @@ describe('async thunks', () => {
       })
       let finish: (value: { requestId: string; status: 'ACCEPTED' }) => void
       const api = jest.spyOn(RsuRebootApi, 'reboot').mockImplementation(
-        () => new Promise((resolve) => {
-          finish = resolve
-        })
+        () =>
+          new Promise((resolve) => {
+            finish = resolve
+          })
       )
       try {
         const promise = rebootRsu('192.0.2.10')(dispatch, getState, undefined)
@@ -476,9 +532,14 @@ describe('async thunks', () => {
     it('rejects failed admission rather than showing success', async () => {
       const api = jest.spyOn(RsuRebootApi, 'reboot').mockRejectedValue(new Error('Reboot capacity is busy'))
       try {
-        const result = await rebootRsu('192.0.2.10')(jest.fn(), () => ({
-          user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
-        }) as RootState, undefined)
+        const result = await rebootRsu('192.0.2.10')(
+          jest.fn(),
+          () =>
+            ({
+              user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
+            }) as RootState,
+          undefined
+        )
         expect(result.type).toBe('config/rebootRsu/rejected')
       } finally {
         api.mockRestore()
@@ -488,9 +549,14 @@ describe('async thunks', () => {
     it('rejects a missing target without sending a reboot request', async () => {
       const api = jest.spyOn(RsuRebootApi, 'reboot')
       try {
-        const result = await rebootRsu('')(jest.fn(), () => ({
-          user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
-        }) as RootState, undefined)
+        const result = await rebootRsu('')(
+          jest.fn(),
+          () =>
+            ({
+              user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
+            }) as RootState,
+          undefined
+        )
         expect(result.type).toBe('config/rebootRsu/rejected')
         expect(api).not.toHaveBeenCalled()
       } finally {

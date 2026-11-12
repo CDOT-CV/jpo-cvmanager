@@ -28,6 +28,7 @@ import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { useGetRsuAllowedSelectionsQuery, useGetRsuQuery, usePatchRsuMutation } from '../api/rsuApiSlice'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { NotFound } from '../../pages/404'
 
 export type AdminEditRsuFormType = {
   orig_ip: string
@@ -60,7 +61,6 @@ const AdminEditRsu = () => {
   const [patchRsu, { isLoading: isPatchingRsu }] = usePatchRsuMutation()
 
   const organization = useSelector(selectOrganizationName)
-  const isOwnerOrg = !rsuInfo || rsuInfo.owner_organization === organization
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
@@ -216,6 +216,18 @@ const AdminEditRsu = () => {
   }
 
   const isLoading = isLoadingRsu || isLoadingAllowedSelections
+
+  // "Viewer" RSUs belong to another organization's credential group and cannot be edited
+  if (rsuInfo && rsuInfo.owner_organization !== organization) {
+    return (
+      <NotFound
+        redirectRoute="/dashboard/admin/rsus"
+        redirectRouteName="Admin RSU Page"
+        offsetHeight={319}
+        description="You do not have permission to edit this RSU. Please return to the admin RSU page."
+      />
+    )
+  }
 
   return (
     <Dialog open={open}>
@@ -545,95 +557,91 @@ const AdminEditRsu = () => {
                 </Grid2>
               </Grid2>
 
-              {isOwnerOrg && (
-                <Form.Group controlId="ssh_credential_group">
-                  <FormControl fullWidth margin="normal">
-                    <InputLabel htmlFor="ssh_credential_group" required>
-                      SSH Credential Group
-                    </InputLabel>
-                    <Select
-                      id="ssh_credential_group"
-                      label="SSH Credential Group"
-                      value={watchedSshGroup || ''}
-                      required
-                      {...register('ssh_credential_group', { required: true })}
-                      onChange={(event) => {
-                        setValue('ssh_credential_group', event.target.value as string)
-                      }}
-                    >
-                      {rsuAllowedSelections.ssh_credential_groups?.map((group) => (
-                        <MenuItem key={group} value={group}>
-                          {group}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {!watchedSshGroup && submitAttempt && (
-                      <ErrorMessageText role="alert">Must select a SSH credential group</ErrorMessageText>
-                    )}
-                  </FormControl>
-                </Form.Group>
-              )}
+              <Form.Group controlId="ssh_credential_group">
+                <FormControl fullWidth margin="normal">
+                  <InputLabel htmlFor="ssh_credential_group" required>
+                    SSH Credential Group
+                  </InputLabel>
+                  <Select
+                    id="ssh_credential_group"
+                    label="SSH Credential Group"
+                    value={watchedSshGroup || ''}
+                    required
+                    {...register('ssh_credential_group', { required: true })}
+                    onChange={(event) => {
+                      setValue('ssh_credential_group', event.target.value as string)
+                    }}
+                  >
+                    {rsuAllowedSelections.ssh_credential_groups?.map((group) => (
+                      <MenuItem key={group} value={group}>
+                        {group}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {!watchedSshGroup && submitAttempt && (
+                    <ErrorMessageText role="alert">Must select a SSH credential group</ErrorMessageText>
+                  )}
+                </FormControl>
+              </Form.Group>
 
-              {isOwnerOrg && (
-                <Grid2 container spacing={1}>
-                  <Grid2 size={6}>
-                    <Form.Group controlId="snmp_credential_group">
-                      <FormControl fullWidth margin="normal">
-                        <InputLabel htmlFor="snmp_credential_group" required>
-                          SNMP Credential Group
-                        </InputLabel>
-                        <Select
-                          id="snmp_credential_group"
-                          label="SNMP Credential Group"
-                          value={watchedSnmpGroup || ''}
-                          required
-                          {...register('snmp_credential_group', { required: true })}
-                          onChange={(event) => {
-                            setValue('snmp_credential_group', event.target.value as string)
-                          }}
-                        >
-                          {rsuAllowedSelections.snmp_credential_groups?.map((group) => (
-                            <MenuItem key={group} value={group}>
-                              {group}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {!watchedSnmpGroup && submitAttempt && (
-                          <ErrorMessageText role="alert">Must select a SNMP credential group</ErrorMessageText>
-                        )}
-                      </FormControl>
-                    </Form.Group>
-                  </Grid2>
-                  <Grid2 size={6}>
-                    <Form.Group controlId="snmp_version_group">
-                      <FormControl fullWidth margin="normal">
-                        <InputLabel htmlFor="snmp_version_group" required>
-                          SNMP Protocol
-                        </InputLabel>
-                        <Select
-                          id="snmp_version_group"
-                          label="SNMP Protocol"
-                          value={watchedSnmpVersion || ''}
-                          required
-                          {...register('snmp_version_group', { required: true })}
-                          onChange={(event) => {
-                            setValue('snmp_version_group', event.target.value as string)
-                          }}
-                        >
-                          {rsuAllowedSelections.snmp_version_groups?.map((ver) => (
-                            <MenuItem key={ver} value={ver}>
-                              {ver}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {!watchedSnmpVersion && submitAttempt && (
-                          <ErrorMessageText role="alert">Must select a SNMP protocol</ErrorMessageText>
-                        )}
-                      </FormControl>
-                    </Form.Group>
-                  </Grid2>
+              <Grid2 container spacing={1}>
+                <Grid2 size={6}>
+                  <Form.Group controlId="snmp_credential_group">
+                    <FormControl fullWidth margin="normal">
+                      <InputLabel htmlFor="snmp_credential_group" required>
+                        SNMP Credential Group
+                      </InputLabel>
+                      <Select
+                        id="snmp_credential_group"
+                        label="SNMP Credential Group"
+                        value={watchedSnmpGroup || ''}
+                        required
+                        {...register('snmp_credential_group', { required: true })}
+                        onChange={(event) => {
+                          setValue('snmp_credential_group', event.target.value as string)
+                        }}
+                      >
+                        {rsuAllowedSelections.snmp_credential_groups?.map((group) => (
+                          <MenuItem key={group} value={group}>
+                            {group}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {!watchedSnmpGroup && submitAttempt && (
+                        <ErrorMessageText role="alert">Must select a SNMP credential group</ErrorMessageText>
+                      )}
+                    </FormControl>
+                  </Form.Group>
                 </Grid2>
-              )}
+                <Grid2 size={6}>
+                  <Form.Group controlId="snmp_version_group">
+                    <FormControl fullWidth margin="normal">
+                      <InputLabel htmlFor="snmp_version_group" required>
+                        SNMP Protocol
+                      </InputLabel>
+                      <Select
+                        id="snmp_version_group"
+                        label="SNMP Protocol"
+                        value={watchedSnmpVersion || ''}
+                        required
+                        {...register('snmp_version_group', { required: true })}
+                        onChange={(event) => {
+                          setValue('snmp_version_group', event.target.value as string)
+                        }}
+                      >
+                        {rsuAllowedSelections.snmp_version_groups?.map((ver) => (
+                          <MenuItem key={ver} value={ver}>
+                            {ver}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {!watchedSnmpVersion && submitAttempt && (
+                        <ErrorMessageText role="alert">Must select a SNMP protocol</ErrorMessageText>
+                      )}
+                    </FormControl>
+                  </Form.Group>
+                </Grid2>
+              </Grid2>
 
               <Form.Group controlId="organizations">
                 <FormControl fullWidth margin="normal">

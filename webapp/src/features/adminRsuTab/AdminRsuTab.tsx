@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
 import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
-import AdminTable, { buildAdminTableQueryParams } from '../../components/AdminTable'
+import AdminTable, { AdminTableAction, buildAdminTableQueryParams, rowAction } from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import RsuStatusDialog from './RsuStatusDialog'
@@ -113,9 +113,9 @@ const AdminRsuTab = () => {
     setSelectedRsuIp(null)
   }
 
-  const tableActions: (
-    Action<AdminEditRsuFormType> | ((rowData: AdminEditRsuFormType) => Action<AdminEditRsuFormType>)
-  )[] = [
+  const isViewerRsu = (row: AdminEditRsuFormType) => row.owner_organization !== organization
+
+  const tableActions: AdminTableAction<AdminEditRsuFormType>[] = [
     ...applyFlagsToList<Action<AdminEditRsuFormType> & FlaggedElem>([
       {
         tag: 'rsuStatusMonitor',
@@ -129,27 +129,27 @@ const AdminRsuTab = () => {
           handleStatusClick(rowData)
         },
       },
-    ]),
-    (rowData: AdminEditRsuFormType) => ({
+    ]).map((action) => rowAction((rowData: AdminEditRsuFormType) => ({ ...action, hidden: isViewerRsu(rowData) }))),
+    rowAction((rowData: AdminEditRsuFormType) => ({
       icon: () => <ModeEditOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       tooltip: 'Edit RSU',
       position: 'row',
       iconProps: {
         itemType: 'rowAction',
       },
-      hidden: rowData.owner_organization !== organization,
+      hidden: isViewerRsu(rowData),
       onClick: (_event: any, row: AdminEditRsuFormType) => {
         onEdit(row)
       },
-    }),
-    (rowData: AdminEditRsuFormType) => ({
+    })),
+    rowAction((rowData: AdminEditRsuFormType) => ({
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       tooltip: 'Delete RSU',
       position: 'row',
       iconProps: {
         itemType: 'rowAction',
       },
-      hidden: rowData.owner_organization !== organization,
+      hidden: isViewerRsu(rowData),
       onClick: (_event: any, row: AdminEditRsuFormType) => {
         const buttons = [
           { label: 'Yes', onClick: () => onDelete(row) },
@@ -158,7 +158,7 @@ const AdminRsuTab = () => {
         const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + row.ip + '"?', buttons)
         confirmAlert(alertOptions)
       },
-    }),
+    })),
     {
       tooltip: 'Remove All Selected From Organization',
       icon: 'delete',
@@ -281,6 +281,7 @@ const AdminRsuTab = () => {
                 title={''}
                 columns={columns}
                 actions={tableActions}
+                selectionProps={(row: AdminEditRsuFormType) => ({ disabled: isViewerRsu(row) })}
                 handleQueryChange={handleQueryChange}
                 isLoading={isRefreshing}
                 tableRef={tableRef}
