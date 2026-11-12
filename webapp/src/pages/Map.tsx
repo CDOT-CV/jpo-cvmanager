@@ -47,7 +47,7 @@ import {
   selectGeoMsgType,
 } from '../generalSlices/rsuSlice'
 import { selectWzdxData, getWzdxData } from '../generalSlices/wzdxSlice'
-import { selectIsAdminOrAbove, selectOrganizationName } from '../generalSlices/userSlice'
+import { selectIsAdminOrAbove, selectIsSuperUser, selectOrganizationName } from '../generalSlices/userSlice'
 import {
   selectConfigCoordinates,
   toggleConfigPointSelect,
@@ -283,6 +283,7 @@ function MapPage() {
   const intersectionIconLoadingRef = React.useRef(false)
   const wzdxIconLoadingRef = React.useRef(false)
   const organization = useSelector(selectOrganizationName)
+  const isSuperUser = useSelector(selectIsSuperUser)
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
   const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
@@ -1199,9 +1200,11 @@ function MapPage() {
                     >
                       Configure RSUs
                     </Button>
-                    <Typography variant="caption" color="textSecondary" sx={{ mt: 1, textAlign: 'center' }}>
-                      Only RSUs owned by your organization will be selected.
-                    </Typography>
+                    {!isSuperUser && (
+                      <Typography variant="caption" color="textSecondary" sx={{ mt: 1, textAlign: 'center' }}>
+                        Only RSUs owned by your organization will be selected.
+                      </Typography>
+                    )}
                   </FormGroup>
                 </AccordionDetails>
               </Accordion>

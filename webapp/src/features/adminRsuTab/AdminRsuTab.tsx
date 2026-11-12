@@ -7,7 +7,7 @@ import { Options } from '../../components/AdminDeletionOptions'
 import RsuStatusDialog from './RsuStatusDialog'
 import { selectToken } from '../../generalSlices/userSlice'
 
-import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { selectIsSuperUser, selectOrganizationName } from '../../generalSlices/userSlice'
 import { useSelector } from 'react-redux'
 import './Admin.css'
 import { Action } from '@material-table/core'
@@ -33,6 +33,7 @@ const AdminRsuTab = () => {
 
   const token = useSelector(selectToken)
   const organization = useSelector(selectOrganizationName)
+  const isSuperUser = useSelector(selectIsSuperUser)
 
   const tableRef = useRef<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -113,7 +114,8 @@ const AdminRsuTab = () => {
     setSelectedRsuIp(null)
   }
 
-  const isViewerRsu = (row: AdminEditRsuFormType) => row.owner_organization !== organization
+  // Super users can manage any RSU (matches the API's isSuperUser() bypass)
+  const isViewerRsu = (row: AdminEditRsuFormType) => !isSuperUser && row.owner_organization !== organization
 
   const tableActions: AdminTableAction<AdminEditRsuFormType>[] = [
     ...applyFlagsToList<Action<AdminEditRsuFormType> & FlaggedElem>([

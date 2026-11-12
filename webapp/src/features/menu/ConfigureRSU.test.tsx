@@ -195,18 +195,21 @@ it('shows the Intersection API ProblemDetail when message counts fail', () => {
 
 const ORG = 'Owner Org'
 
-const renderMultiRsu = (owners: Record<string, string>, isFetching = false) => {
+const renderMultiRsu = (owners: Record<string, string>, isFetching = false,
+  { superUser = false, isError = false }: { superUser?: boolean; isError?: boolean } = {}
+) => {
   vi.mocked(useGetAllRsusQuery).mockReturnValue({
-    currentData: isFetching
+    currentData: isFetching || isError
       ? undefined
       : { content: Object.entries(owners).map(([ip, owner_organization]) => ({ ip, owner_organization })) },
     isFetching,
+    isError,
   } as any)
   render(
     <ThemeProvider theme={testTheme}>
       <Provider
         store={setupStore({
-          user: { value: { organization: { name: ORG } } },
+          user: { value: { authLoginData: { data: { super_user: superUser } }, organization: { name: ORG } } },
           config: { value: { configList: Object.keys(owners) } },
         })}
       >
@@ -237,5 +240,18 @@ describe('ConfigureRSU multi-RSU ownership', () => {
     renderMultiRsu({ '10.0.0.1': ORG }, true)
     expect(screen.getAllByLabelText('Checking RSU ownership').length).toBeGreaterThan(0)
     expect(screen.queryByTestId('snmpset')).not.toBeInTheDocument()
+  })
+
+  it('reports a failed ownership lookup as an error instead of an ownership restriction', () => {
+    renderMultiRsu({ '10.0.0.1': ORG }, false, { isError: true })
+    expect(screen.getAllByText('Failed to verify RSU ownership. Please try again.').length).toBeGreaterThan(0)
+    expect(screen.queryByTestId('snmpset')).not.toBeInTheDocument()
+  })
+
+  it('lets a super user configure RSUs owned by other organizations', () => {
+    renderMultiRsu({ '10.0.0.1': 'Other Org' }, false, { superUser: true })
+    expect(screen.getByTestId('snmpset')).toHaveTextContent('owner=true')
+    expect(screen.getByTestId('firmware')).toHaveTextContent('owner=true')
+    expect(screen.queryByText('Only RSUs owned by your organization will be selected.')).not.toBeInTheDocument()
   })
 })

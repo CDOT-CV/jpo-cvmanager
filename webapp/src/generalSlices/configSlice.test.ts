@@ -503,6 +503,28 @@ describe('async thunks', () => {
         api.mockRestore()
       }
     })
+
+    it('returns every RSU in the area for a super user without checking ownership', async () => {
+      const api = jest
+        .spyOn(RsuApi, 'postRsuGeo')
+        .mockResolvedValue({ status: 200, body: ['10.0.0.1', '10.0.0.2'] } as any)
+      const superUserState = () =>
+        ({
+          user: {
+            value: { authLoginData: { token: 'token', data: { super_user: true } }, organization: { name: 'Org 1' } },
+          },
+          config: { value: { configCoordinates: ring } },
+        }) as unknown as RootState
+      const { dispatch } = ownershipDispatch(() => Promise.reject(new Error('should not be called')))
+      try {
+        const result = await geoRsuQuery('Select Vendor')(dispatch, superUserState, undefined)
+        expect(result.type).toBe('config/geoRsuQuery/fulfilled')
+        expect((result.payload as any).body).toEqual(['10.0.0.1', '10.0.0.2'])
+        expect(dispatch.mock.calls.some(([action]) => typeof action === 'function')).toBe(false)
+      } finally {
+        api.mockRestore()
+      }
+    })
   })
 
   describe('rebootRsu', () => {
@@ -1146,6 +1168,17 @@ describe('notifyGeoRsuQueryResult', () => {
   it('shows the rejection message when the query fails', () => {
     notifyGeoRsuQueryResult(geoRsuQuery.rejected(null, 'req', 'vendor', 'Failed to verify RSU ownership'))
     expect(toastError).toHaveBeenCalledWith('Failed to verify RSU ownership')
+  })
+
+  it('stays quiet when the thunk was skipped by its condition guard', async () => {
+    const tooFewPoints = () =>
+      ({
+        user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
+        config: { value: { configCoordinates: [[0, 0]] } },
+      }) as unknown as RootState
+    const result = await geoRsuQuery('Select Vendor')(jest.fn(), tooFewPoints, undefined)
+    notifyGeoRsuQueryResult(result as any)
+    expect(toastError).not.toHaveBeenCalled()
   })
 
   it('falls back to a generic message when the rejection has no payload', () => {

@@ -7,13 +7,13 @@ import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import { useDispatch, useSelector } from 'react-redux'
-import { Box, CircularProgress, useTheme, Paper, Grid2, IconButton, Divider } from '@mui/material'
+import { Alert, Box, CircularProgress, useTheme, Paper, Grid2, IconButton, Divider } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
 import { selectSelectedRsu, selectRsu } from '../../generalSlices/rsuSlice'
 import { clearConfig, selectConfigList } from '../../generalSlices/configSlice'
 import { selectCountsEndDate, selectCountsStartDate } from './menuSlice'
-import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { selectIsSuperUser, selectOrganizationName } from '../../generalSlices/userSlice'
 import { useGetRsuQuery, useGetAllRsusQuery } from '../api/rsuApiSlice'
 import '../../components/css/SnmpwalkMenu.css'
 import { RootState } from '../../store'
@@ -27,9 +27,25 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { buildRsuCountTableRows } from './rsuCountTable'
 import { RsuMessageCountsTable } from './RsuMessageCountsTable'
 
-const ConfigMenu = ({ children, loading = false }: { children: React.ReactNode; loading?: boolean }) => {
-  // Owner-only menus wait for the ownership lookup so owners never see the "owner only" notice while it loads
-  return <Box>{loading ? <CircularProgress size={24} aria-label="Checking RSU ownership" /> : children}</Box>
+const ConfigMenu = ({children, loading = false,
+  error = false,
+}: { children: React.ReactNode
+  loading?: boolean
+  error?: boolean
+}) => {
+  // Owner-only menus wait for the ownership lookup so owners never see the "owner only" notice while it loads,
+  // and a failed lookup is reported as an error rather than as an ownership restriction
+  if (loading) {
+    return (
+      <Box>
+        <CircularProgress size={24} aria-label="Checking RSU ownership" />
+      </Box>
+    )
+  }
+  if (error) {
+    return <Alert severity="error">Failed to verify RSU ownership. Please try again.</Alert>
+  }
+  return <Box>{children}</Box>
 }
 
 const ConfigureRSU = () => {
@@ -64,18 +80,33 @@ const ConfigureRSU = () => {
     [messageTypes, rsuMessageCounts]
   )
   const organization = useSelector(selectOrganizationName)
+  const isSuperUser = !!useSelector(selectIsSuperUser)
 
+  // Super users can act on any RSU (matches the API's isSuperUser() bypass), so they skip the ownership lookups.
   // currentData (not data) so a previously selected RSU's ownership is never applied to the new selection
-  const { currentData: rsuDetail, isFetching: singleOwnershipLoading } = useGetRsuQuery(rsuIp!, { skip: !rsuIp })
-  const { currentData: allRsusPage, isFetching: multiOwnershipLoading } = useGetAllRsusQuery(
+  const {
+    currentData: rsuDetail,
+    isFetching: singleOwnershipFetching,
+    isError: singleOwnershipError,
+  } = useGetRsuQuery(rsuIp!, { skip: !rsuIp || isSuperUser })
+  const {
+    currentData: allRsusPage,
+    isFetching: multiOwnershipFetching,
+    isError: multiOwnershipError,
+  } = useGetAllRsusQuery(
     { organization: organization ?? '', size: 1000 },
-    { skip: selectedConfigList.length === 0 || !organization }
+    { skip: selectedConfigList.length === 0 || !organization || isSuperUser }
   )
+  const singleOwnershipLoading = !isSuperUser && singleOwnershipFetching
+  const multiOwnershipLoading = !isSuperUser && multiOwnershipFetching
 
-  const singleRsuIsOwnerOrg = !!rsuDetail && rsuDetail.owner_organization === organization
+  const singleRsuIsOwnerOrg = isSuperUser || (!!rsuDetail && rsuDetail.owner_organization === organization)
   const multiRsuIsOwnerOrg =
-    !!allRsusPage &&
-    selectedConfigList.every((ip) => allRsusPage.content.find((r) => r.ip === ip)?.owner_organization === organization)
+    isSuperUser ||
+    (!!allRsusPage &&
+      selectedConfigList.every(
+        (ip) => allRsusPage.content.find((r) => r.ip === ip)?.owner_organization === organization
+      ))
   const multiRsuOwnerOrgs = allRsusPage
     ? [
         ...new Set(
@@ -173,7 +204,7 @@ const ConfigureRSU = () => {
               <Typography>Current Configuration</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <ConfigMenu>
+              <ConfigMenu loading={singleOwnershipLoading} error={!isSuperUser && singleOwnershipError}>
                 <SnmpwalkMenu isOwnerOrg={singleRsuIsOwnerOrg} />
               </ConfigMenu>
             </AccordionDetails>
@@ -188,7 +219,7 @@ const ConfigureRSU = () => {
               <Typography>Message Forwarding</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <ConfigMenu loading={singleOwnershipLoading}>
+              <ConfigMenu loading={singleOwnershipLoading} error={!isSuperUser && singleOwnershipError}>
                 <SnmpsetMenu
                   type="single_rsu"
                   rsuIpList={[selectedRsu.properties.ipv4_address]}
@@ -208,7 +239,7 @@ const ConfigureRSU = () => {
               <Typography>Firmware</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <ConfigMenu loading={singleOwnershipLoading}>
+              <ConfigMenu loading={singleOwnershipLoading} error={!isSuperUser && singleOwnershipError}>
                 <RsuFirmwareMenu
                   type="single_rsu"
                   rsuIpList={[selectedRsu.properties.ipv4_address]}
@@ -230,7 +261,7 @@ const ConfigureRSU = () => {
                   <Typography>Reboot</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <ConfigMenu loading={singleOwnershipLoading}>
+                  <ConfigMenu loading={singleOwnershipLoading} error={!isSuperUser && singleOwnershipError}>
                     <RsuRebootMenu isOwnerOrg={singleRsuIsOwnerOrg} ownerOrganization={rsuDetail?.owner_organization} />
                   </ConfigMenu>
                 </AccordionDetails>
@@ -242,9 +273,11 @@ const ConfigureRSU = () => {
       {selectedConfigList.length > 0 && !selectedRsu && (
         <Box sx={{ pl: 1, pr: 1 }}>
           <SideBarHeader onClick={() => dispatch(clearConfig())} title={'RSUs: ' + selectedConfigList.join(', ')} />
-          <Typography variant="caption" color="textSecondary" component="p" sx={{ px: 1, mb: 1 }}>
-            Only RSUs owned by your organization will be selected.
-          </Typography>
+          {!isSuperUser && (
+            <Typography variant="caption" color="textSecondary" component="p" sx={{ px: 1, mb: 1 }}>
+              Only RSUs owned by your organization will be selected.
+            </Typography>
+          )}
           <Box
             sx={{
               maxHeight: `calc(100vh - ${headerTabHeight + 185}px)`,
@@ -262,7 +295,7 @@ const ConfigureRSU = () => {
                 <Typography>Message Forwarding</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <ConfigMenu loading={multiOwnershipLoading}>
+                <ConfigMenu loading={multiOwnershipLoading} error={!isSuperUser && multiOwnershipError}>
                   <SnmpsetMenu
                     type="multi_rsu"
                     rsuIpList={selectedConfigList}
@@ -282,7 +315,7 @@ const ConfigureRSU = () => {
                 <Typography>Firmware</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <ConfigMenu loading={multiOwnershipLoading}>
+                <ConfigMenu loading={multiOwnershipLoading} error={!isSuperUser && multiOwnershipError}>
                   <RsuFirmwareMenu
                     type="multi_rsu"
                     rsuIpList={selectedConfigList}

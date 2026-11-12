@@ -27,7 +27,7 @@ import toast from 'react-hot-toast'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { useGetRsuAllowedSelectionsQuery, useGetRsuQuery, usePatchRsuMutation } from '../api/rsuApiSlice'
-import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { selectIsSuperUser, selectOrganizationName } from '../../generalSlices/userSlice'
 import { NotFound } from '../../pages/404'
 
 export type AdminEditRsuFormType = {
@@ -61,6 +61,7 @@ const AdminEditRsu = () => {
   const [patchRsu, { isLoading: isPatchingRsu }] = usePatchRsuMutation()
 
   const organization = useSelector(selectOrganizationName)
+  const isSuperUser = useSelector(selectIsSuperUser)
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
@@ -217,8 +218,8 @@ const AdminEditRsu = () => {
 
   const isLoading = isLoadingRsu || isLoadingAllowedSelections
 
-  // "Viewer" RSUs belong to another organization's credential group and cannot be edited
-  if (rsuInfo && rsuInfo.owner_organization !== organization) {
+  // "Viewer" RSUs belong to another organization's credential group and cannot be edited (super users excepted)
+  if (rsuInfo && !isSuperUser && rsuInfo.owner_organization !== organization) {
     return (
       <NotFound
         redirectRoute="/dashboard/admin/rsus"

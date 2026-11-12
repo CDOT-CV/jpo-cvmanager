@@ -29,7 +29,7 @@ it('should take a snapshot', () => {
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
-const renderEditPage = (ownerOrganization: string) => {
+const renderEditPage = (ownerOrganization: string, superUser = false) => {
   vi.mocked(useGetRsuQuery).mockReturnValue({
     data: {
       ip: '192.0.2.10',
@@ -42,7 +42,11 @@ const renderEditPage = (ownerOrganization: string) => {
   } as any)
   render(
     <ThemeProvider theme={testTheme}>
-      <Provider store={setupStore({ user: { value: { organization: { name: 'Test Org' } } } })}>
+      <Provider
+        store={setupStore({
+          user: { value: { authLoginData: { data: { super_user: superUser } }, organization: { name: 'Test Org' } } },
+        })}
+      >
         <MemoryRouter initialEntries={['/editRsu/192.0.2.10']}>
           <Routes>
             <Route path="/editRsu/:rsuIp" element={<AdminEditRsu />} />
@@ -66,6 +70,12 @@ describe('AdminEditRsu ownership guard', () => {
 
   it('shows the edit dialog for an RSU owned by the current organization', () => {
     renderEditPage('Test Org')
+    expect(screen.queryByText(/You do not have permission to edit this RSU/)).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('shows the edit dialog to a super user for an RSU owned by another organization', () => {
+    renderEditPage('Owner Org', true)
     expect(screen.queryByText(/You do not have permission to edit this RSU/)).not.toBeInTheDocument()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })

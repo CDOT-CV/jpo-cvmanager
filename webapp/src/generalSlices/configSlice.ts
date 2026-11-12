@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
-import { selectToken, selectOrganizationName } from './userSlice'
+import { selectToken, selectOrganizationName, selectIsSuperUser } from './userSlice'
 import { RootState } from '../store'
 import { rsuApiSlice } from '../features/api/rsuApiSlice'
 import {
@@ -305,6 +305,11 @@ export const geoRsuQuery = createAsyncThunk(
     })
     if (response?.status !== 200) {
       return rejectWithValue(response?.message || 'Failed to query RSUs by geometry')
+    }
+
+    // Super users can configure any RSU (matches the API's isSuperUser() bypass)
+    if (selectIsSuperUser(currentState)) {
+      return response
     }
 
     const ownershipQuery = dispatch(

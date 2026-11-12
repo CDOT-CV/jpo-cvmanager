@@ -34,12 +34,12 @@ const ORG = 'Owner Org'
 const ownedRow = { ip: '10.0.0.1', owner_organization: ORG } as any
 const viewerRow = { ip: '10.0.0.2', owner_organization: 'Other Org' } as any
 
-const renderTab = () =>
+const renderTab = (superUser = false) =>
   render(
     <ThemeProvider theme={testTheme}>
       <Provider
         store={setupStore({
-          user: { value: { authLoginData: { token: 'testToken' }, organization: { name: ORG } } },
+          user: { value: {authLoginData: { token: 'testToken', data: { super_user: superUser } }, organization: { name: ORG },},},
         })}
       >
         <MemoryRouter>
@@ -107,5 +107,14 @@ describe('AdminRsuTab owner-only row actions', () => {
     const options = vi.mocked(confirmAlert).mock.calls[0][0] as any
     expect(options.title).toBe('Delete RSU')
     expect(options.message).toBe('Are you sure you want to delete "10.0.0.1"?')
+  })
+})
+
+describe('AdminRsuTab super user row actions', () => {
+  it('shows edit and delete for RSUs owned by another organization', () => {
+    renderTab(true)
+    expect(resolveRowAction('Edit RSU', viewerRow).hidden).toBe(false)
+    expect(resolveRowAction('Delete RSU', viewerRow).hidden).toBe(false)
+    expect(tableProps.selectionProps(viewerRow)).toEqual({ disabled: false })
   })
 })
