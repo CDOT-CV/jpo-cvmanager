@@ -6,7 +6,7 @@ import { confirmAlert } from 'react-confirm-alert'
 import toast from 'react-hot-toast'
 import { Options } from '../../components/AdminDeletionOptions'
 import AdminTable from '../../components/AdminTable'
-import { ObuFirmwareObject, ObuFirmwareVerificationStatus } from '../../models/ObuFirmware'
+import { ObuFirmwareObject, ObuFirmwarePublication, ObuFirmwareVerificationStatus } from '../../models/ObuFirmware'
 import {
   useDeleteObuFirmwareObjectMutation,
   useGetObuFirmwareUploadOptionsQuery,
@@ -142,14 +142,19 @@ const AdminObuFirmwareTab = () => {
   }, [])
 
   // Publish and delete requests run one at a time so a second click cannot race the first
-  const runChange = async (pending: string, success: string, failure: string, change: () => Promise<unknown>) => {
+  const runChange = async <T,>(
+    pending: string,
+    success: string | ((result: T) => string),
+    failure: string,
+    change: () => Promise<T>
+  ) => {
     if (changing.current) return
     changing.current = true
     setIsChanging(true)
     const notification = toast.loading(pending)
     try {
-      await change()
-      toast.success(success, { id: notification })
+      const result = await change()
+      toast.success(typeof success === 'function' ? success(result) : success, { id: notification })
       refreshListing()
     } catch (error) {
       const message = getErrorMessage(error)
@@ -160,13 +165,18 @@ const AdminObuFirmwareTab = () => {
     }
   }
 
+  const publishedMessage = (publication: ObuFirmwarePublication) =>
+    publication.replaced.length === 0
+      ? 'Firmware published'
+      : `Firmware published. It replaces ${publication.replaced.map((firmware) => firmware.file_name).join(', ')}.`
+
   const changePublication = (object: ObuFirmwareObject) => {
     const publish = !object.published
     confirmAlert({
       ...Options(
         publish ? 'Publish OBU Firmware' : 'Unpublish OBU Firmware',
         publish
-          ? 'Offer this firmware to OBUs that check the OBU OTA server for updates?'
+          ? 'Publish this firmware? It replaces the currently published release of the same build. OBUs install the newest published firmware that matches their build.'
           : 'Stop offering this firmware to OBUs? OBUs that already downloaded it are not affected.',
         [
           {
@@ -174,7 +184,7 @@ const AdminObuFirmwareTab = () => {
             onClick: () =>
               void runChange(
                 publish ? 'Publishing firmware...' : 'Unpublishing firmware...',
-                publish ? 'Firmware published' : 'Firmware unpublished',
+                publish ? publishedMessage : 'Firmware unpublished',
                 'Failed to update the firmware. Please retry.',
                 () => setObuFirmwarePublished({ obuFirmwareId: object.obu_firmware_id!, published: publish }).unwrap()
               ),

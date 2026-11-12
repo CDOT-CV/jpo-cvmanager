@@ -46,9 +46,14 @@ describe('obuFirmwareApiSlice', () => {
 
   it('publishes and unpublishes firmware by catalog id', async () => {
     const store = setupStore(mockUserState)
-    fetchMock.mockResponseOnce(JSON.stringify({ obu_firmware_id: 7, published: true }))
+    const replaced = [{ obu_firmware_id: 3, file_name: 'ob4-generic-rw-y20.47.0-b220000.tar.sig' }]
+    fetchMock.mockResponseOnce(JSON.stringify({ obu_firmware_id: 7, published: true, replaced }))
 
-    await store.dispatch(obuFirmwareApiSlice.endpoints.setObuFirmwarePublished.initiate({ obuFirmwareId: 7, published: true }))
+    const result = await store.dispatch(
+      obuFirmwareApiSlice.endpoints.setObuFirmwarePublished.initiate({ obuFirmwareId: 7, published: true })
+    )
+
+    expect('data' in result && result.data.replaced).toEqual(replaced)
 
     expect(lastRequest().url).toBe(`${BASE_URL}/obu-firmware/images/7/publication`)
     expect(lastRequest().method).toBe('PUT')

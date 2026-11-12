@@ -87,11 +87,18 @@ export type ObuFirmwareUploadVerification = {
   obu_firmware_id: number | null
 }
 
+// Publishing a release withdraws the published release of the same build, listed in replaced
 export type ObuFirmwarePublication = {
   obu_firmware_id: number
   published: boolean
   published_at: string | null
   published_by: string | null
+  replaced: ObuFirmwareReplacement[]
+}
+
+export type ObuFirmwareReplacement = {
+  obu_firmware_id: number
+  file_name: string
 }
 
 export type ObuOtaRequest = {

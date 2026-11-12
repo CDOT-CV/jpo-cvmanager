@@ -3,7 +3,7 @@ import { ThemeProvider } from '@mui/material'
 import toast from 'react-hot-toast'
 import { vi } from 'vitest'
 import { testTheme } from '../../styles'
-import { ObuFirmwareObject } from '../../models/ObuFirmware'
+import { ObuFirmwareObject, ObuFirmwarePublication, ObuFirmwareReplacement } from '../../models/ObuFirmware'
 import {
   useDeleteObuFirmwareObjectMutation,
   useGetObuFirmwareUploadOptionsQuery,
@@ -22,6 +22,14 @@ vi.mock('../../components/AdminTable', async () => ({
   default: (await import('./test-utils')).MockAdminTable,
 }))
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn(), loading: vi.fn() } }))
+
+const publication = (replaced: ObuFirmwareReplacement[]): ObuFirmwarePublication => ({
+  obu_firmware_id: 1,
+  published: true,
+  published_at: '2026-10-15T12:02:00Z',
+  published_by: 'admin',
+  replaced,
+})
 
 const firmware = (overrides: Partial<ObuFirmwareObject>): ObuFirmwareObject => ({
   object_id: 'id',
@@ -86,7 +94,7 @@ describe('OBU firmware tab', () => {
       unwrap: () => Promise.resolve({ provider: 'gcp', storage_available: storageAvailable, objects, total_elements: 26 }),
     }))
     vi.mocked(useLazyListObuFirmwareObjectsQuery).mockReturnValue([list] as any)
-    setPublished.mockImplementation(() => ({ unwrap: () => Promise.resolve({}) }))
+    setPublished.mockImplementation(() => ({ unwrap: () => Promise.resolve(publication([])) }))
     vi.mocked(useSetObuFirmwarePublishedMutation).mockReturnValue([setPublished] as any)
     deleteObject.mockImplementation(() => ({ unwrap: () => Promise.resolve() }))
     vi.mocked(useDeleteObuFirmwareObjectMutation).mockReturnValue([deleteObject] as any)
@@ -143,12 +151,29 @@ describe('OBU firmware tab', () => {
     await screen.findByText('verified.tar.sig')
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Publish verified.tar.sig' }))
-    expect(screen.getByText(/Offer this firmware to OBUs/)).toBeInTheDocument()
+    expect(screen.getByText(/replaces the currently published release of the same build/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
 
     await waitFor(() => expect(setPublished).toHaveBeenCalledWith({ obuFirmwareId: 1, published: true }))
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Firmware published', { id: 'notification' }))
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2))
+  })
+
+  it('names the releases a publication replaced', async () => {
+    setPublished.mockImplementation(() => ({
+      unwrap: () => Promise.resolve(publication([{ obu_firmware_id: 2, file_name: 'published.tar.sig' }])),
+    }))
+    renderTab()
+    await screen.findByText('verified.tar.sig')
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Publish verified.tar.sig' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Firmware published. It replaces published.tar.sig.', {
+        id: 'notification',
+      })
+    )
   })
 
   it('unpublishes firmware and reports API errors', async () => {
