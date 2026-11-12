@@ -253,9 +253,11 @@ def modify_org_authorized(orig_name: str, org_spec: dict, is_bulk_update: bool =
             "tim_deposit" in org_spec or "snmp_monitoring" in org_spec
         ):
             logging.info(
-                f"Bulk updating RSU options for all RSUs in organization {org_spec['name']}"
+                f"Bulk updating RSU options for all RSUs owned by organization {org_spec['name']}"
             )
 
+            # Only RSUs whose credential group is owned by this organization are updated;
+            # RSUs the organization merely views are left untouched
             # Build the update query to handle both columns
             # Only include columns that are actually being updated to avoid overwriting
             # other column values with defaults
@@ -286,7 +288,9 @@ def modify_org_authorized(orig_name: str, org_spec: dict, is_bulk_update: bool =
                 f"SELECT {', '.join(select_columns)} "
                 "FROM public.rsu_organization ro "
                 "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                "WHERE org.name = :name "
+                "JOIN public.rsus ON ro.rsu_id = rsus.rsu_id "
+                "JOIN public.rsu_credentials rc ON rsus.credential_id = rc.credential_id "
+                "WHERE org.name = :name AND rc.owner_organization_id = org.organization_id "
                 f"ON CONFLICT (rsu_id) DO UPDATE SET {', '.join(update_columns)}"
             )
 
