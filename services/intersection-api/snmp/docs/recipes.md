@@ -1,6 +1,6 @@
 # Adding a device recipe
 
-A recipe builds a `SnmpTask` for one device. It does no I/O until submitted.
+A recipe builds a [`SnmpTask`](../src/main/java/us/dot/its/jpo/snmp/execution/SnmpTask.java) for one device. It does no I/O until submitted.
 
 - Put recipes beside the protocol helpers they use, named for the feature.
 - Use generic `client` types; keep SNMP4J types inside the adapter.
@@ -34,8 +34,37 @@ public SnmpTask status(SnmpTarget target, List<SnmpOid> measurementOids) {
 
 - Give steps unique, short names without secrets.
 - A successful SET is not verification. Check device readback.
-- A WRITE procedure may return `SnmpWriteResult<T>` after verification; no extra VERIFY step is needed.
+- A WRITE procedure may return [`SnmpWriteResult<T>`](../src/main/java/us/dot/its/jpo/snmp/client/SnmpWriteResult.java) after verification; no extra VERIFY step is needed.
   Use VERIFY for a separate check that actually reads and confirms device state.
 - A failed call stops later steps, even if the action catches its exception.
 - SET is never retried automatically. Report uncertain outcomes and check the device before retrying.
 - Local work must be bounded and respond to interruption. Cancellation cannot undo a write or database commit.
+
+## Message Forwarding example
+
+[`Ntcip1218ForwardingTasks.create`](../src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218ForwardingTasks.java) and `delete` run one step:
+`configure-forwarding` locates/allocates a row, changes it, and verifies readback.
+Preset deletes match PSID, destination and preset port. Explicit-port overloads
+of `delete` and `deleteWithSnapshot` match custom-port configurations.
+
+The explicit `createWithSnapshot` and `deleteWithSnapshot` methods add:
+
+1. `read-current-forwarding`: read both complete tables.
+2. Optional [`SnapshotAction`](../src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218ForwardingTasks.java): pass the snapshot to application code.
+
+Use `changed(result)` to read the outcome. A later snapshot or callback failure
+preserves the verified device change. `SnapshotAction` is specific to forwarding;
+other recipes should use callbacks suited to their own data.
+
+The table/index overload of `deleteWithSnapshot` deletes a specific row, including unknown PSIDs,
+IPv6 destinations and incomplete rows. It checks the raw destination and port before writing,
+then requires every column to report absence. An out-of-range stored port can be deleted
+when it matches exactly; unreadable destination/port fields block deletion.
+A malformed row elsewhere can still fail the snapshot; inspect `changed(result)` before retrying.
+Create methods continue to use IPv4 destinations and the message presets.
+
+For malformed-row discovery, run `Ntcip1218Client.inspectForwarding` inside a READ
+step using `ctx.client()`. Its diagnostic row type keeps invalid fields separate
+from complete `ForwardingRow` snapshots. Use the returned table/index and readable
+destination/port to build a selected-row delete task; do not persist a diagnostic
+listing as a complete device snapshot.
