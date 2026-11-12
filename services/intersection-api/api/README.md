@@ -375,14 +375,17 @@ Deleting an existing row can use `DELETE /devices/rsus/message-forwarding/{rsuIp
 with `destination_ip` and `destination_port`. This also supports unknown PSIDs and
 message types stored in a different table than CV Manager uses (for example, MAP in
 the receive table). The destination is checked before deletion; stale rows
-must be refreshed rather than blindly retried. RSU 4.1 remains cached-view only.
+must be refreshed rather than blindly retried. Recovery deletion compares the raw
+stored destination and port, including invalid ports or non-IPv4 destinations;
+creation still requires IPv4 and the fixed port presets. If either guard is
+unreadable, manual repair is required. RSU 4.1 remains cached-view only.
 
 All forwarding operations live in one controller:
 
 | Method | Path                                                            | Purpose                                           | Minimum role |
 | ------ | --------------------------------------------------------------- | ------------------------------------------------- | ------------ |
 | GET    | `/devices/rsus/message-forwarding/{rsuIp}`                      | Cached PostgreSQL view                            | USER         |
-| GET    | `/devices/rsus/message-forwarding/{rsuIp}/live`                 | Complete direct RSU read                          | USER         |
+| GET    | `/devices/rsus/message-forwarding/{rsuIp}/live`                 | Live rows with validation warnings                | USER         |
 | POST   | `/devices/rsus/message-forwarding`                              | Create forwarding rows                            | OPERATOR     |
 | DELETE | `/devices/rsus/message-forwarding`                              | Delete forwarding rows using message presets      | OPERATOR     |
 | DELETE | `/devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}` | Delete one existing row by its actual table/index | OPERATOR     |
@@ -393,9 +396,11 @@ selected-organization rules. Super users retain their existing access.
 Cached reads require no SNMP credentials or connectivity and retain visibility
 of stored RSU 4.1/DSRC rows. Live reads require NTCIP 1218 and use the shared
 bounded executor and per-device serialization.
-They do not update PostgreSQL. An incomplete read returns an HTTP error (504 for
-timeouts), allowing the webapp to fall back to the cached view; an empty successful
-snapshot returns `[]`.
+They do not update PostgreSQL. Malformed rows are returned with `validationError`;
+readable destination/port fields are preserved, while unvalidated dates and flags
+are null. This diagnostic listing is never saved as a database snapshot. A failed
+table walk still returns an HTTP error (504 for timeouts); an empty successful
+listing returns `[]`.
 
 Both read routes return the same row list:
 

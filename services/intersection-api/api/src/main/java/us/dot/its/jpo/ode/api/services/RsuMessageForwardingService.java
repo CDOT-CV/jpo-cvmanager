@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingRequest
 import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingResult;
 import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingResult.DatabaseSync;
 import us.dot.its.jpo.snmp.client.SnmpTarget;
+import us.dot.its.jpo.snmp.client.SnmpValue;
 import us.dot.its.jpo.snmp.execution.*;
 import us.dot.its.jpo.snmp.rsu.ntcip1218.ForwardingRequest;
 import us.dot.its.jpo.snmp.rsu.ntcip1218.Ntcip1218ForwardingTasks;
@@ -106,19 +107,20 @@ public class RsuMessageForwardingService {
                 index, request.destinationIp(), request.destinationPort(), synchronizeDb(context)));
     }
 
-    /** Validates IPv4 addresses and row details before checking permissions. */
+    /** Validates the RSU IPv4 address and raw row guards; this path never creates a destination. */
     public static void validateRowRequest(String rsuIp, ForwardingTable table, int index,
             DeleteMessageForwardingRowRequest request) {
         try {
             SnmpTarget.validateIpv4(rsuIp);
-            SnmpTarget.validateIpv4(request.destinationIp());
-            if (table == null || request.destinationPort() == null
-                    || request.destinationPort() < 1024 || request.destinationPort() > 65535)
+            // Existing rows may contain invalid ports or non-IPv4 text. Compare them exactly;
+            // creation continues to require IPv4 and MIB-valid ports.
+            if (table == null || request.destinationPort() == null || request.destinationIp() == null
+                    || SnmpValue.Octets.text(request.destinationIp()).bytes().length > 64)
                 throw new IllegalArgumentException();
             table.cell(table.statusColumn(), index);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Supply IPv4 addresses, a RECEIVE or TRANSMIT table, index 1-255, and destination port 1024-65535.");
+                    "Supply an RSU IPv4 address, a RECEIVE or TRANSMIT table, index 1-255, and the displayed destination (up to 64 bytes) and port.");
         }
     }
 

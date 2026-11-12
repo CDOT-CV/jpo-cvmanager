@@ -98,9 +98,30 @@ class MessageForwardingControllerTest {
                     .andExpect(status().isBadRequest());
         }
         mvc.perform(delete(PATH + "/192.0.2.10/rows/RECEIVE/1").with(user("operator"))
-                .contentType(MediaType.APPLICATION_JSON).content(body.replace("44920", "80")))
+                .contentType(MediaType.APPLICATION_JSON).content(body.replace("198.51.100.3", "x".repeat(65))))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(forwardingService);
+    }
+
+    @Test void selectedRowDeleteAcceptsRawGuardsForRecoveryAndLiveDiagnosticsRemainExplicit() throws Exception {
+        when(forwardingService.deleteRow(anyString(), any(), anyInt(), any())).thenReturn(Map.of());
+        mvc.perform(delete(PATH + "/192.0.2.10/rows/RECEIVE/1").with(user("operator"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"destination_ip\":\"2001:db8::1\",\"destination_port\":80}"))
+                .andExpect(status().isOk());
+        verify(forwardingService).deleteRow(eq("192.0.2.10"), eq(ForwardingTable.RECEIVE), eq(1),
+                argThat(r -> r.destinationIp().equals("2001:db8::1") && r.destinationPort() == 80));
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
+        when(permissionService.findUnauthorizedRsus(anyList(), eq("USER"))).thenReturn(List.of());
+        when(readService.live("192.0.2.10")).thenReturn(List.of(
+                new us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingConfiguration(
+                        us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingConfiguration.Table.RECEIVE,
+                        1, "OTHER", null, null, null, null, null, null, "Incomplete forwarding row")));
+        mvc.perform(get(PATH + "/192.0.2.10/live").with(user("operator")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].validationError").value("Incomplete forwarding row"))
+                .andExpect(jsonPath("$[0].destinationPort").isEmpty())
+                .andExpect(jsonPath("$[0].active").isEmpty());
     }
 
     @Test void anonymousCallerCannotSendCommands() throws Exception {
@@ -141,7 +162,8 @@ class MessageForwardingControllerTest {
                     .andExpect(status().isOk()).andExpect(jsonPath("$[0].table").value("TRANSMIT"))
                     .andExpect(jsonPath("$[0].destinationPort").value(44920))
                     .andExpect(jsonPath("$[0].startDatetime").value("2026-10-15T16:00:00Z"))
-                    .andExpect(jsonPath("$[0].includeSecurity").value(false));
+                    .andExpect(jsonPath("$[0].includeSecurity").value(false))
+                    .andExpect(jsonPath("$[0].validationError").doesNotExist());
         }
         verifyNoInteractions(forwardingService);
     }

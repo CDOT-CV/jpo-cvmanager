@@ -16,6 +16,10 @@ import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingConfigu
 import us.dot.its.jpo.ode.api.models.postgres.tables.*;
 import us.dot.its.jpo.ode.api.repositories.*;
 import us.dot.its.jpo.snmp.client.SnmpCredentials;
+import us.dot.its.jpo.snmp.client.SnmpValue;
+import us.dot.its.jpo.ode.api.models.devices.management.DeleteMessageForwardingRowRequest;
+import us.dot.its.jpo.ode.api.models.devices.management.CreateMessageForwardingRequest;
+import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingResult.DatabaseSync;
 import us.dot.its.jpo.snmp.execution.*;
 import us.dot.its.jpo.snmp.rsu.ntcip1218.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -98,6 +102,96 @@ class RsuMessageForwardingReadServiceTest {
         try (var executor = new SnmpTaskExecutor(client, new SnmpExecutorOptions(1, 10, Duration.ofSeconds(1)))) {
             assertEquals(504, assertThrows(ResponseStatusException.class, () -> service(executor).live("192.0.2.10")).getStatusCode().value());
             assertEquals(0, client.writes.get());
+            verifyNoInteractions(configs);
+        }
+    }
+
+    @Test void malformedRowsRemainVisibleAndCanBeDeletedWithoutPersistingDiagnosticData() {
+        var client = new RsuMessageForwardingServiceTest.MemoryClient();
+        var device = device();
+        var helper = new Ntcip1218Client(client, CLOCK);
+        helper.addForwarding(device, new ForwardingRequest(MessageType.MAP, "198.51.100.3", true));
+        helper.addForwarding(device, new ForwardingRequest(MessageType.MAP, "198.51.100.4", false));
+        client.data.remove(ForwardingTable.TRANSMIT.cell(6, 1));
+        // Recovery must support even an invalid stored port; it is only a comparison guard.
+        client.data.put(ForwardingTable.TRANSMIT.cell(4, 1), new SnmpValue.IntegerValue(80));
+        client.walks.set(0);
+        when(contexts.load(anyList())).thenReturn(List.of(new RsuMessageForwardingContextService.DeviceContext(7, device)));
+        try (var executor = new SnmpTaskExecutor(client, new SnmpExecutorOptions(1, 10, Duration.ofSeconds(1)))) {
+            var rows = service(executor).live("192.0.2.10");
+            assertEquals(2, client.walks.get(), "Diagnostics must not double the table walks");
+            assertEquals(2, rows.size());
+            var bad = rows.getFirst();
+            assertNotNull(bad.validationError());
+            assertEquals(1, bad.index());
+            assertEquals("198.51.100.3", bad.destinationIp());
+            assertEquals(80, bad.destinationPort());
+            assertNull(bad.startDatetime());
+            assertNull(bad.active());
+            assertNull(bad.includeSecurity());
+            assertNull(rows.getLast().validationError());
+            assertEquals("198.51.100.4", rows.getLast().destinationIp());
+            assertTrue(rows.getLast().active());
+            var snapshots = mock(RsuMessageForwardingSnapshotService.class);
+            var changes = new RsuMessageForwardingService(contexts, snapshots, executor,
+                    new SnmpProperties(), new Ntcip1218ForwardingTasks(CLOCK));
+            var deleted = changes.deleteRow("192.0.2.10", ForwardingTable.TRANSMIT, bad.index(),
+                    new DeleteMessageForwardingRowRequest(
+                            bad.destinationIp(), bad.destinationPort())).get("192.0.2.10");
+            assertEquals(true, deleted.changed());
+            verify(snapshots).replace(eq(7), eq("192.0.2.10"), argThat(snapshot -> snapshot.size() == 1));
+            verifyNoInteractions(configs);
+        }
+    }
+
+    @Test void anotherMalformedRowBlocksCreationAndPersistenceButNotVerifiedCleanup() {
+        var client = new RsuMessageForwardingServiceTest.MemoryClient();
+        var device = device();
+        var helper = new Ntcip1218Client(client, CLOCK);
+        for (int index = 1; index <= 2; index++) {
+            helper.addForwarding(device, new ForwardingRequest(MessageType.MAP, "198.51.100.3", false));
+        }
+        for (int index = 1; index <= 2; index++) client.data.remove(ForwardingTable.TRANSMIT.cell(6, index));
+        when(contexts.load(anyList())).thenReturn(List.of(new RsuMessageForwardingContextService.DeviceContext(7, device)));
+        var snapshots = mock(RsuMessageForwardingSnapshotService.class);
+        try (var executor = new SnmpTaskExecutor(client, new SnmpExecutorOptions(1, 10, Duration.ofSeconds(1)))) {
+            var changes = new RsuMessageForwardingService(contexts, snapshots, executor,
+                    new SnmpProperties(), new Ntcip1218ForwardingTasks(CLOCK));
+            var create = new CreateMessageForwardingRequest();
+            create.setRsuIps(List.of("192.0.2.10")); create.setMessageType(MessageType.MAP);
+            create.setDestinationIp("198.51.100.3"); create.setIncludeSecurity(false);
+            assertEquals(SnmpTaskResult.Status.FAILED, changes.create(create).get("192.0.2.10").execution().status());
+            assertEquals(2, client.writes.get(), "Creation must not write through malformed table data");
+            var removed = changes.deleteRow("192.0.2.10", ForwardingTable.TRANSMIT, 1,
+                    new DeleteMessageForwardingRowRequest("198.51.100.3", 44920)).get("192.0.2.10");
+            assertEquals(true, removed.changed());
+            assertEquals(SnmpTaskResult.WriteState.VERIFIED, removed.writeState());
+            assertEquals(DatabaseSync.NOT_UPDATED,
+                    removed.databaseSync());
+            assertEquals(2, service(executor).live("192.0.2.10").getFirst().index());
+            verifyNoInteractions(snapshots, configs);
+        }
+    }
+
+    @Test void unreadableGuardsAndInvalidDatesAreReportedWithoutInventedValues() {
+        var client = new RsuMessageForwardingServiceTest.MemoryClient();
+        new Ntcip1218Client(client, CLOCK).addForwarding(device(),
+                new ForwardingRequest(MessageType.MAP, "198.51.100.3", true));
+        client.data.remove(ForwardingTable.TRANSMIT.cell(3, 1));
+        client.data.remove(ForwardingTable.TRANSMIT.cell(4, 1));
+        when(contexts.load(anyList())).thenReturn(List.of(new RsuMessageForwardingContextService.DeviceContext(7, device())));
+        try (var executor = new SnmpTaskExecutor(client, new SnmpExecutorOptions(1, 10, Duration.ofSeconds(1)))) {
+            var row = service(executor).live("192.0.2.10").getFirst();
+            assertNotNull(row.validationError());
+            assertNull(row.destinationIp());
+            assertNull(row.destinationPort());
+            client.data.put(ForwardingTable.TRANSMIT.cell(3, 1), SnmpValue.Octets.text("198.51.100.3"));
+            client.data.put(ForwardingTable.TRANSMIT.cell(4, 1), new SnmpValue.IntegerValue(44920));
+            client.data.put(ForwardingTable.TRANSMIT.cell(6, 1), SnmpValue.Octets.bytes(new byte[11]));
+            assertNotNull(service(executor).live("192.0.2.10").getFirst().validationError());
+            client.failWalk = client.walks.get() + 2;
+            assertEquals(504, assertThrows(ResponseStatusException.class,
+                    () -> service(executor).live("192.0.2.10")).getStatusCode().value());
             verifyNoInteractions(configs);
         }
     }

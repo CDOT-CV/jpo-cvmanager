@@ -19,6 +19,7 @@ import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingConfigu
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.snmp.client.SnmpTarget;
+import us.dot.its.jpo.snmp.client.SnmpValue;
 import us.dot.its.jpo.snmp.execution.*;
 import us.dot.its.jpo.snmp.rsu.ntcip1218.*;
 
@@ -59,12 +60,16 @@ public class RsuMessageForwardingReadService {
         }).toList();
     }
 
-    /** Returns only a complete successful read; timeouts/errors trigger the UI's cached-data fallback. */
+    /**
+     * Returns both complete table walks, marking malformed rows for guarded recovery.
+     * Transport or table-structure failures still return errors, never partial listings.
+     * This diagnostic view is never passed to database snapshot synchronization.
+     */
     public List<MessageForwardingConfiguration> live(String rsuIp) {
         validateAddress(rsuIp);
         var device = contextService.load(List.of(rsuIp)).getFirst().device();
         var read = new SnmpStep<>("read-current-forwarding", SnmpStep.Kind.READ,
-                ctx -> new Ntcip1218Client(ctx.client(), clock).readForwarding(device));
+                ctx -> new Ntcip1218Client(ctx.client(), clock).inspectForwarding(device));
         var task = new SnmpTask("read-message-forwarding", device.target(), List.of(read));
         var handle = executor.submit(task, properties.taskOptions());
         SnmpTaskResult result;
@@ -86,13 +91,28 @@ public class RsuMessageForwardingReadService {
         return result.value(read).stream().map(this::liveConfiguration).toList();
     }
 
+    private MessageForwardingConfiguration liveConfiguration(ForwardingRowInspection row) {
+        try {
+            return liveConfiguration(new ForwardingRow(row.table(), row.index(), row.columns()));
+        } catch (IllegalArgumentException invalidRow) {
+            // Preserve only recovery identifiers. Unvalidated dates/flags must not look like valid data.
+            return new MessageForwardingConfiguration(Table.valueOf(row.table().name()), row.index(),
+                    messageType(row.columns().get(2)), row.destination().orElse(null),
+                    row.port().isPresent() ? row.port().getAsInt() : null,
+                    null, null, null, null, invalidRow.getMessage());
+        }
+    }
+
     private MessageForwardingConfiguration liveConfiguration(ForwardingRow row) {
-        var messageType = Arrays.stream(MessageType.values()).filter(type -> type.psid().equals(row.psid()))
-                .map(Enum::name).findFirst().orElse("OTHER");
-        return new MessageForwardingConfiguration(Table.valueOf(row.table().name()), row.index(), messageType,
+        return new MessageForwardingConfiguration(Table.valueOf(row.table().name()), row.index(), messageType(row.psid()),
                 row.destination(), row.port(), row.start().atOffset(ZoneOffset.UTC),
                 row.stop().atOffset(ZoneOffset.UTC),
                 row.status() == 1, row.includeSecurity());
+    }
+
+    private String messageType(SnmpValue psid) {
+        return Arrays.stream(MessageType.values()).filter(type -> type.psid().equals(psid))
+                .map(Enum::name).findFirst().orElse("OTHER");
     }
 
     /** Validates the IPv4 address before checking permissions or loading inventory. */

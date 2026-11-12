@@ -105,7 +105,7 @@ public class MessageForwardingController {
 
     @GetMapping(path = "/{rsuIp}/live", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
-    @Operation(summary = "Read forwarding directly from an RSU", description = "Reads both NTCIP 1218 forwarding tables using bounded SNMP execution. Does not update PostgreSQL. A failed read returns an error rather than a partial snapshot.")
+    @Operation(summary = "Read forwarding directly from an RSU", description = "Reads both NTCIP 1218 forwarding tables using bounded SNMP execution. Malformed rows include validationError and nullable fields for diagnosis. Does not update PostgreSQL. Failed table walks return an error rather than a partial listing.")
     public List<MessageForwardingConfiguration> live(@PathVariable String rsuIp) {
         authorizeLiveRead(rsuIp);
         return readService.live(rsuIp);
