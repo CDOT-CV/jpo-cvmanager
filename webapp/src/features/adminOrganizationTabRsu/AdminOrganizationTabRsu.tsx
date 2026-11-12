@@ -342,7 +342,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                handleOrgTimDepositChange(true)
+                handleOrgTimDepositChange(true).catch(() => toast.error('Failed to update RSUs'))
               }}
             >
               Enable TIM Deposit
@@ -353,7 +353,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                handleOrgTimDepositChange(false)
+                handleOrgTimDepositChange(false).catch(() => toast.error('Failed to update RSUs'))
               }}
             >
               Disable TIM Deposit
@@ -364,7 +364,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                handleOrgSnmpMonitoringChange(true)
+                handleOrgSnmpMonitoringChange(true).catch(() => toast.error('Failed to update RSUs'))
               }}
             >
               Enable SNMP Monitoring
@@ -375,7 +375,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                handleOrgSnmpMonitoringChange(false)
+                handleOrgSnmpMonitoringChange(false).catch(() => toast.error('Failed to update RSUs'))
               }}
             >
               Disable SNMP Monitoring

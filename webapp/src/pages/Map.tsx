@@ -1191,7 +1191,9 @@ function MapPage() {
                       }}
                       disabled={!(configCoordinates.length > 2)}
                       onClick={() => {
-                        void dispatch(geoRsuQuery(selectedVendor)).then(notifyGeoRsuQueryResult)
+                        dispatch(geoRsuQuery(selectedVendor))
+                          .then(notifyGeoRsuQueryResult)
+                          .catch(() => toast.error('Failed to query RSUs in the selected area'))
                       }}
                       className="museo-slab capital-case"
                     >
