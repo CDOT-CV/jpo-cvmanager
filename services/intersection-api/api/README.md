@@ -249,23 +249,54 @@ separately from RSU firmware, in the `obu_firmware_uploads` and
 instead of by RSU model and version. Routes are under `/admin/obu-firmware` and
 require an authenticated admin or superuser.
 
+### How OBUs install firmware
+
+An RSU advertises the OTA server to nearby OBUs. An OBU requests the server's
+manifest, which lists firmware files, and installs the newest file that matches
+its own **build**. A build is the combination of manufacturer, device type,
+variant, file system (read-only or read-write), and secure boot. The OBU checks
+the signature of the file before installing it.
+
 ### File names
 
-OBUs choose firmware from the OTA server's manifest by file name, so uploads keep
-the vendor's original file name. The API reads the device type, variant, release
-version, and partition and secure-boot flags from the name. Commsignia names
-follow `<variant>-<rw|ro>[-secureboot]-<release>.tar.sig`, for example
-`ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig`, where the variant is
-`ob4-generic` or `rs4-generic` with an optional suffix. Names are limited to 128
-characters. This parsing must match the OBU OTA server's
-`commsignia_manifest.parse_firmware_name`; both test suites share the same cases.
+OBUs choose firmware from the manifest by file name, so uploads keep the
+manufacturer's original file name. Each manufacturer has its own naming
+convention, from which the API reads the device type, variant, release version,
+and file system and secure-boot flags. The OBU OTA server parses names the same
+way; both test suites share the same cases.
 
 A manufacturer can receive OBU firmware uploads only when it exists in the
-`manufacturers` table and the API has a naming convention for it. Commsignia is
-currently the only supported manufacturer.
+`manufacturers` table and the API has a naming convention for it. See
+[Supported OBU manufacturers](#supported-obu-manufacturers).
+
+An upload is rejected with `400` when:
+
+- the name does not follow the manufacturer's naming convention or is longer
+  than 128 characters
+- the file is not OBU firmware, such as RSU firmware; manage RSU firmware under
+  [Firmware Management](#firmware-management)
+- the file is for a build the manufacturer does not support
 
 Files are stored as `ota/<manufacturer>/<file name>`. A file name can be used
 once per manufacturer, and existing objects are never overwritten.
+
+### Supported OBU manufacturers
+
+**Commsignia.** Names follow `<variant>-<rw|ro>[-secureboot]-<release>.tar.sig`,
+for example `ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig`, where the OBU
+variant is `ob4-generic` with an optional suffix. The supported OBU builds are:
+
+| Build | File name part |
+| --- | --- |
+| Read-only with secure boot | `-ro-secureboot-` |
+| Read-write with secure boot | `-rw-secureboot-` |
+| Read-write | `-rw-` |
+
+A read-only build without secure boot is not supported. The naming convention
+also matches RSU (`rs4-generic`) files, so untracked RSU files in `ota/` are
+still described in the listing, but they cannot be uploaded or published here.
+The naming convention is implemented by `CommsigniaObuFirmwareFileNameParser` and
+must match the OBU OTA server's `commsignia_manifest.parse_firmware_name`.
 
 ### Serving uploads with the OBU OTA server
 
@@ -335,6 +366,27 @@ to OBUs. Both directions are idempotent. Publishing a cloud file first checks th
 storage still holds the exact version that was verified, and returns `409` if the
 file is missing or changed. Local files cannot be inspected by the API and are
 published as recorded.
+
+Because an OBU installs the newest firmware that matches its build, **only one
+release per build is published**. Publishing a release unpublishes the release of
+the same build that was published before, whichever version it is, so an older
+release can be published again to roll back. The response lists the withdrawn
+releases in `replaced`:
+
+```json
+{
+  "obu_firmware_id": 42,
+  "published": true,
+  "published_at": "2026-10-15T12:02:00Z",
+  "published_by": "admin@example.com",
+  "replaced": [{ "obu_firmware_id": 10, "file_name": "ob4-generic-ro-secureboot-y20.47.0-b220000.tar.sig" }]
+}
+```
+
+Releases of other builds stay published. The database enforces the rule with the
+`uq_obu_firmware_images_published_build` index, and two publications of the same
+build at the same moment are serialized; if one still conflicts, it returns `409`
+and can be retried.
 
 ### Deleting
 
