@@ -97,11 +97,13 @@ export type RsuMsgFwdConfigSingle = {
   index?: number
   'Message Type': string
   IP: string
-  Port: number
+  Port: number | string
   'Start DateTime': string
   'End DateTime': string
   'Full WSMP'?: string
   'Config Active': string
+  validationError?: string
+  deletable?: boolean
 }
 
 export type RsuDsrcFwdConfigs = {

@@ -55,8 +55,12 @@ const SnmpwalkMenu = () => {
   }, [rsuIp, cachedUnavailable, dispatch])
 
   const handleDelete = (row: RsuMsgFwdConfigSingle) => {
-    if ((row.table !== 'RECEIVE' && row.table !== 'TRANSMIT') || !row.index) return
+    if (
+      (row.table !== 'RECEIVE' && row.table !== 'TRANSMIT') ||
+      !row.index || row.deletable === false || typeof row.Port !== 'number'
+    ) return
     const table = row.table
+    const port = row.Port
     const buttons = [
       {
         label: 'Yes',
@@ -67,7 +71,7 @@ const SnmpwalkMenu = () => {
               table,
               index: row.index,
               destIp: row.IP,
-              port: row.Port,
+              port,
             })
           ).then((data) => {
             if (deleteSnmpRow.fulfilled.match(data) && data.payload.changeSuccess) {
@@ -107,6 +111,13 @@ const SnmpwalkMenu = () => {
           <h5 className="museo-slab">No message forwarding configurations were found.</h5>
         )}
       </div>
+      {[...Object.values(receiveRows), ...Object.values(transmitRows)].some(
+        (row: RsuMsgFwdConfigSingle) => row.validationError
+      ) && (
+        <Typography role="alert" variant="body2" color="warning.main" sx={{ mt: 1 }}>
+          Some forwarding configurations are incomplete. Remove invalid rows before adding configurations.
+        </Typography>
+      )}
       {[
         { title: 'TX Forward Table', rows: transmitRows, editable: !writeUnavailable },
         { title: 'RX Forward Table', rows: receiveRows, editable: !writeUnavailable },

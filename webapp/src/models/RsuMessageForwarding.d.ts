@@ -36,10 +36,12 @@ export type MessageForwardingConfiguration = {
   table: 'RECEIVE' | 'TRANSMIT' | 'DSRC'
   index: number
   messageType: string
-  destinationIp: string
-  destinationPort: number
-  startDatetime: string
-  endDatetime: string
-  active: boolean
-  includeSecurity: boolean
+  destinationIp: string | null
+  destinationPort: number | null
+  startDatetime: string | null
+  endDatetime: string | null
+  active: boolean | null
+  includeSecurity: boolean | null
+  /** Present only for malformed live rows; these are never database snapshots. */
+  validationError?: string
 }

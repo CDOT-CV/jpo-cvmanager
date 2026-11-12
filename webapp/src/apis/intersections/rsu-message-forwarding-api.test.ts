@@ -157,3 +157,23 @@ it('deletes an existing row by its actual table/index without a message preset',
     })
   )
 })
+
+it.each([
+  ['198.51.100.3', 80, true],
+  ['2001:db8::1', -1, true],
+  [null, 44920, false],
+  ['198.51.100.3', null, false],
+  ['\u00e9'.repeat(33), 44920, false],
+])('preserves diagnostic guards %s:%s without inventing valid values', async (destinationIp, destinationPort, deletable) => {
+  fetchMock.mockResponseOnce(JSON.stringify([{
+    table: 'TRANSMIT', index: 1, messageType: 'MAP', destinationIp, destinationPort,
+    startDatetime: null, endDatetime: null, active: null, includeSecurity: null,
+    validationError: 'Incomplete forwarding row',
+  }]))
+  const result = await RsuMessageForwardingApi.live('fixture-token', 'Org 1', '192.0.2.10')
+  expect(result.body.RsuFwdSnmpwalk).toMatchObject({ rsuXmitMsgFwdingTable: { 1: {
+    IP: destinationIp ?? 'Unknown', Port: destinationPort ?? 'Unknown',
+    'Start DateTime': 'Unknown', 'Config Active': 'Unknown', 'Full WSMP': 'Unknown',
+    validationError: 'Incomplete forwarding row', deletable,
+  } } })
+})

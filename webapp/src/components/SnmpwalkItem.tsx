@@ -47,11 +47,22 @@ const SnmpwalkItem = (props: SnmpwalkItemProps) => {
           {props.index}
         </Typography>
         {props.handleDelete && (
-          <Button size="small" onClick={() => props.handleDelete(props.content)} startIcon={<DeleteIcon />}>
+          <Button
+            size="small"
+            disabled={props.content.deletable === false}
+            onClick={() => props.handleDelete(props.content)}
+            startIcon={<DeleteIcon />}
+          >
             Delete
           </Button>
         )}
       </Box>
+      {props.content.validationError && (
+        <Typography role="alert" variant="body2" color="warning.main" sx={{ mb: 0.5 }}>
+          Invalid configuration: {props.content.validationError}.
+          {props.content.deletable === false && ' Destination or port is unreadable or invalid; manual repair is required.'}
+        </Typography>
+      )}
       <SnmpWalkRow title="Message Type:" value={props.content['Message Type']} />
       <SnmpWalkRow title="Destination IP:" value={props.content['IP']} />
       <SnmpWalkRow title="Port:" value={props.content['Port']} />

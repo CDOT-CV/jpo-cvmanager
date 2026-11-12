@@ -98,12 +98,22 @@ function formatConfigurations(rows: MessageForwardingConfiguration[]): RsuMsgFwd
       table: row.table,
       index: row.index,
       'Message Type': row.messageType,
-      IP: row.destinationIp,
-      Port: row.destinationPort,
-      'Start DateTime': row.startDatetime,
-      'End DateTime': row.endDatetime,
-      'Config Active': row.active ? 'Enabled' : 'Disabled',
-      'Full WSMP': row.includeSecurity ? 'Enabled' : 'Disabled',
+      IP: row.destinationIp ?? 'Unknown',
+      Port: row.destinationPort ?? 'Unknown',
+      'Start DateTime': row.startDatetime ?? 'Unknown',
+      'End DateTime': row.endDatetime ?? 'Unknown',
+      'Config Active': formatFlag(row.active),
+      'Full WSMP': formatFlag(row.includeSecurity),
+      ...(row.validationError
+        ? {
+            validationError: row.validationError,
+            // Raw guards permit cleanup of invalid stored ports and existing non-IPv4 destinations.
+            deletable:
+              typeof row.destinationIp === 'string' &&
+              new globalThis.TextEncoder().encode(row.destinationIp).length <= 64 &&
+              Number.isInteger(row.destinationPort),
+          }
+        : {}),
     }
     if (row.table === 'DSRC') dsrc[row.index] = entry
     else if (row.table === 'RECEIVE') {
@@ -115,6 +125,11 @@ function formatConfigurations(rows: MessageForwardingConfiguration[]): RsuMsgFwd
     } else throw new Error('Unknown forwarding table in API response')
   }
   return hasNtcip ? { ...dsrc, rsuReceivedMsgTable: receive, rsuXmitMsgFwdingTable: transmit } : dsrc
+}
+
+function formatFlag(value: boolean | null): string {
+  if (value == null) return 'Unknown'
+  return value ? 'Enabled' : 'Disabled'
 }
 
 export default new RsuMessageForwardingApi()
