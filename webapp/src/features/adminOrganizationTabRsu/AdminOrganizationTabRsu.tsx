@@ -17,8 +17,8 @@ import {
   rsuAddMultiple,
 } from './adminOrganizationTabRsuSlice'
 import {
-  updateOrgTimDeposit,
-  updateOrgSnmpMonitoring,
+  getOrgData,
+  AdminOrgSingle,
   selectTimDeposit,
   selectSnmpMonitoring,
   selectSelectedOrgName,
@@ -37,6 +37,8 @@ import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import { Multiselect } from 'react-widgets/cjs'
 import '../css/multiselect.css'
 import { useGetAllRsusNotInOrganizationQuery } from '../api/organizationApiSlice'
+import { usePatchRsuMutation } from '../api/rsuApiSlice'
+import { AdminRsuPatch } from '../../models/Rsu'
 
 interface AdminOrganizationTabRsuProps {
   selectedOrg: string
@@ -59,7 +61,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const timDepositStatus = useSelector(selectTimDeposit)
   const snmpMonitoringStatus = useSelector(selectSnmpMonitoring)
-  const isOwnerOrg = props.tableData.length === 0 || props.tableData.every((rsu) => rsu.owner_organization === selectedOrg)
+  const [patchRsu] = usePatchRsuMutation()
   const [rsuColumns] = useState<Column<any>[]>([
     { title: 'IP Address', field: 'ip', id: 0, width: '18%' },
     { title: 'Primary Route', field: 'primary_route', id: 1, width: '18%' },
@@ -215,59 +217,67 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     })
   }
 
-  const handleOrgTimDepositChange = (newValue: boolean) => {
-    const actionLabel = newValue ? 'Enable' : 'Disable'
-    const buttons = [
-      {
-        label: 'Yes',
-        onClick: () => {
-          dispatch(updateOrgTimDeposit({ orgName: selectedOrg, email: selectedOrgEmail, timDeposit: newValue })).then(
-            (data: any) => {
-              if (data.payload.success) {
-                toast.success(data.payload.message)
-              } else {
-                toast.error(data.payload.message)
-              }
-            }
-          )
-        },
-      },
-      { label: 'No', onClick: () => {} },
-    ]
-    const alertOptions = Options(
-      `${actionLabel} TIM Deposit`,
-      'Are you sure this will change all RSU values under this organization and overwrite any previous settings?',
-      buttons
-    )
-    confirmAlert(alertOptions)
+  const updateOwnedRsuOptions = async (ownedRsus: AdminOrgRsu[], patch: AdminRsuPatch, settingLabel: string) => {
+    const results = await Promise.allSettled(ownedRsus.map((rsu) => patchRsu({ rsuIp: rsu.ip, patch }).unwrap()))
+    const failedIps = ownedRsus.filter((_, i) => results[i].status === 'rejected').map((rsu) => rsu.ip)
+    updateTableData(selectedOrg)
+    if (failedIps.length > 0) {
+      toast.error(`Failed to update ${settingLabel} for RSUs: ${failedIps.join(', ')}`)
+    } else {
+      toast.success(`Successfully updated ${settingLabel} for ${ownedRsus.length} RSU(s) owned by ${selectedOrg}`)
+    }
   }
 
-  const handleOrgSnmpMonitoringChange = (newValue: boolean) => {
-    const actionLabel = newValue ? 'Enable' : 'Disable'
-    const buttons = [
-      {
-        label: 'Yes',
-        onClick: () => {
-          dispatch(
-            updateOrgSnmpMonitoring({ orgName: selectedOrg, email: selectedOrgEmail, snmpMonitoring: newValue })
-          ).then((data: any) => {
-            if (data.payload.success) {
-              toast.success(data.payload.message)
-            } else {
-              toast.error(data.payload.message)
-            }
-          })
-        },
-      },
-      { label: 'No', onClick: () => {} },
-    ]
-    const alertOptions = Options(
-      `${actionLabel} SNMP Monitoring`,
-      'Are you sure this will change all RSU values under this organization and overwrite any previous settings?',
-      buttons
+  const confirmOrgRsuOptionChange = async (title: string, settingLabel: string, patch: AdminRsuPatch) => {
+    const result: any = await dispatch(getOrgData({ orgName: selectedOrg }))
+    const orgRsus: AdminOrgRsu[] | undefined = result.payload?.success
+      ? (result.payload.data?.org_data as AdminOrgSingle | undefined)?.org_rsus
+      : undefined
+    if (!orgRsus) {
+      toast.error('Failed to verify RSU ownership; no RSUs were updated')
+      return
+    }
+
+    const ownedRsus = orgRsus.filter((rsu) => rsu.owner_organization === selectedOrg)
+    const nonOwnedRsuCount = orgRsus.length - ownedRsus.length
+
+    if (ownedRsus.length === 0) {
+      confirmAlert(
+        Options(
+          title,
+          nonOwnedRsuCount === 0
+            ? 'This organization has no RSUs to update.'
+            : `None of the RSUs in this organization are owned by ${selectedOrg}, so no RSUs will be updated. Only the owner organization can change these settings.`,
+          [{ label: 'OK', onClick: () => {} }]
+        )
+      )
+      return
+    }
+
+    const message =
+      nonOwnedRsuCount === 0
+        ? `Are you sure? This will change the value on all ${ownedRsus.length} RSU(s) in this organization and overwrite any previous settings.`
+        : `Only the ${ownedRsus.length} RSU(s) owned by ${selectedOrg} will be updated. ` +
+          `${nonOwnedRsuCount} RSU(s) owned by other organizations will not be changed. ` +
+          'Are you sure you want to overwrite the previous settings on the owned RSUs?'
+
+    confirmAlert(
+      Options(title, message, [
+        { label: 'Yes', onClick: () => updateOwnedRsuOptions(ownedRsus, patch, settingLabel) },
+        { label: 'No', onClick: () => {} },
+      ])
     )
-    confirmAlert(alertOptions)
   }
+
+  const handleOrgTimDepositChange = (newValue: boolean) =>
+    confirmOrgRsuOptionChange(`${newValue ? 'Enable' : 'Disable'} TIM Deposit`, 'TIM deposit', {
+      tim_deposit: newValue,
+    })
+
+  const handleOrgSnmpMonitoringChange = (newValue: boolean) =>
+    confirmOrgRsuOptionChange(`${newValue ? 'Enable' : 'Disable'} SNMP Monitoring`, 'SNMP monitoring', {
+      snmp_monitoring: newValue,
+    })
 
   return (
     <div className="accordion">
@@ -329,54 +339,52 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               SNMP Monitoring: {snmpMonitoringStatus}
             </Typography>
           </div>
-          {isOwnerOrg && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end', maxWidth: '50%' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleOrgTimDepositChange(true)
-                }}
-              >
-                Enable TIM Deposit
-              </Button>
-              <Button
-                variant="contained"
-                color="error"
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleOrgTimDepositChange(false)
-                }}
-              >
-                Disable TIM Deposit
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleOrgSnmpMonitoringChange(true)
-                }}
-              >
-                Enable SNMP Monitoring
-              </Button>
-              <Button
-                variant="contained"
-                color="error"
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleOrgSnmpMonitoringChange(false)
-                }}
-              >
-                Disable SNMP Monitoring
-              </Button>
-            </div>
-          )}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end', maxWidth: '50%' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOrgTimDepositChange(true)
+              }}
+            >
+              Enable TIM Deposit
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOrgTimDepositChange(false)
+              }}
+            >
+              Disable TIM Deposit
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOrgSnmpMonitoringChange(true)
+              }}
+            >
+              Enable SNMP Monitoring
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOrgSnmpMonitoringChange(false)
+              }}
+            >
+              Disable SNMP Monitoring
+            </Button>
+          </div>
         </AccordionSummary>
         <AccordionDetails sx={{ padding: '8px 0px' }}>
           {loadingGlobal === false && [
