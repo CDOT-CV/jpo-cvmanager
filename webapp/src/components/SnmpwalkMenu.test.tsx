@@ -296,3 +296,68 @@ it('shows every mixed legacy and current cached row, keeping legacy rows read on
   expect(screen.getByText('RSU 4.1 Forward Table')).toBeInTheDocument()
   expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1)
 })
+
+it.each([false, true])('refreshes after a verified delete and handles a failed live read (%s)', async (refreshFails) => {
+  fetchMock.mockClear()
+  fetchMock.doMock()
+  const row = {
+    table: 'TRANSMIT', index: 1, messageType: 'MAP', destinationIp: '198.51.100.3', destinationPort: 80,
+    startDatetime: null, endDatetime: null, active: null, includeSecurity: null,
+    validationError: 'Incomplete forwarding row',
+  }
+  fetchMock.mockResponses(
+    ['[]', { status: 200 }],
+    [JSON.stringify([row, { ...row, index: 2, destinationIp: null }]), { status: 200 }],
+    refreshFails
+      ? [JSON.stringify({ detail: 'Device did not respond.' }), { status: 504 }]
+      : [JSON.stringify([{ ...row, index: 2, destinationIp: null }]), { status: 200 }],
+    ...(refreshFails ? [['[]', { status: 200 }] as [string, { status: number }]] : [])
+  )
+  const remove = jest.spyOn(RsuMessageForwardingApi, 'deleteRow').mockResolvedValue({
+    status: 200, message: '', body: { '192.0.2.10': {
+      execution: { taskId: 'task', target: 'udp:192.0.2.10:161', status: 'FAILED',
+        message: 'Invalid SNMP output.', step: 'read-current-forwarding', elapsedMs: 1, steps: [] },
+      writeState: 'VERIFIED', changed: true, databaseSync: 'NOT_UPDATED',
+    } },
+  })
+  const confirm = jest.spyOn(confirmation, 'confirmAlert').mockImplementation((options) => {
+    options.buttons![0].onClick!()
+  })
+  const failure = jest.spyOn(toast, 'error').mockReturnValue('fixture-toast')
+  const store = setupStore({
+    rsu: { value: { selectedRsu: { properties: {
+      ipv4_address: '192.0.2.10', snmp_protocol_code: '1218', owner_organization_id: 1,
+    } } } },
+    user: { value: { authLoginData: { token: 'fixture-token' },
+      organization: { name: 'Org', organization: 1, role: 'OPERATOR' } } },
+  })
+  try {
+    render(<ThemeProvider theme={testTheme}><Provider store={store}><SnmpwalkMenu /></Provider></ThemeProvider>)
+    await screen.findByText(/No message forwarding configurations/)
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh Message Forwarding' }))
+    await screen.findByText('198.51.100.3')
+    expect(screen.getByText(/Some forwarding configurations are incomplete/)).toBeInTheDocument()
+    const buttons = screen.getAllByRole('button', { name: 'Delete' })
+    expect(buttons[1]).toBeDisabled()
+    fireEvent.click(buttons[0])
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('fixture-token', 'Org', '192.0.2.10', 'TRANSMIT', 1,
+      { destination_ip: '198.51.100.3', destination_port: 80 }))
+    await waitFor(() => expect(screen.queryByText('198.51.100.3')).not.toBeInTheDocument())
+    if (refreshFails) {
+      await waitFor(() => expect(screen.getByText(/Source:/)).toHaveTextContent('Cached (Database)'))
+      expect(failure).toHaveBeenCalledWith('Failed to fetch RSU message forwarding configuration, loading cached data')
+    } else {
+      await screen.findByText(/manual repair is required/)
+      expect(screen.getByText(/Source:/)).toHaveTextContent('Live (RSU)')
+    }
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+      expect.not.stringContaining('/live'), expect.stringContaining('/live'), expect.stringContaining('/live'),
+      ...(refreshFails ? [expect.not.stringContaining('/live')] : []),
+    ])
+    expect(failure).toHaveBeenCalledWith('Forwarding removal confirmed. Cached configuration was not updated.')
+  } finally {
+    remove.mockRestore()
+    confirm.mockRestore()
+    failure.mockRestore()
+  }
+})

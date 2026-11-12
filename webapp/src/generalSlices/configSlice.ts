@@ -116,10 +116,7 @@ async function executeForwardingRequests(
         continue
       }
       const result = response.body?.[ip]
-      const confirmed = result?.writeState === 'VERIFIED' && result.changed === true
-      const noOp = operation === 'delete' && result?.writeState === 'NOT_SUBMITTED' && result.changed === false
-      if (result?.execution?.status === 'SUCCEEDED' && result.databaseSync === 'UPDATED' && (confirmed || noOp))
-        continue
+      if (forwardingCompleted(result, operation)) continue
       failures.push(`${ip}: ${forwardingFailureMessage(result)}`)
     }
   }
@@ -130,6 +127,12 @@ async function executeForwardingRequests(
         ? ''
         : `${selected.length - failures.length} of ${selected.length} RSUs completed successfully. ${failures.join('; ')}`,
   }
+}
+
+function forwardingCompleted(result: MessageForwardingResult | undefined, operation: 'create' | 'delete'): boolean {
+  const confirmed = result?.writeState === 'VERIFIED' && result.changed === true
+  const noOp = operation === 'delete' && result?.writeState === 'NOT_SUBMITTED' && result.changed === false
+  return result?.execution?.status === 'SUCCEEDED' && result.databaseSync === 'UPDATED' && (confirmed || noOp)
 }
 
 function forwardingFailureMessage(result: MessageForwardingResult | undefined): string {
@@ -192,16 +195,20 @@ export const deleteSnmpRow = createAsyncThunk(
     { getState }
   ) => {
     const state = getState() as RootState
-    return executeForwardingRequests([data.rsuIp], 'delete', () =>
-      RsuMessageForwardingApi.deleteRow(
-        selectToken(state),
-        selectOrganizationName(state),
-        data.rsuIp,
-        data.table,
-        data.index,
-        { destination_ip: data.destIp, destination_port: data.port }
-      )
+    const response = await RsuMessageForwardingApi.deleteRow(
+      selectToken(state), selectOrganizationName(state), data.rsuIp, data.table, data.index,
+      { destination_ip: data.destIp, destination_port: data.port }
     )
+    const result = response?.status === 200 ? response.body?.[data.rsuIp] : undefined
+    const changeSuccess = forwardingCompleted(result, 'delete')
+    const errorState = result ? forwardingFailureMessage(result) :
+      response?.message || 'Request did not complete; check RSU state before retrying.'
+    // Keep device evidence so the view can distinguish a removed row from a failed cache update.
+    return {
+      changeSuccess,
+      result,
+      errorState: changeSuccess ? '' : errorState,
+    }
   }
 )
 

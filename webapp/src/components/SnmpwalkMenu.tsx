@@ -54,6 +54,23 @@ const SnmpwalkMenu = () => {
     if (rsuIp && !cachedUnavailable) dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
   }, [rsuIp, cachedUnavailable, dispatch])
 
+  const refreshLive = async (notifySuccess = false) => {
+    const before = store.getState()
+    if (selectRsuIpv4(before) !== rsuIp || forwardingUnavailableReason(before, [rsuIp], 'live')) return
+    const data = await dispatch(getRsuMsgConfigsFromRsu(rsuIp))
+    const current = store.getState()
+    // Late replies must not reload an old RSU or replace a newer read.
+    if (selectRsuIpv4(current) !== rsuIp || current.config.value.forwardingReadRequestId !== data.meta.requestId) return
+    if (getRsuMsgConfigsFromRsu.rejected.match(data)) {
+      if (!forwardingUnavailableReason(current, [rsuIp], 'cached')) {
+        toast.error('Failed to fetch RSU message forwarding configuration, loading cached data')
+        dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+      }
+    } else if (notifySuccess) {
+      toast.success('Successfully fetched RSU message forwarding configuration')
+    }
+  }
+
   const handleDelete = (row: RsuMsgFwdConfigSingle) => {
     if (
       (row.table !== 'RECEIVE' && row.table !== 'TRANSMIT') ||
@@ -76,13 +93,28 @@ const SnmpwalkMenu = () => {
           ).then((data) => {
             if (deleteSnmpRow.fulfilled.match(data) && data.payload.changeSuccess) {
               toast.success('Successfully deleted message forwarding')
-              const current = store.getState()
-              if (selectRsuIpv4(current) === rsuIp && !forwardingUnavailableReason(current, [rsuIp], 'cached')) {
-                dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
-              }
             } else {
-              const message = deleteSnmpRow.fulfilled.match(data) ? data.payload.errorState : data.error.message
-              toast.error('Failed to delete message forwarding: ' + (message || 'Request did not complete'))
+              const result = deleteSnmpRow.fulfilled.match(data) ? data.payload.result : undefined
+              const removed = result?.changed === true && result.writeState === 'VERIFIED'
+              const absent = result?.changed === false && result.writeState === 'NOT_SUBMITTED'
+              if (removed || absent) {
+                toast.error('Forwarding removal confirmed. Cached configuration was not updated.')
+              } else {
+                const message = deleteSnmpRow.fulfilled.match(data) ? data.payload.errorState : data.error.message
+                toast.error('Failed to delete message forwarding: ' + (message || 'Request did not complete'))
+              }
+            }
+            const current = store.getState()
+            if (selectRsuIpv4(current) !== rsuIp) return
+            // Another malformed row may prevent snapshot synchronization after a verified delete.
+            // Refresh the live list even then so operators can continue repairing the table.
+            if (selectMsgFwdConfigType(current) === 'rsu' && !forwardingUnavailableReason(current, [rsuIp], 'live')) {
+              refreshLive()
+            } else if (
+              deleteSnmpRow.fulfilled.match(data) && data.payload.changeSuccess &&
+              !forwardingUnavailableReason(current, [rsuIp], 'cached')
+            ) {
+              dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
             }
           })
         },
@@ -155,23 +187,7 @@ const SnmpwalkMenu = () => {
             <Button
               startIcon={<RefreshIcon />}
               variant="outlined"
-              onClick={() => {
-                dispatch(getRsuMsgConfigsFromRsu(rsuIp)).then((data) => {
-                  const current = store.getState()
-                  // A late failure must not reload the previously selected RSU's cache.
-                  if (
-                    selectRsuIpv4(current) !== rsuIp ||
-                    current.config.value.forwardingReadRequestId !== data.meta.requestId
-                  )
-                    return
-                  if (getRsuMsgConfigsFromRsu.rejected.match(data)) {
-                    toast.error('Failed to fetch RSU message forwarding configuration, loading cached data')
-                    dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
-                  } else if (getRsuMsgConfigsFromRsu.fulfilled.match(data)) {
-                    toast.success('Successfully fetched RSU message forwarding configuration')
-                  }
-                })
-              }}
+              onClick={() => refreshLive(true)}
               size="large"
               sx={{
                 marginTop: '8px',

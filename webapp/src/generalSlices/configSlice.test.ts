@@ -3,6 +3,7 @@ import reducer, {
   getRsuMsgConfigsFromRsu,
   submitSnmpSet,
   deleteSnmpSet,
+  deleteSnmpRow,
   rebootRsu,
   checkFirmwareUpgrade,
   startFirmwareUpgrade,
@@ -486,6 +487,41 @@ describe('async thunks', () => {
         },
       })
       expect((await run('delete', [ips[0]])).payload).toEqual({ changeSuccess: true, errorState: '' })
+    })
+
+    it.each(['UPDATED', 'NOT_UPDATED', 'FAILED'] as const)('preserves selected-row write evidence when database sync is %s', async (sync) => {
+      const outcome = result({ databaseSync: sync,
+        execution: { ...result().execution, status: sync === 'UPDATED' ? 'SUCCEEDED' : 'FAILED' } })
+      const api = jest.spyOn(RsuMessageForwardingApi, 'deleteRow').mockResolvedValue({
+        status: 200, message: '', body: { [ips[0]]: outcome },
+      })
+      const action = await deleteSnmpRow({ rsuIp: ips[0], table: 'TRANSMIT', index: 3,
+        destIp: '198.51.100.3', port: 80 })(jest.fn(), getState(), undefined)
+      expect(deleteSnmpRow.fulfilled.match(action)).toBe(true)
+      expect(action.payload).toEqual({
+        changeSuccess: sync === 'UPDATED', result: outcome,
+        errorState: sync === 'UPDATED' ? '' : expect.stringContaining('Forwarding change verified'),
+      })
+      expect(api).toHaveBeenCalledWith('token', 'Org 1', ips[0], 'TRANSMIT', 3,
+        { destination_ip: '198.51.100.3', destination_port: 80 })
+    })
+
+    it('keeps missing replies and uncertain selected-row writes distinguishable', async () => {
+      const api = jest.spyOn(RsuMessageForwardingApi, 'deleteRow')
+      const runRow = () => deleteSnmpRow({ rsuIp: ips[0], table: 'TRANSMIT', index: 1,
+        destIp: '198.51.100.3', port: 44920 })(jest.fn(), getState(), undefined)
+      api.mockResolvedValueOnce(null)
+      expect((await runRow()).payload).toEqual({ changeSuccess: false, result: undefined,
+        errorState: expect.stringContaining('check RSU state before retrying') })
+      api.mockResolvedValueOnce({ status: 200, message: '', body: { [ips[0]]:
+        result({ writeState: 'UNKNOWN', changed: null, databaseSync: 'NOT_UPDATED' }) } })
+      expect((await runRow()).payload).toEqual(expect.objectContaining({ changeSuccess: false,
+        errorState: expect.stringContaining('Write not confirmed'),
+        result: expect.objectContaining({ writeState: 'UNKNOWN', changed: null }) }))
+      api.mockRejectedValueOnce(new Error('Connection lost'))
+      const rejected = await runRow()
+      expect(deleteSnmpRow.rejected.match(rejected)).toBe(true)
+      expect(api).toHaveBeenCalledTimes(3)
     })
 
     it('sends a disabled security header as false', async () => {
