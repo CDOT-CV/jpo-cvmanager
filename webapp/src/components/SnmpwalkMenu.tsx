@@ -64,7 +64,7 @@ const SnmpwalkMenu = () => {
     if (getRsuMsgConfigsFromRsu.rejected.match(data)) {
       if (!forwardingUnavailableReason(current, [rsuIp], 'cached')) {
         toast.error('Failed to fetch RSU message forwarding configuration, loading cached data')
-        dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+        await dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
       }
     } else if (notifySuccess) {
       toast.success('Successfully fetched RSU message forwarding configuration')
@@ -81,42 +81,33 @@ const SnmpwalkMenu = () => {
     const buttons = [
       {
         label: 'Yes',
-        onClick: () => {
-          dispatch(
-            deleteSnmpRow({
-              rsuIp,
-              table,
-              index: row.index,
-              destIp: row.IP,
-              port,
-            })
-          ).then((data) => {
-            if (deleteSnmpRow.fulfilled.match(data) && data.payload.changeSuccess) {
-              toast.success('Successfully deleted message forwarding')
-            } else {
-              const result = deleteSnmpRow.fulfilled.match(data) ? data.payload.result : undefined
-              const removed = result?.changed === true && result.writeState === 'VERIFIED'
-              const absent = result?.changed === false && result.writeState === 'NOT_SUBMITTED'
-              if (removed || absent) {
-                toast.error('Forwarding removal confirmed. Cached configuration was not updated.')
-              } else {
-                const message = deleteSnmpRow.fulfilled.match(data) ? data.payload.errorState : data.error.message
-                toast.error('Failed to delete message forwarding: ' + (message || 'Request did not complete'))
-              }
-            }
-            const current = store.getState()
-            if (selectRsuIpv4(current) !== rsuIp) return
-            // Another malformed row may prevent snapshot synchronization after a verified delete.
-            // Refresh the live list even then so operators can continue repairing the table.
-            if (selectMsgFwdConfigType(current) === 'rsu' && !forwardingUnavailableReason(current, [rsuIp], 'live')) {
-              refreshLive()
-            } else if (
-              deleteSnmpRow.fulfilled.match(data) && data.payload.changeSuccess &&
-              !forwardingUnavailableReason(current, [rsuIp], 'cached')
-            ) {
-              dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
-            }
-          })
+        onClick: async () => {
+          const data = await dispatch(deleteSnmpRow({
+            rsuIp, table, index: row.index, destIp: row.IP, port,
+          }))
+          const completed = deleteSnmpRow.fulfilled.match(data) && data.payload.changeSuccess
+          const result = deleteSnmpRow.fulfilled.match(data) ? data.payload.result : undefined
+          const removed = result?.changed === true && result.writeState === 'VERIFIED'
+          const absent = result?.changed === false && result.writeState === 'NOT_SUBMITTED'
+          const message = deleteSnmpRow.fulfilled.match(data) ? data.payload.errorState : data.error.message
+
+          if (completed) {
+            toast.success('Successfully deleted message forwarding')
+          } else if (removed || absent) {
+            toast.error('Forwarding removal confirmed. Cached configuration was not updated.')
+          } else {
+            toast.error('Failed to delete message forwarding: ' + (message || 'Request did not complete'))
+          }
+
+          const current = store.getState()
+          if (selectRsuIpv4(current) !== rsuIp) return
+          // Another malformed row may prevent snapshot synchronization after a verified delete.
+          // Refresh the live list even then so operators can continue repairing the table.
+          if (selectMsgFwdConfigType(current) === 'rsu' && !forwardingUnavailableReason(current, [rsuIp], 'live')) {
+            await refreshLive()
+          } else if (completed && !forwardingUnavailableReason(current, [rsuIp], 'cached')) {
+            await dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+          }
         },
       },
       {
