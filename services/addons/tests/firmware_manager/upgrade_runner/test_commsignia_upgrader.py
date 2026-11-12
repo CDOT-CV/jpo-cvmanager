@@ -1,5 +1,7 @@
 from unittest.mock import call, patch, MagicMock
 from paramiko import WarningPolicy
+from google.api_core.exceptions import NotFound
+import pytest
 
 from addons.images.firmware_manager.upgrade_runner.commsignia_upgrader import (
     CommsigniaUpgrader,
@@ -15,6 +17,44 @@ test_upgrade_info = {
     "target_firmware_version": "1.0.0",
     "install_package": "firmware_package.tar",
 }
+
+
+@pytest.mark.parametrize(
+    "optional_result", [False, NotFound("removed during download"), FileNotFoundError()]
+)
+@patch("addons.images.firmware_manager.upgrade_runner.commsignia_upgrader.SCPClient")
+@patch("addons.images.firmware_manager.upgrade_runner.commsignia_upgrader.SSHClient")
+def test_missing_optional_script_does_not_fail_successful_upgrade(
+    mock_ssh, mock_scp, optional_result
+):
+    stdout = MagicMock()
+    stdout.read.return_value.decode.return_value = "ALL OK"
+    mock_ssh.return_value.exec_command.return_value = MagicMock(), stdout, MagicMock()
+    runner = CommsigniaUpgrader(test_upgrade_info)
+    runner.download_blob = MagicMock(side_effect=[True, optional_result])
+    runner.post_upgrade = MagicMock()
+    runner.cleanup = MagicMock()
+    runner.notify_firmware_manager = MagicMock()
+
+    runner.upgrade()
+
+    runner.post_upgrade.assert_not_called()
+    runner.cleanup.assert_called_once()
+    runner.notify_firmware_manager.assert_called_once_with(success=True)
+
+
+@patch("addons.images.firmware_manager.upgrade_runner.commsignia_upgrader.SSHClient")
+def test_missing_required_firmware_still_fails(mock_ssh):
+    runner = CommsigniaUpgrader(test_upgrade_info)
+    runner.download_blob = MagicMock(return_value=False)
+    runner.cleanup = MagicMock()
+    runner.notify_firmware_manager = MagicMock()
+    runner.send_error_email = MagicMock()
+
+    runner.upgrade()
+
+    mock_ssh.assert_not_called()
+    runner.notify_firmware_manager.assert_called_once_with(success=False)
 
 
 def test_commsignia_upgrader_init():
@@ -50,7 +90,7 @@ def test_commsignia_upgrader_upgrade_success_no_post_update(
 
     test_commsignia_upgrader = CommsigniaUpgrader(test_upgrade_info)
     test_commsignia_upgrader.check_online = MagicMock(return_value=True)
-    test_commsignia_upgrader.download_blob = MagicMock(return_value=False)
+    test_commsignia_upgrader.download_blob = MagicMock(side_effect=[True, False])
     test_commsignia_upgrader.cleanup = MagicMock()
     notify = MagicMock()
     test_commsignia_upgrader.notify_firmware_manager = notify
@@ -324,6 +364,7 @@ def test_commsignia_upgrader_upgrade_exception(
     sshclient_obj.connect.side_effect = Exception("Exception occurred during upgrade")
 
     test_commsignia_upgrader = CommsigniaUpgrader(test_upgrade_info)
+    test_commsignia_upgrader.send_error_email = MagicMock()
     test_commsignia_upgrader.check_online = MagicMock(return_value=True)
     test_commsignia_upgrader.download_blob = MagicMock()
     cleanup = MagicMock()

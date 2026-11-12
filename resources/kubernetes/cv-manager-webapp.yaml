@@ -32,7 +32,7 @@ spec:
   ports:
     - port: 80
       protocol: TCP
-      targetPort: 80
+      targetPort: 8080
   selector:
     app: cv-manager-webapp
   type: NodePort
@@ -86,6 +86,16 @@ spec:
           imagePullPolicy: Always
           # Replace image with an actual built jpo-cvmanager webapp image from an image repository
           image: jpoode-cvmanager-webapp:tag
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
           resources:
             requests:
               memory: '4Gi'
@@ -98,4 +108,4 @@ spec:
           tty: true
           stdin: true
           ports:
-            - containerPort: 80
+            - containerPort: 8080

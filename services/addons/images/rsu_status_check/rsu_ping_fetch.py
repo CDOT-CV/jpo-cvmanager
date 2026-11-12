@@ -26,7 +26,8 @@ def insert_rsu_ping(request_json):
     logging.debug(f"Inserting {len(histories)} new Ping records for RsuData {rsu_id}")
     for history in histories:
         try:
-            query = f'INSERT INTO public.ping (timestamp, result, rsu_id) VALUES (to_timestamp({history["clock"]}), B\'{history["value"]}\', {rsu_id})'
+            result = "TRUE" if str(history["value"]) == "1" else "FALSE"
+            query = f'INSERT INTO public.ping (timestamp, result, rsu_id) VALUES (to_timestamp({history["clock"]}), {result}, {rsu_id})'
             pgquery.write_db(query)
         except Exception as e:
             logging.exception(f"Error inserting Ping record: {e}")
@@ -145,7 +146,7 @@ class RsuStatusFetch:
 
 if __name__ == "__main__":
     run_service = (
-        rsu_status_check_environment.RSU_PING and rsu_status_check_environment.ZABBIX
+        rsu_status_check_environment.ZABBIX and not rsu_status_check_environment.RSU_PING
     )
     if not run_service:
         logging.info("The rsu-ping-fetch service is disabled and will not run")

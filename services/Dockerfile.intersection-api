@@ -22,7 +22,17 @@ RUN mvn -s settings.xml install -DskipTests
 # Create a new stage for runtime
 FROM eclipse-temurin:22-jre-noble
 
+# JDK 22 is EOL, so this base image is no longer rebuilt upstream (last published 2024-08).
+# Apply current Ubuntu security updates (e.g. libbrotli1, CVE-2026-111497). Build with
+# --pull/--no-cache so a cached layer does not keep stale packages.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /home
+
+ENV EMAIL_RATE_LIMIT_PER_USER=12
+ENV EMAIL_RATE_LIMIT_PER_INSTANCE=120
 
 COPY --from=builder /home/intersection-api/src/main/resources/application.yaml /home
 COPY --from=builder /home/intersection-api/target/intersection-api.jar /home

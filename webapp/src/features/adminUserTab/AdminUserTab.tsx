@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import AdminAddUser from '../adminAddUser/AdminAddUser'
 import AdminEditUser from '../adminEditUser/AdminEditUser'
-import AdminTable from '../../components/AdminTable'
+import AdminTable, { buildAdminTableQueryParams } from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
@@ -12,7 +12,8 @@ import { Action } from '@material-table/core'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
-import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
+import DeleteOutline from '@mui/icons-material/DeleteOutline'
+import ModeEditOutline from '@mui/icons-material/ModeEditOutline'
 import { useTheme } from '@mui/material'
 import {
   useDeleteMultipleUsersMutation,
@@ -20,6 +21,7 @@ import {
   useGetUsersQuery,
   useLazyGetUsersQuery,
 } from '../api/userApiSlice'
+import { useAdminTableQuerySync } from '../../hooks/useAdminTableQuerySync'
 
 const AdminUserTab = () => {
   const navigate = useNavigate()
@@ -37,48 +39,23 @@ const AdminUserTab = () => {
   })
 
   const [trigger] = useLazyGetUsersQuery()
-
-  // Subscribe to query - this will trigger when cache is invalidated
   const { data: subscribedData } = useGetUsersQuery(currentParams, {
-    skip: !organization, // Skip if no organization selected
+    skip: !organization,
+  })
+  const { currentQueryRef, markTableRenderedData, handleRefresh } = useAdminTableQuerySync({
+    organization,
+    tableRef,
+    isRefreshing,
+    currentPage: currentParams.page,
+    subscribedData,
   })
 
-  // When subscribed data changes (due to cache invalidation), refresh table
-  useEffect(() => {
-    if (subscribedData) {
-      handleRefresh()
-    }
-  }, [subscribedData])
-
-  const currentQueryRef = useRef(null)
   const handleQueryChange = useCallback(
     async (query) => {
       setIsRefreshing(true)
 
       try {
-        // Extract order information from orderByCollection
-        let orderBy = 'first_name'
-        let orderDirection = 'asc'
-        if (query.orderByCollection && query.orderByCollection.length > 0) {
-          const firstOrder = query.orderByCollection[0]
-          if (firstOrder.orderBy !== undefined) {
-            if (typeof firstOrder.orderBy.field === 'string') {
-              orderBy = firstOrder.orderBy.field
-            } else if (typeof firstOrder.orderBy === 'number') {
-              orderBy = columns[firstOrder.orderBy].field
-            }
-          }
-          orderDirection = firstOrder.orderDirection || 'asc'
-        }
-
-        // Build query params including organization
-        const params = {
-          page: query.page,
-          size: query.pageSize,
-          sort: `${orderBy},${orderDirection}`,
-          search: query.search || '',
-          organization: organization || '', // Add organization parameter
-        }
+        const params = buildAdminTableQueryParams(query, columns, organization, 'first_name', 'asc')
 
         // Check if organization changed - if so, reset to page 0
         if (currentQueryRef.current && currentQueryRef.current.organization !== params.organization) {
@@ -88,12 +65,12 @@ const AdminUserTab = () => {
 
         // Store current query for comparison
         currentQueryRef.current = params
-        setCurrentParams(params) // Update params for subscription
+        setCurrentParams(params)
 
         // Trigger the query and await the result
         const result = await trigger(params).unwrap()
 
-        console.log(result.content[0])
+        markTableRenderedData(params, result)
 
         return {
           data: result.content || [],
@@ -112,15 +89,8 @@ const AdminUserTab = () => {
         setIsRefreshing(false)
       }
     },
-    [trigger, organization]
+    [trigger, organization, markTableRenderedData]
   )
-
-  const handleRefresh = () => {
-    console.log('Refreshing table data...')
-    if (tableRef.current && tableRef.current.onQueryChange) {
-      tableRef.current.onQueryChange()
-    }
-  }
 
   const [deleteUserApi] = useDeleteUserMutation()
   const [deleteMultipleUsersApi] = useDeleteMultipleUsersMutation()

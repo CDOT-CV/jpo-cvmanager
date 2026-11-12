@@ -45,12 +45,16 @@ export interface AuthToken {
   family_name: string
   /** Custom CVManager-specific data */
   cvmanager_data: {
-    /** Whether user is a super user (1 = true, 0 = false) */
-    super_user: '0' | '1'
+    /** Whether user is a super user */
+    super_user: boolean
     /** Organizations the user belongs to and their roles */
     organizations: Array<{
+      /** Organization ID */
+      org_id: number
       /** Organization name */
-      org: string
+      org_name: string
+      /** Organization Email */
+      org_email: string
       /** User's role in the organization */
       role: string
     }>

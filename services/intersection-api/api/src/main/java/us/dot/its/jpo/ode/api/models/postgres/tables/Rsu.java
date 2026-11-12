@@ -15,7 +15,7 @@ import org.locationtech.jts.geom.Point;
 @Getter
 @Setter
 @Entity
-@Table(name = "rsus")
+@Table(name = "rsus", uniqueConstraints = @UniqueConstraint(columnNames = {"milepost", "primary_route"}))
 public class Rsu {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rsus_id_gen")
@@ -23,7 +23,7 @@ public class Rsu {
     @Column(name = "rsu_id", nullable = false)
     private Integer id;
 
-    @Column(name = "geography", columnDefinition = "geography not null")
+    @Column(name = "geography", columnDefinition = "geography(Point,4326) not null")
     private Point geography;
 
     @NotNull
@@ -31,17 +31,17 @@ public class Rsu {
     private Double milepost;
 
     @NotNull
-    @Column(name = "ipv4_address", nullable = false)
+    @Column(name = "ipv4_address", nullable = false, unique = true)
     private InetAddress ipv4Address;
 
     @Size(max = 128)
     @NotNull
-    @Column(name = "serial_number", nullable = false, length = 128)
+    @Column(name = "serial_number", nullable = false, unique = true, length = 128)
     private String serialNumber;
 
     @Size(max = 128)
     @NotNull
-    @Column(name = "iss_scms_id", nullable = false, length = 128)
+    @Column(name = "iss_scms_id", nullable = false, unique = true, length = 128)
     private String issScmsId;
 
     @Size(max = 128)

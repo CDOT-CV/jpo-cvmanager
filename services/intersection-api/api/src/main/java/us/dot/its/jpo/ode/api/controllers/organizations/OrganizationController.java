@@ -4,19 +4,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -30,6 +27,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @Slf4j
 @RestController
@@ -49,7 +47,7 @@ public class OrganizationController {
     final UserOrganizationRepository userOrganizationRepository;
 
     @Operation(summary = "Get RSU IPs by Organization", description = "Retrieves a list of IP addresses for all RSUs belonging to the specified organization.")
-    @RequestMapping(path = "rsus", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(path = "rsus", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -63,7 +61,7 @@ public class OrganizationController {
     }
 
     @Operation(summary = "Get RSU Organization Assignments", description = "Retrieves a list of organization names that the specified RSU is assigned to.")
-    @RequestMapping(path = "rsus/{rsuIp}", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(path = "rsus/{rsuIp}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'ADMIN') and @PermissionService.hasRole('ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -72,16 +70,11 @@ public class OrganizationController {
     })
     public List<String> getRsuOrganizationAssignments(
             @Parameter(description = "RSU IP address", example = "192.168.1.1", required = true) @PathVariable(name = "rsuIp") String rsuIp) {
-        try {
-            return rsuRepository.findAllOrganizationNamesByIpv4Address(InetAddress.getByName(rsuIp));
-        } catch (UnknownHostException e) {
-            log.error("Invalid RSU IP address: {}", rsuIp, e);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIp, e);
-        }
+        return rsuRepository.findAllOrganizationNamesByIpv4Address(RsuManagementService.toIpv4Address(rsuIp));
     }
 
     @Operation(summary = "Get RSU IPs not in Organization", description = "Retrieves a list of IP addresses for all RSUs not belonging to the specified organization.")
-    @RequestMapping(path = "rsus/available", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(path = "rsus/available", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -95,7 +88,7 @@ public class OrganizationController {
     }
 
     @Operation(summary = "Get User Emails by Organization", description = "Retrieves a list of user emails for all users belonging to the specified organization.")
-    @RequestMapping(path = "users", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(path = "users", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -107,7 +100,7 @@ public class OrganizationController {
     }
 
     @Operation(summary = "Get User Organization Assignments", description = "Retrieves a list of organization names that the specified user is assigned to.")
-    @RequestMapping(path = "users/{email}", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(path = "users/{email}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUser(#email, 'ADMIN') and @PermissionService.hasRole('ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -119,7 +112,7 @@ public class OrganizationController {
     }
 
     @Operation(summary = "Get Users Not In Organization", description = "Retrieves a list of user emails for all users not belonging to the specified organization.")
-    @RequestMapping(path = "users/available", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(path = "users/available", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),

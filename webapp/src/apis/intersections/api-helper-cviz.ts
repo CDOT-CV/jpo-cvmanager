@@ -26,6 +26,7 @@ class CvizApiHelper {
     abortController,
     responseType = 'json',
     booleanResponse = false,
+    returnErrorBody = false,
     toastOnFailure = true,
     toastOnSuccess = false,
     successMessage = 'Successfully completed request!',
@@ -43,6 +44,7 @@ class CvizApiHelper {
     abortController?: AbortController
     responseType?: string
     booleanResponse?: boolean
+    returnErrorBody?: boolean
     toastOnFailure?: boolean
     toastOnSuccess?: boolean
     successMessage?: string
@@ -89,14 +91,23 @@ class CvizApiHelper {
           if (booleanResponse) return true
         } else {
           console.error('Request failed with status code ' + response.status + ': ' + response.statusText)
-          if (response.status === 401) {
-            toast.error('Authentication failed, please sign in again')
-            // signIn();
-          } else if (response.status === 403) {
-            toast.error('You are not authorized to perform this action.')
-          } else if (toastOnFailure) toast.error(failureMessage + ', with status code ' + response.status)
+          // Callers that handle errors themselves also own authentication error notifications.
+          if (toastOnFailure) {
+            if (response.status === 401) {
+              toast.error('Authentication failed, please sign in again')
+            } else if (response.status === 403) {
+              toast.error('You are not authorized to perform this action.')
+            } else toast.error(failureMessage + ', with status code ' + response.status)
+          }
 
           if (booleanResponse) return false
+          if (returnErrorBody) {
+            const errorStatus = response.status
+            return response
+              .json()
+              .catch(() => null)
+              .then((body: any) => ({ __isErrorResponse: true, status: errorStatus, body }))
+          }
           return undefined
         }
         if (responseType === 'blob') {
@@ -114,7 +125,7 @@ class CvizApiHelper {
       .catch((error: Error) => {
         if (error.name !== 'AbortError') {
           const errorMessage = failureMessage ?? 'Fetch request failed'
-          toast.error(errorMessage + '. Error: ' + error.message)
+          if (toastOnFailure) toast.error(errorMessage + '. Error: ' + error.message)
           console.error(error.message)
         }
       })

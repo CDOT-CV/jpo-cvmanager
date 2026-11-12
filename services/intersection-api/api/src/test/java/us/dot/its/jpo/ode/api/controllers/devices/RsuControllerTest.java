@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.devices;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,8 +23,10 @@ import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
@@ -60,6 +63,15 @@ class RsuControllerTest {
 
     @InjectMocks
     private RsuController rsuController;
+
+    private Organization sampleOrganization;
+
+    @BeforeEach
+    void setUp() {
+        sampleOrganization = new Organization();
+        sampleOrganization.setId(1);
+        sampleOrganization.setName("TestOrg");
+    }
 
     @Nested
     @DisplayName("Tests for getAllRsus endpoint")
@@ -452,6 +464,7 @@ class RsuControllerTest {
             void testDeleteRsus_Success() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101", "192.168.1.102");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
                 ResponseEntity<Void> result = rsuController.deleteRsus(rsuIps);
@@ -467,6 +480,7 @@ class RsuControllerTest {
             void testDeleteRsus_SingleRsu() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
                 ResponseEntity<Void> result = rsuController.deleteRsus(rsuIps);
@@ -481,6 +495,7 @@ class RsuControllerTest {
             void testDeleteRsus_EmptyList() {
                 List<String> emptyList = Arrays.asList();
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(emptyList);
 
                 ResponseEntity<Void> result = rsuController.deleteRsus(emptyList);
@@ -495,6 +510,7 @@ class RsuControllerTest {
             void testDeleteRsus_SomeNotFound() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.999", "192.168.1.101");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Some RSUs not found"))
                         .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
@@ -509,6 +525,7 @@ class RsuControllerTest {
             void testDeleteRsus_InvalidIpInList() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100", "invalid-ip", "192.168.1.101");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: invalid-ip"))
                         .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
@@ -525,6 +542,7 @@ class RsuControllerTest {
                         "192.168.1.1", "192.168.1.2", "192.168.1.3", "192.168.1.4", "192.168.1.5",
                         "192.168.1.6", "192.168.1.7", "192.168.1.8", "192.168.1.9", "192.168.1.10");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(largeList);
 
                 ResponseEntity<Void> result = rsuController.deleteRsus(largeList);
@@ -539,6 +557,7 @@ class RsuControllerTest {
             void testDeleteRsus_ServiceException() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doThrow(new RuntimeException("Database transaction failed"))
                         .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
@@ -548,6 +567,25 @@ class RsuControllerTest {
 
                 verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
             }
+
+            @Test
+            void testDeleteRsus_UnauthorizedRsus_ThrowsForbiddenWithFullList() {
+                List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101", "192.168.1.102");
+
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString()))
+                        .thenReturn(Arrays.asList("192.168.1.101", "192.168.1.102"));
+
+                ResponseStatusException ex = assertThrows(
+                        ResponseStatusException.class,
+                        () -> rsuController.deleteRsus(rsuIps));
+
+                assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+                assertTrue(ex.getReason().contains("192.168.1.101"));
+                assertTrue(ex.getReason().contains("192.168.1.102"));
+                assertFalse(ex.getReason().contains("192.168.1.100"));
+
+                verify(rsuManagementService, never()).deleteMultipleRsusByIpv4Address(anyList());
+            }
         }
 
         @Nested
@@ -556,6 +594,7 @@ class RsuControllerTest {
             @Test
             void testCreateRsu_Success() {
                 List<String> orgsToAdd = Arrays.asList("TestOrg");
+                UserRole role = UserRole.OPERATOR;
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
                         "192.168.1.100",
@@ -574,7 +613,7 @@ class RsuControllerTest {
 
                 Rsu mockRsu = new Rsu();
 
-                when(permissionService.hasRoleInOrgs("OPERATOR", orgsToAdd)).thenReturn(true);
+                when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(true);
                 when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
 
                 ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
@@ -583,13 +622,14 @@ class RsuControllerTest {
                 assertEquals(HttpStatus.CREATED, result.getStatusCode());
                 assertNull(result.getBody());
 
-                verify(permissionService).hasRoleInOrgs("OPERATOR", orgsToAdd);
+                verify(permissionService).hasRoleInOrgNames(role, orgsToAdd);
                 verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
             }
 
             @Test
             void testCreateRsu_UnqualifiedOrganization() {
                 List<String> orgsToAdd = Arrays.asList("TestOrg", "UnqualifiedOrg");
+                UserRole role = UserRole.OPERATOR;
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
                         "192.168.1.100",
@@ -606,7 +646,7 @@ class RsuControllerTest {
                         true,
                         true, null);
 
-                when(permissionService.hasRoleInOrgs("OPERATOR", orgsToAdd)).thenReturn(false);
+                when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(false);
 
                 ResponseStatusException exception = assertThrows(
                         ResponseStatusException.class,
@@ -621,6 +661,7 @@ class RsuControllerTest {
             @Test
             void testCreateRsu_DuplicateIpAddress() {
                 List<String> orgsToAdd = Arrays.asList("TestOrg");
+                UserRole role = UserRole.OPERATOR;
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
                         "192.168.1.100",
@@ -637,7 +678,8 @@ class RsuControllerTest {
                         true,
                         true, null);
 
-                when(permissionService.hasRoleInOrgs("OPERATOR", orgsToAdd)).thenReturn(true);
+                when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(true);
+
                 when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd))
                         .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT,
                                 "RSU with IP 192.168.1.100 already exists"));
@@ -669,8 +711,6 @@ class RsuControllerTest {
                     true,
                     true, null);
 
-            when(permissionService.hasRoleInOrgs("OPERATOR", orgsToAdd)).thenReturn(false);
-
             assertThrows(
                     RuntimeException.class,
                     () -> rsuController.createRsu(rsuInfoDto));
@@ -695,8 +735,6 @@ class RsuControllerTest {
                     true,
                     true, null);
 
-            when(permissionService.hasRoleInOrgs("OPERATOR", orgsToAdd)).thenReturn(false);
-
             assertThrows(
                     ResponseStatusException.class,
                     () -> rsuController.createRsu(rsuInfoDto));
@@ -718,8 +756,6 @@ class RsuControllerTest {
                     null,
                     true,
                     true, null);
-
-            when(permissionService.hasRoleInOrgs("OPERATOR", null)).thenReturn(false);
 
             assertThrows(
                     ResponseStatusException.class,

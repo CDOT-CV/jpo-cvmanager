@@ -19,8 +19,11 @@ public class Manufacturer {
 
     @Size(max = 128)
     @NotNull
-    @Column(name = "name", nullable = false, length = 128)
+    @Column(name = "name", nullable = false, unique = true, length = 128)
     private String name;
 
+    @Size(max = 32)
+    @Column(name = "firmware_file_extension", length = 32)
+    private String firmwareFileExtension;
 
 }

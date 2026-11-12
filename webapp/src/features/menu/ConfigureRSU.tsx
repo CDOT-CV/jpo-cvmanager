@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import SnmpwalkMenu from '../../components/SnmpwalkMenu'
 import SnmpsetMenu from '../../components/SnmpsetMenu'
 import RsuRebootMenu from '../../components/RsuRebootMenu'
@@ -7,21 +7,25 @@ import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import { useDispatch, useSelector } from 'react-redux'
-import { Box, useTheme, Paper, Grid2, IconButton, Divider } from '@mui/material'
+import { Box, CircularProgress, useTheme, Paper, Grid2, IconButton, Divider } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
 import { selectSelectedRsu, selectRsu } from '../../generalSlices/rsuSlice'
 import { clearConfig, selectConfigList } from '../../generalSlices/configSlice'
+import { selectCountsEndDate, selectCountsStartDate } from './menuSlice'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
 import { useGetRsuQuery, useGetAllRsusQuery } from '../api/rsuApiSlice'
 import '../../components/css/SnmpwalkMenu.css'
 import { RootState } from '../../store'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import CloseIcon from '@mui/icons-material/Close'
-import { RoomOutlined } from '@mui/icons-material'
+import RoomOutlined from '@mui/icons-material/RoomOutlined'
 import { headerTabHeight } from '../../styles'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import { CustomTable } from '../intersections/map/custom-table'
+import { getRsuCountsErrorMessage, useGetRsuCountsByIpQuery } from '../api/rsuCountsApiSlice'
+import EnvironmentVars from '../../EnvironmentVars'
+import { buildRsuCountTableRows } from './rsuCountTable'
+import { RsuMessageCountsTable } from './RsuMessageCountsTable'
 
 const ConfigMenu = ({ children }) => {
   return <Box>{children}</Box>
@@ -37,9 +41,29 @@ const ConfigureRSU = () => {
   }
   const selectedRsu = useSelector(selectSelectedRsu)
   const selectedConfigList = useSelector(selectConfigList)
+  const countsStartDate = useSelector(selectCountsStartDate)
+  const countsEndDate = useSelector(selectCountsEndDate)
+  const rsuIp = selectedRsu?.properties?.ipv4_address
+  const messageTypes = useMemo(() => EnvironmentVars.getMessageTypes(), [])
+  const maxDurationMs = EnvironmentVars.MAX_QUERY_DURATION_DAYS * 24 * 60 * 60 * 1000
+  const queryDurationExceeded = countsEndDate.getTime() - countsStartDate.getTime() > maxDurationMs
+
+  const {
+    data: rsuMessageCounts,
+    isFetching,
+    isError,
+    error,
+  } = useGetRsuCountsByIpQuery(
+    { rsuIp: rsuIp ?? '', startDate: countsStartDate, endDate: countsEndDate, messages: messageTypes },
+    { skip: !rsuIp || queryDurationExceeded }
+  )
+
+  const countTableRows = useMemo(
+    () => buildRsuCountTableRows(messageTypes, rsuMessageCounts),
+    [messageTypes, rsuMessageCounts]
+  )
   const organization = useSelector(selectOrganizationName)
 
-  const rsuIp = selectedRsu?.properties?.ipv4_address
   const { data: rsuDetail } = useGetRsuQuery(rsuIp!, { skip: !rsuIp })
   const { data: allRsusPage } = useGetAllRsusQuery(
     { organization: organization ?? '', size: 1000 },
@@ -49,14 +73,12 @@ const ConfigureRSU = () => {
   const singleRsuIsOwnerOrg = !!rsuDetail && rsuDetail.owner_organization === organization
   const multiRsuIsOwnerOrg =
     !!allRsusPage &&
-    selectedConfigList.every(
-      (ip) => allRsusPage.content.find((r) => r.ip === ip.toString())?.owner_organization === organization
-    )
+    selectedConfigList.every((ip) => allRsusPage.content.find((r) => r.ip === ip)?.owner_organization === organization)
   const multiRsuOwnerOrgs = allRsusPage
     ? [
         ...new Set(
           selectedConfigList
-            .map((ip) => allRsusPage.content.find((r) => r.ip === ip.toString())?.owner_organization)
+            .map((ip) => allRsusPage.content.find((r) => r.ip === ip)?.owner_organization)
             .filter((org): org is string => !!org && org !== organization)
         ),
       ].join(', ') || undefined
@@ -123,13 +145,21 @@ const ConfigureRSU = () => {
             <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel1bh-content" id="panel1bh-header">
               <Typography>Message Counts</Typography>
             </AccordionSummary>
-            <AccordionDetails>
-              <CustomTable
-                data={Object.entries((selectedRsu.properties as any).counts ?? {}).map(([type, count]) => {
-                  return [type, count?.toString() ?? '0']
-                })}
-                headers={['Msg Type', 'Count']}
-              />
+            <AccordionDetails sx={{ px: 2, pt: 0.5, pb: 2 }}>
+              {queryDurationExceeded ? (
+                <Typography role="alert">
+                  Query duration exceeds the maximum of {EnvironmentVars.MAX_QUERY_DURATION_DAYS} days. Please select a
+                  shorter time range.
+                </Typography>
+              ) : isFetching ? (
+                <Box display="flex" justifyContent="center" py={2}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : isError ? (
+                <Typography role="alert">{getRsuCountsErrorMessage(error)}</Typography>
+              ) : (
+                <RsuMessageCountsTable rows={countTableRows} />
+              )}
             </AccordionDetails>
           </Accordion>
           <Accordion
@@ -157,7 +187,12 @@ const ConfigureRSU = () => {
             </AccordionSummary>
             <AccordionDetails>
               <ConfigMenu>
-                <SnmpsetMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} isOwnerOrg={singleRsuIsOwnerOrg} ownerOrganization={rsuDetail?.owner_organization} />
+                <SnmpsetMenu
+                  type="single_rsu"
+                  rsuIpList={[selectedRsu.properties.ipv4_address]}
+                  isOwnerOrg={singleRsuIsOwnerOrg}
+                  ownerOrganization={rsuDetail?.owner_organization}
+                />
               </ConfigMenu>
             </AccordionDetails>
           </Accordion>
@@ -176,21 +211,25 @@ const ConfigureRSU = () => {
               </ConfigMenu>
             </AccordionDetails>
           </Accordion>
-          <Divider />
-          <Accordion
-            elevation={0}
-            expanded={expanded === 'selected-rsu-reboot'}
-            onChange={handleChange('selected-rsu-reboot')}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel3bh-content" id="panel3bh-header">
-              <Typography>Reboot</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <ConfigMenu>
-                <RsuRebootMenu isOwnerOrg={singleRsuIsOwnerOrg} ownerOrganization={rsuDetail?.owner_organization} />
-              </ConfigMenu>
-            </AccordionDetails>
-          </Accordion>
+          {selectedRsu.properties.manufacturer_name?.toLowerCase() === 'commsignia' && (
+            <>
+              <Divider />
+              <Accordion
+                elevation={0}
+                expanded={expanded === 'selected-rsu-reboot'}
+                onChange={handleChange('selected-rsu-reboot')}
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel3bh-content" id="panel3bh-header">
+                  <Typography>Reboot</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <ConfigMenu>
+                    <RsuRebootMenu isOwnerOrg={singleRsuIsOwnerOrg} ownerOrganization={rsuDetail?.owner_organization} />
+                  </ConfigMenu>
+                </AccordionDetails>
+              </Accordion>
+            </>
+          )}
         </Box>
       )}
       {selectedConfigList.length > 0 && !selectedRsu && (
@@ -214,7 +253,12 @@ const ConfigureRSU = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <ConfigMenu>
-                  <SnmpsetMenu type="multi_rsu" rsuIpList={selectedConfigList.map((val: number) => val.toString())} isOwnerOrg={multiRsuIsOwnerOrg} ownerOrganization={multiRsuOwnerOrgs} />
+                  <SnmpsetMenu
+                    type="multi_rsu"
+                    rsuIpList={selectedConfigList}
+                    isOwnerOrg={multiRsuIsOwnerOrg}
+                    ownerOrganization={multiRsuOwnerOrgs}
+                  />
                 </ConfigMenu>
               </AccordionDetails>
             </Accordion>
@@ -229,10 +273,7 @@ const ConfigureRSU = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <ConfigMenu>
-                  <RsuFirmwareMenu
-                    type="multi_rsu"
-                    rsuIpList={selectedConfigList.map((val: number) => val.toString())}
-                  />
+                  <RsuFirmwareMenu type="multi_rsu" rsuIpList={selectedConfigList} />
                 </ConfigMenu>
               </AccordionDetails>
             </Accordion>

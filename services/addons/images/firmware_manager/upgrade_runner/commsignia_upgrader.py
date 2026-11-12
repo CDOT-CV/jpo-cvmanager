@@ -1,4 +1,5 @@
 import time
+import traceback
 from paramiko import SSHClient, WarningPolicy
 from scp import SCPClient
 import upgrader
@@ -20,7 +21,10 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
     def upgrade(self):
         try:
             # Download firmware installation package
-            self.download_blob()
+            if not self.download_blob():
+                raise FileNotFoundError(
+                    f"Firmware installation package not found: {self.blob_name}"
+                )
 
             # Make connection with the target device
             logging.info("Making SSH connection with " + self.rsu_ip + "...")
@@ -56,7 +60,7 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
             ssh.close()
 
             # If post_upgrade script exists execute it
-            if self.download_blob(
+            if self.download_optional_blob(
                 self.post_upgrade_blob_name, self.post_upgrade_file_name, ".sh"
             ):
                 self.post_upgrade()
@@ -74,7 +78,10 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
             self.cleanup()
             self.notify_firmware_manager(success=False)
             # send email to support team with the rsu and error
-            self.send_error_email("Firmware Upgrader", err)
+            stack_trace = traceback.format_exc()
+            self.send_error_email(
+                str(err), stack_trace, "Commsignia Firmware Upgrade Error"
+            )
 
     def post_upgrade(self):
         if self.wait_until_online() == -1:
@@ -122,7 +129,10 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
                 f"Failed to execute post upgrade script for rsu {self.rsu_ip}: {err}"
             )
             # send email to support team with the rsu and error
-            self.send_error_email("Post-Upgrade Script", err)
+            stack_trace = traceback.format_exc()
+            self.send_error_email(
+                str(err), stack_trace, "Commsignia Post-Upgrade Script Error"
+            )
 
 
 # sys.argv[1] - JSON string with the following key-values:

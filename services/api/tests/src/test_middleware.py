@@ -96,7 +96,7 @@ def test_middleware_class_call_user_authorized(mock_request, mock_get_user_role)
                 "last_name": "Doe",
                 "organization": "admin",
                 "role": "admin",
-                "super_user": "1",
+                "super_user": True,
             }
         ]
     ]
@@ -133,28 +133,6 @@ def test_middleware_class_call_exception(
     response_body = b"".join(response).decode("utf-8")
     assert str(response_body) == '{"error": "Unauthorized", "message": "test"}'
     app.assert_not_called()
-    mock_request.assert_called_once_with(environ)
-
-
-@patch("api.src.middleware.get_user_role")
-@patch("api.src.middleware.Request")
-def test_middleware_class_call_contact_support(mock_request, mock_get_user_role):
-    # mock
-    mock_request.return_value.method = "POST"
-    mock_request.return_value.path = "/contact-support"
-
-    # create instance
-    app = Mock()
-    middleware_instance = middleware.Middleware(app)
-
-    # call
-    environ = {"GOOGLE_CLIENT_ID": "test"}
-    start_response = Mock()
-    middleware_instance(environ, start_response)
-
-    # check
-    mock_get_user_role.assert_not_called()
-    app.assert_called_once_with(environ, start_response)
     mock_request.assert_called_once_with(environ)
 
 

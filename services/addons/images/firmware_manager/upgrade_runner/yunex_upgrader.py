@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import traceback
 from common import common_environment
 
 
@@ -54,7 +55,10 @@ class YunexUpgrader(upgrader.UpgraderAbstractClass):
     def upgrade(self):
         try:
             # Download firmware installation package TAR file
-            self.download_blob()
+            if not self.download_blob():
+                raise FileNotFoundError(
+                    f"Firmware installation package not found: {self.blob_name}"
+                )
 
             # Unpack TAR file which must contain the following:
             # - Core upgrade file
@@ -111,7 +115,8 @@ class YunexUpgrader(upgrader.UpgraderAbstractClass):
             self.cleanup()
             self.notify_firmware_manager(success=False)
             # send email to support team with the rsu and error
-            self.send_error_email("Firmware Upgrader", err)
+            stack_trace = traceback.format_exc()
+            self.send_error_email(str(err), stack_trace, "Yunex Firmware Upgrade Error")
 
 
 # sys.argv[1] - JSON string with the following key-values:

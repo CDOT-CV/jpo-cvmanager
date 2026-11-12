@@ -28,7 +28,7 @@ import {
 import MapDialog from '../features/intersections/intersection-selector/intersection-selector-dialog'
 import ConfigurationPage from '../components/intersections/ConfigurationPage'
 import { headerTabHeight } from '../styles/index'
-import { TrafficOutlined } from '@mui/icons-material'
+import TrafficOutlined from '@mui/icons-material/TrafficOutlined'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 
@@ -105,12 +105,13 @@ function IntersectionDashboard() {
           height={`calc(100vh - ${headerTabHeight}px)`}
           notFoundRoute={
             <NotFound
-              redirectRoute="/dashboard/intersection"
+              redirectRoute="/dashboard/intersectionDashboard"
               redirectRouteName="Intersection Dashboard Page"
               description="This page does not exist. Please return to the main admin page."
             />
           }
           defaultTabIndex={0}
+          parentRoute={'dashboard/intersectionDashboard'}
           tabs={[
             {
               path: 'dashboard',

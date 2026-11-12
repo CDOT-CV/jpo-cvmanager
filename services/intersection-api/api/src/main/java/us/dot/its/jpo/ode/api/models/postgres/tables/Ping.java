@@ -23,7 +23,7 @@ public class Ping {
     private Instant timestamp;
 
     @NotNull
-    @Column(name = "result", nullable = false, columnDefinition = "bit(1)")
+    @Column(name = "result", nullable = false)
     private Boolean result;
 
     @NotNull

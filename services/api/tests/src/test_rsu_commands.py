@@ -1,4 +1,5 @@
 from unittest.mock import patch
+import pytest
 import api.src.rsu_commands as rsu_commands
 
 # shared arguments
@@ -18,54 +19,6 @@ organization = "test"
 
 
 # ## RSU_COMMANDS TESTS ###
-def test_rsu_commands_snmpfilter_option_present():
-    expected_value = {
-        "roles": ["operator", "admin"],
-        "ssh_required": True,
-        "snmp_required": False,
-    }
-
-    assert rsu_commands.command_data["snmpfilter"]["roles"] == expected_value["roles"]
-    assert (
-        rsu_commands.command_data["snmpfilter"]["ssh_required"]
-        == expected_value["ssh_required"]
-    )
-    assert (
-        rsu_commands.command_data["snmpfilter"]["snmp_required"]
-        == expected_value["snmp_required"]
-    )
-
-
-@patch("api.src.rsu_commands.ssh_commands.reboot")
-def test_execute_command_reboot(mock_ssh_commands_reboot):
-    # mock
-    mock_ssh_commands_reboot.return_value = "mocked ssh_commands.reboot"
-    rsu_commands.command_data["reboot"]["function"] = mock_ssh_commands_reboot
-
-    # call
-    command = "reboot"
-    result = rsu_commands.execute_command(command, rsu_ip, args, rsu_info)
-
-    # check
-    mock_ssh_commands_reboot.assert_called_once()
-    expected_result = "mocked ssh_commands.reboot"
-    assert result == expected_result
-
-
-@patch("api.src.rsu_commands.ssh_commands.snmpfilter")
-def test_execute_command_snmpfilter(mock_ssh_commands_snmpfilter):
-    # mock
-    mock_ssh_commands_snmpfilter.return_value = "mocked ssh_commands.snmpfilter"
-    rsu_commands.command_data["snmpfilter"]["function"] = mock_ssh_commands_snmpfilter
-
-    # call
-    command = "snmpfilter"
-    result = rsu_commands.execute_command(command, rsu_ip, args, rsu_info)
-
-    # check
-    mock_ssh_commands_snmpfilter.assert_called_once()
-    expected_result = "mocked ssh_commands.snmpfilter"
-    assert result == expected_result
 
 
 # test queries for RSU manufacturer, SSH credentials, and SNMP credentials
@@ -105,8 +58,8 @@ def test_fetch_rsu_info(mock_query_db):
     assert result == expected_result
 
 
-@patch("api.src.rsu_commands.execute_command")
-def test_perform_command_unknown_command(mock_execute_command):
+@patch("api.src.rsu_commands.rsu_snmpset.execute_rsufwdsnmpset")
+def test_perform_command_unknown_command(mock_command):
     # call
     command = "unknown-command"
     role = "rsu"
@@ -115,17 +68,19 @@ def test_perform_command_unknown_command(mock_execute_command):
     # check
     expected_result = ("Command unknown: unknown-command", 400)
     assert result == expected_result
-    mock_execute_command.assert_not_called()
+    mock_command.assert_not_called()
 
 
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
 @patch("api.src.rsu_commands.fetch_rsu_info")
-@patch("api.src.rsu_commands.execute_command")
-def test_perform_command_incomplete_rsu_data(mock_execute_command, mock_fetch_rsu_info):
+@patch("api.src.rsu_commands.rsu_snmpset.execute_rsufwdsnmpset")
+def test_perform_command_incomplete_rsu_data(mock_command, mock_fetch_rsu_info, mock_get_rsu_owner_orgs):
     # mock
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: organization}
     mock_fetch_rsu_info.return_value = None
 
     # call
-    command = "reboot"
+    command = "upgrade-check"
     role = "admin"
     result = rsu_commands.perform_command(command, organization, role, rsu_ip, args)
 
@@ -135,24 +90,222 @@ def test_perform_command_incomplete_rsu_data(mock_execute_command, mock_fetch_rs
         500,
     )
     assert result == expected_result
-    mock_execute_command.assert_not_called()
+    mock_command.assert_not_called()
 
 
 @patch("api.src.rsu_commands.fetch_rsu_info")
-@patch("api.src.rsu_commands.execute_command")
-def test_perform_command_unauthorized_role(mock_execute_command, mock_fetch_rsu_info):
+@patch("api.src.rsu_commands.rsu_snmpset.execute_rsufwdsnmpset")
+def test_perform_command_unauthorized_role(mock_command, mock_fetch_rsu_info):
     # mock
     mock_fetch_rsu_info.return_value = "mocked fetch_rsu_info"
 
     # call
-    command = "reboot"
+    command = "upgrade-check"
     role = "rsu"
     result = rsu_commands.perform_command(command, organization, role, rsu_ip, args)
 
     # check
-    expected_result = ("Unauthorized role to run reboot", 401)
+    expected_result = ("Unauthorized role to run upgrade-check", 401)
     assert result == expected_result
-    mock_execute_command.assert_not_called()
+    mock_command.assert_not_called()
+
+
+@pytest.mark.parametrize("database_ip", ["192.168.0.20", "192.168.0.20/32"])
+@patch("api.src.rsu_commands.pgquery.query_db")
+def test_get_rsu_owner_orgs(mock_query_db, database_ip):
+    # mock
+    mock_query_db.return_value = [(database_ip, "test_org")]
+
+    # call
+    result = rsu_commands.get_rsu_owner_orgs(["192.168.0.20"])
+
+    # check
+    mock_query_db.assert_called_once()
+    assert result == {"192.168.0.20": "test_org"}
+
+
+@patch("api.src.rsu_commands.pgquery.query_db")
+def test_get_rsu_owner_orgs_not_found(mock_query_db):
+    # mock
+    mock_query_db.return_value = []
+
+    # call
+    result = rsu_commands.get_rsu_owner_orgs(["192.168.0.20"])
+
+    # check
+    assert result == {"192.168.0.20": None}
+
+
+@patch("api.src.rsu_commands.pgquery.query_db")
+def test_get_rsu_owner_orgs_multiple_ips(mock_query_db):
+    # mock: only two of the three requested IPs have an owner org
+    mock_query_db.return_value = [
+        ("192.168.0.20", "test_org"),
+        ("192.168.0.22", "other_org"),
+    ]
+
+    # call
+    result = rsu_commands.get_rsu_owner_orgs(
+        ["192.168.0.20", "192.168.0.21", "192.168.0.22"]
+    )
+
+    # check
+    mock_query_db.assert_called_once()
+    assert result == {
+        "192.168.0.20": "test_org",
+        "192.168.0.21": None,
+        "192.168.0.22": "other_org",
+    }
+
+
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+@patch("api.src.rsu_commands.rsu_snmpset.execute_rsufwdsnmpset")
+def test_perform_command_non_owner_org(mock_command, mock_get_rsu_owner_orgs):
+    # mock
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: "other_org"}
+
+    # call
+    command = "upgrade-check"
+    role = "admin"
+    result = rsu_commands.perform_command(command, organization, role, rsu_ip, args)
+
+    # check
+    expected_result = (
+        f"Organization '{organization}' does not have access to and/or does not own the following RSUs: {rsu_ip[0]} (owner: 'other_org')",
+        403,
+    )
+    assert result == expected_result
+    mock_command.assert_not_called()
+
+
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+@patch("api.src.rsu_commands.rsu_snmpset.execute_rsufwdsnmpset")
+def test_perform_command_multiple_non_owner_rsus(mock_command, mock_get_rsu_owner_orgs):
+    # Three RSUs: first is owned, second and third are not
+    multi_rsu_ip = ["192.168.0.20", "192.168.0.21", "192.168.0.22"]
+    mock_get_rsu_owner_orgs.return_value = {
+        "192.168.0.20": organization,
+        "192.168.0.21": "other_org_1",
+        "192.168.0.22": "other_org_2",
+    }
+
+    # call
+    command = "upgrade-check"
+    role = "admin"
+    result = rsu_commands.perform_command(command, organization, role, multi_rsu_ip, args)
+
+    # check
+    assert result[1] == 403
+    assert "192.168.0.21" in result[0]
+    assert "other_org_1" in result[0]
+    assert "192.168.0.22" in result[0]
+    assert "other_org_2" in result[0]
+    assert "192.168.0.20" not in result[0]
+    mock_command.assert_not_called()
+
+
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+@patch("api.src.rsu_commands.rsu_snmpset.execute_rsufwdsnmpset")
+def test_perform_command_blocks_rsu_without_owner_org(mock_command, mock_get_rsu_owner_orgs):
+    # mock: RSU has no owner org found
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: None}
+
+    # call
+    command = "upgrade-check"
+    role = "admin"
+    result = rsu_commands.perform_command(command, organization, role, rsu_ip, args)
+
+    # check — command is blocked, not silently skipped
+    expected_result = (
+        f"Organization '{organization}' does not have access to and/or does not own the following RSUs: "
+        f"{rsu_ip[0]} (not found or has no owner organization)",
+        403,
+    )
+    assert result == expected_result
+    mock_command.assert_not_called()
+
+
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+@patch("api.src.rsu_commands.rsu_snmpset.execute_rsufwdsnmpset")
+def test_perform_command_blocks_ownerless_and_non_owner_rsus(mock_command, mock_get_rsu_owner_orgs):
+    # Three RSUs: first is owned, second has no owner org at all, third is owned by a different org
+    multi_rsu_ip = ["192.168.0.20", "192.168.0.21", "192.168.0.22"]
+    mock_get_rsu_owner_orgs.return_value = {
+        "192.168.0.20": organization,
+        "192.168.0.21": None,
+        "192.168.0.22": "other_org",
+    }
+
+    # call
+    command = "upgrade-check"
+    role = "admin"
+    result = rsu_commands.perform_command(command, organization, role, multi_rsu_ip, args)
+
+    # check — whole command is stopped and both inaccessible RSUs are listed
+    assert result[1] == 403
+    assert "192.168.0.20" not in result[0]
+    assert "192.168.0.21" in result[0]
+    assert "not found or has no owner organization" in result[0]
+    assert "192.168.0.22" in result[0]
+    assert "other_org" in result[0]
+    mock_command.assert_not_called()
+
+
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+@patch("api.src.rsu_commands.fetch_rsu_info")
+@patch("api.src.rsu_commands.rsu_snmpset.execute_rsufwdsnmpset")
+def test_perform_command_super_user_bypasses_owner_check(mock_command, mock_fetch_rsu_info, mock_get_rsu_owner_orgs):
+    # mock
+    mock_fetch_rsu_info.return_value = rsu_info
+
+    # call
+    command = "upgrade-check"
+    role = "admin"
+    with patch.dict(rsu_commands.command_data[command], {"function": mock_command}):
+        rsu_commands.perform_command(command, organization, role, rsu_ip, args, super_user=True)
+
+    # check
+    mock_get_rsu_owner_orgs.assert_not_called()
+    mock_command.assert_called_once()
+
+
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+def test_perform_command_upgrade_check_requires_owner_org(mock_get_rsu_owner_orgs):
+    # mock
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: "other_org"}
+
+    # call
+    command = "upgrade-check"
+    role = "admin"
+    result = rsu_commands.perform_command(command, organization, role, rsu_ip, args)
+
+    # check — non-owner org is blocked with 403
+    assert result[1] == 403
+    mock_get_rsu_owner_orgs.assert_called_once()
+
+
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+@patch("api.src.rsu_commands.execute_upgrade_rsu")
+def test_perform_command_upgrade_rsu_requires_owner_org(mock_execute_upgrade_rsu, mock_get_rsu_owner_orgs):
+    # mock
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: "other_org"}
+
+    # call
+    command = "upgrade-rsu"
+    role = "admin"
+    result = rsu_commands.perform_command(command, organization, role, rsu_ip, args)
+
+    # check — non-owner org is blocked with 403
+    assert result[1] == 403
+    mock_get_rsu_owner_orgs.assert_called_once()
+    mock_execute_upgrade_rsu.assert_not_called()
 
 
 # TODO: test RsuCommandRequest class
+
+
+@pytest.mark.parametrize("command", ["reboot", "snmpfilter"])
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+def test_retired_ssh_commands_are_rejected(mock_owners, command):
+    assert rsu_commands.perform_command(command, organization, "admin", rsu_ip, {}) == (f"Command unknown: {command}", 400)
+    mock_owners.assert_not_called()

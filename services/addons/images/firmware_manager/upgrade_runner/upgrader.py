@@ -6,10 +6,11 @@ from common import gcs_utils
 import logging
 import requests
 import shutil
-from common.emailSender import EmailSender
-from common.email_util import get_email_list_from_rsu
-from addons.images.firmware_manager.upgrade_runner import download_blob
+from common.email_api import EmailApi
+from common.keycloak_api import KeycloakServiceAccountApi
+import download_blob
 import upgrade_runner_environment
+from google.api_core.exceptions import NotFound
 
 
 class UpgraderAbstractClass(abc.ABC):
@@ -57,10 +58,27 @@ class UpgraderAbstractClass(abc.ABC):
                 )
             )
         elif bspCaseInsensitive == "docker":
-            return download_blob.download_docker_blob(blob_name, local_file_name)
+            return download_blob.download_docker_blob(
+                blob_name,
+                local_file_name,
+                self.firmware_extension if firmware_extension is None else firmware_extension,
+            )
         else:
             logging.error("Unsupported blob storage provider")
             raise StorageProviderNotSupportedException
+
+    def download_optional_blob(self, blob_name, local_file_name, firmware_extension):
+        # A helper can disappear between the existence check and download. It is
+        # optional; never run a leftover local script when this download failed.
+        try:
+            downloaded = self.download_blob(blob_name, local_file_name, firmware_extension)
+        except (NotFound, FileNotFoundError):
+            downloaded = False
+        if not downloaded:
+            logging.info(
+                f"Optional upgrade file {blob_name} is absent; continuing without it."
+            )
+        return downloaded
 
     # Notifies the firmware manager of the completion status for the upgrade
     # success is a boolean
@@ -116,33 +134,24 @@ class UpgraderAbstractClass(abc.ABC):
         # 5 seconds pass with no response
         return False
 
-    def send_error_email(self, type="Firmware Upgrader", err=""):
+    def send_error_email(self, err: Exception, stack_trace: str, type: str):
         try:
-            email_addresses = get_email_list_from_rsu(
-                "Firmware Upgrade Failures", self.rsu_ip
+            kc_api = KeycloakServiceAccountApi(
+                endpoint=upgrade_runner_environment.KC_ENDPOINT,
+                realm=upgrade_runner_environment.KC_REALM,
+                client_id=upgrade_runner_environment.KC_SA_CLIENT_ID,
+                client_secret=upgrade_runner_environment.KC_SA_CLIENT_SECRET,
+            )
+            email_api = EmailApi(
+                iapi_base_url=upgrade_runner_environment.IAPI_ENDPOINT, kc_api=kc_api
             )
 
-            subject = (
-                f"{self.rsu_ip} Firmware Upgrader Failure"
-                if type == "Firmware Upgrader"
-                else f"{self.rsu_ip} Firmware Upgrader Post Upgrade Script Failure"
+            email_api.send_firmware_upgrade_failure(
+                rsu_ip=self.rsu_ip,
+                error_message=f"{type}: Failed to perform update on RSU {self.rsu_ip} due to the following error: {err}",
+                failure_type=type,
+                stack_trace=stack_trace,
             )
-
-            for email_address in email_addresses:
-                emailSender = EmailSender(
-                    upgrade_runner_environment.SMTP_SERVER_IP,
-                    upgrade_runner_environment.SMTP_SERVER_PORT,
-                )
-                emailSender.send(
-                    sender=upgrade_runner_environment.SMTP_EMAIL,
-                    recipient=email_address,
-                    subject=subject,
-                    message=f"{type}: Failed to perform update on RSU {self.rsu_ip} due to the following error: {err}",
-                    replyEmail="",
-                    username=upgrade_runner_environment.SMTP_USERNAME,
-                    password=upgrade_runner_environment.SMTP_PASSWORD,
-                    pretty=True,
-                )
         except Exception as e:
             logging.error(e)
 

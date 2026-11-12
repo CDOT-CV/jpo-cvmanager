@@ -1,0 +1,11 @@
+[run]
+# Run coverage from the repository root so XML paths match Sonar's projectBaseDir.
+relative_files = True
+source =
+    services/addons/images/count_metric
+    services/addons/images/firmware_manager
+    services/addons/images/iss_health_check
+    services/addons/images/obu_ota_server
+    services/addons/images/rsu_status_check
+    services/api/src
+    services/common

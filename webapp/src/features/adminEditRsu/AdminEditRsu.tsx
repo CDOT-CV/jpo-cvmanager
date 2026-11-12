@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
 import '../../styles/fonts/museo-slab.css'
-import { AdminRsu } from '../../models/Rsu'
+import { AdminRsuPatch } from '../../models/Rsu'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Checkbox,
@@ -149,7 +149,7 @@ const AdminEditRsu = () => {
 
     try {
       // Build patch object with only changed fields
-      const patch: Partial<AdminRsu> = {}
+      const patch: AdminRsuPatch = {}
 
       if (data.ip !== rsuInfo?.ip) patch.ip = data.ip
       if (
@@ -185,7 +185,8 @@ const AdminEditRsu = () => {
         data.organizations.some((org) => !rsuInfo?.organizations.includes(org))
 
       if (orgsChanged) {
-        patch.organizations = data.organizations
+        patch.organizations_to_add = data.organizations.filter((org) => !rsuInfo?.organizations.includes(org))
+        patch.organizations_to_remove = rsuInfo?.organizations.filter((org) => !data.organizations.includes(org))
       }
 
       // Check if tim_deposit changed
@@ -205,9 +206,12 @@ const AdminEditRsu = () => {
       setOpen(false)
       navigate('/dashboard/admin/rsus')
     } catch (error: any) {
-      toast.error('Failed to update RSU: ' + (error?.data?.message || error?.message || 'Unknown error'), {
-        id: loadingToast,
-      })
+      toast.error(
+        'Failed to update RSU: ' + (error?.data?.message || error?.message || error?.data?.detail || 'Unknown error'),
+        {
+          id: loadingToast,
+        }
+      )
     }
   }
 
@@ -370,7 +374,9 @@ const AdminEditRsu = () => {
                 <Grid2 size={6}>
                   <Form.Group controlId="primary_route">
                     <FormControl fullWidth margin="normal">
-                      <InputLabel htmlFor="primary_route">Primary Route</InputLabel>
+                      <InputLabel htmlFor="primary_route" required>
+                        Primary Route
+                      </InputLabel>
                       <Select
                         id="primary_route"
                         label="Primary Route"
@@ -450,7 +456,9 @@ const AdminEditRsu = () => {
                 <Grid2 size={5}>
                   <Form.Group controlId="model">
                     <FormControl fullWidth margin="normal">
-                      <InputLabel htmlFor="model">RSU Model</InputLabel>
+                      <InputLabel htmlFor="model" required>
+                        RSU Model
+                      </InputLabel>
                       <Select
                         id="model"
                         label="RSU Model"
@@ -540,7 +548,9 @@ const AdminEditRsu = () => {
               {isOwnerOrg && (
                 <Form.Group controlId="ssh_credential_group">
                   <FormControl fullWidth margin="normal">
-                    <InputLabel htmlFor="ssh_credential_group">SSH Credential Group</InputLabel>
+                    <InputLabel htmlFor="ssh_credential_group" required>
+                      SSH Credential Group
+                    </InputLabel>
                     <Select
                       id="ssh_credential_group"
                       label="SSH Credential Group"
@@ -569,7 +579,9 @@ const AdminEditRsu = () => {
                   <Grid2 size={6}>
                     <Form.Group controlId="snmp_credential_group">
                       <FormControl fullWidth margin="normal">
-                        <InputLabel htmlFor="snmp_credential_group">SNMP Credential Group</InputLabel>
+                        <InputLabel htmlFor="snmp_credential_group" required>
+                          SNMP Credential Group
+                        </InputLabel>
                         <Select
                           id="snmp_credential_group"
                           label="SNMP Credential Group"
@@ -595,7 +607,9 @@ const AdminEditRsu = () => {
                   <Grid2 size={6}>
                     <Form.Group controlId="snmp_version_group">
                       <FormControl fullWidth margin="normal">
-                        <InputLabel htmlFor="snmp_version_group">SNMP Protocol</InputLabel>
+                        <InputLabel htmlFor="snmp_version_group" required>
+                          SNMP Protocol
+                        </InputLabel>
                         <Select
                           id="snmp_version_group"
                           label="SNMP Protocol"
@@ -623,7 +637,9 @@ const AdminEditRsu = () => {
 
               <Form.Group controlId="organizations">
                 <FormControl fullWidth margin="normal">
-                  <InputLabel htmlFor="organizations">Organizations</InputLabel>
+                  <InputLabel htmlFor="organizations" required>
+                    Organizations
+                  </InputLabel>
                   <Select
                     id="organizations"
                     label="Organizations"

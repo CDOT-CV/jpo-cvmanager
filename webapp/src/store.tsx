@@ -6,27 +6,32 @@ import configReducer from './generalSlices/configSlice'
 import intersectionReducer from './generalSlices/intersectionSlice'
 import adminAddOrganizationReducer from './features/adminAddOrganization/adminAddOrganizationSlice'
 import adminAddIntersectionReducer from './features/adminAddIntersection/adminAddIntersectionSlice'
-import adminAddUserReducer from './features/adminAddUser/adminAddUserSlice'
 import adminEditOrganizationReducer from './features/adminEditOrganization/adminEditOrganizationSlice'
 import adminEditIntersectionReducer from './features/adminEditIntersection/adminEditIntersectionSlice'
 import adminOrganizationTabReducer from './features/adminOrganizationTab/adminOrganizationTabSlice'
 import adminOrganizationTabUserReducer from './features/adminOrganizationTabUser/adminOrganizationTabUserSlice'
 import adminOrganizationTabRsuReducer from './features/adminOrganizationTabRsu/adminOrganizationTabRsuSlice'
-import adminOrganizationTabIntersectionReducer from './features/adminOrganizationTabIntersection/adminOrganizationTabIntersectionSlice'
 import adminIntersectionTabReducer from './features/adminIntersectionTab/adminIntersectionTabSlice'
-import adminNotificationTabReducer from './features/adminNotificationTab/adminNotificationTabSlice'
-import adminAddNotificationReducer from './features/adminAddNotification/adminAddNotificationSlice'
-import adminEditNotificationReducer from './features/adminEditNotification/adminEditNotificationSlice'
 import menuReducer from './features/menu/menuSlice'
 import asn1DecoderSlice from './features/intersections/decoder/asn1-decoder-slice'
 import intersectionMapReducer from './features/intersections/map/map-slice'
 import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
-import { intersectionApiSlice } from './features/api/intersectionApiSlice'
+import { intersectionConfigSlice } from './features/api/intersectionConfigSlice'
+import { intersectionMapApiSlice } from './features/api/intersectionMapApiSlice'
+import { intersectionMapApiMiddleware } from './features/api/intersection-map-api-middleware'
+import { emailApiSlice } from './features/api/emailApiSlice'
 import { organizationApiSlice } from './features/api/organizationApiSlice'
 import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
+import { unsubscribeApiSlice } from './features/api/unsubscribeApiSlice'
+import { subscriptionManagementApiSlice } from './features/api/subscriptionManagementApiSlice'
 import { rsuApiSlice } from './features/api/rsuApiSlice'
+import { rsuOnlineStatusApiSlice } from './features/api/rsuOnlineStatusApiSlice'
+import { geoMsgApiSlice } from './features/api/geoMsgApiSlice'
+import { scmsApiSlice } from './features/api/scmsApiSlice'
 import { userApiSlice } from './features/api/userApiSlice'
+import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
+import { firmwareApiSlice } from './features/api/firmwareApiSlice'
 import mapSliceReducer from './pages/mapSlice'
 import timeSyncReducer from './generalSlices/timeSyncSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
@@ -41,17 +46,12 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       intersection: intersectionReducer,
       adminAddOrganization: adminAddOrganizationReducer,
       adminAddIntersection: adminAddIntersectionReducer,
-      adminAddUser: adminAddUserReducer,
       adminEditOrganization: adminEditOrganizationReducer,
       adminEditIntersection: adminEditIntersectionReducer,
       adminOrganizationTab: adminOrganizationTabReducer,
       adminOrganizationTabUser: adminOrganizationTabUserReducer,
       adminOrganizationTabRsu: adminOrganizationTabRsuReducer,
-      adminOrganizationTabIntersection: adminOrganizationTabIntersectionReducer,
       adminIntersectionTab: adminIntersectionTabReducer,
-      adminNotificationTab: adminNotificationTabReducer,
-      adminAddNotification: adminAddNotificationReducer,
-      adminEditNotification: adminEditNotificationReducer,
       menu: menuReducer,
       intersectionMap: intersectionMapReducer,
       intersectionMapLayerStyle: intersectionMapLayerStyleReducer,
@@ -60,11 +60,20 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       asn1Decoder: asn1DecoderSlice,
       timeSync: timeSyncReducer,
       haas: haasSliceReducer,
-      [intersectionApiSlice.reducerPath]: intersectionApiSlice.reducer,
+      [intersectionConfigSlice.reducerPath]: intersectionConfigSlice.reducer,
+      [intersectionMapApiSlice.reducerPath]: intersectionMapApiSlice.reducer,
+      [emailApiSlice.reducerPath]: emailApiSlice.reducer,
       [organizationApiSlice.reducerPath]: organizationApiSlice.reducer,
       [rsuCountsApiSlice.reducerPath]: rsuCountsApiSlice.reducer,
+      [unsubscribeApiSlice.reducerPath]: unsubscribeApiSlice.reducer,
+      [subscriptionManagementApiSlice.reducerPath]: subscriptionManagementApiSlice.reducer,
       [rsuApiSlice.reducerPath]: rsuApiSlice.reducer,
+      [rsuOnlineStatusApiSlice.reducerPath]: rsuOnlineStatusApiSlice.reducer,
+      [geoMsgApiSlice.reducerPath]: geoMsgApiSlice.reducer,
+      [scmsApiSlice.reducerPath]: scmsApiSlice.reducer,
       [userApiSlice.reducerPath]: userApiSlice.reducer,
+      [adminIntersectionApiSlice.reducerPath]: adminIntersectionApiSlice.reducer,
+      [firmwareApiSlice.reducerPath]: firmwareApiSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -73,11 +82,21 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         serializableCheck: false,
         immutableCheck: false,
       })
-        .concat(intersectionApiSlice.middleware)
-        .concat(organizationApiSlice.middleware)
+        .concat(intersectionConfigSlice.middleware)
+        .concat(intersectionMapApiSlice.middleware)
+        .concat(intersectionMapApiMiddleware.middleware)
+        .concat(emailApiSlice.middleware)
         .concat(rsuCountsApiSlice.middleware)
+        .concat(unsubscribeApiSlice.middleware)
+        .concat(subscriptionManagementApiSlice.middleware)
+        .concat(organizationApiSlice.middleware)
         .concat(rsuApiSlice.middleware)
-        .concat(userApiSlice.middleware),
+        .concat(rsuOnlineStatusApiSlice.middleware)
+        .concat(geoMsgApiSlice.middleware)
+        .concat(scmsApiSlice.middleware)
+        .concat(userApiSlice.middleware)
+        .concat(adminIntersectionApiSlice.middleware)
+        .concat(firmwareApiSlice.middleware),
     devTools: true,
   })
 }

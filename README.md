@@ -26,6 +26,9 @@ To provide feedback, we recommend that you create an "issue" in this repository 
 
 ## Quick Start
 
+For automated dependency and built-image vulnerability reports, see
+[CVE scanning](docs/cve-scanning.md).
+
 This section is brief - for more detailed instructions, please see [Getting Started](#getting-started)
 
 ### Requirements
@@ -77,6 +80,16 @@ For more details on running the CV-Manager through Docker, see the [Getting Star
 ## Release Notes
 
 The current version and release history of the JPO CV Manager: [Release Notes](docs/Release_notes.md)
+
+## Architecture Decision Records
+
+Significant technical decisions are recorded as [Architecture Decision Records (ADRs)](https://adr.github.io/) in [`docs/adr/`](docs/adr/). Each ADR captures the context, the decision made, the alternatives considered, and the consequences, providing a durable record of *why* the system is built the way it is.
+
+| ADR | Title | Status |
+|-----|-------|--------|
+| [ADR-0001](docs/adr/0001-flyway-database-migrations.md) | Flyway for Automated Database Migrations | Accepted |
+
+When introducing a significant architectural change (a new tool, a change in deployment strategy, a cross-cutting convention), add an ADR to `docs/adr/` following the existing format and update the table above.
 
 ## Requirements and Limitations
 
@@ -166,6 +179,8 @@ This application has the ability to disable certain features based on environmen
 - ENABLE_RSU_FEATURES: if 'false', disable all RSU-specific features, including map, RSU data, RSU configuration, and RSU organization linking.
 - ENABLE_INTERSECTION_FEATURES: if 'false', disable all intersection-specific features, including intersection map, intersection dashboard, and intersection admin pages.
 - ENABLE_WZDX_FEATURES: if 'false', disable all wzdx-specific features, including WZDx data on the main map.
+- ENABLE_HAAS_FEATURES: if 'false', disable all HAAS-specific features, including HAAS data on the main map.
+- ENABLE_RSU_STATUS_MONITOR_FEATURES: if 'false', disable all RSU status monitor-specific features, including RSU status data on the main map and RSU admin page.
 
 These variables will disable UI pages/visuals, UI features, and API endpoints.
 
@@ -402,20 +417,12 @@ Note that it is recommended to work with the Python API from a [virtual environm
 
 <b>API Variables</b>
 
-- MONGO_PROCESSED_BSM_COLLECTION_NAME: The collection name in MongoDB for processed BSM messages.
-- MONGO_PROCESSED_PSM_COLLECTION_NAME: The collection name in MongoDB for processed PSM messages.
-- MONGO_SSM_COLLECTION_NAME: The database name for SSM visualization data.
-- MONGO_SRM_COLLECTION_NAME: The database name for SRM visualization data.
+- Processed BSM/PSM geospatial queries are served by the Java Intersection API; see its configuration in [services/intersection-api/README.md](services/intersection-api/README.md#processed-rsu-geospatial-messages).
 - FIRMWARE_MANAGER_ENDPOINT: Endpoint for the firmware manager deployment's API.
-- CSM_EMAIL_TO_SEND_FROM: Origin email address for the API error developer emails.
-- CSM_EMAILS_TO_SEND_TO: Destination email addresses for the API error developer emails.
-- CSM_EMAIL_APP_USERNAME: Username for the SMTP server.
-- CSM_EMAIL_APP_PASSWORD: Password for the SMTP server.
-- CSM_TARGET_SMTP_SERVER_ADDRESS: Destination SMTP server address.
-- CSM_TARGET_SMTP_SERVER_PORT: Destination SMTP server port.
+- IAPI_ENDPOINT: Intersection API endpoint for making REST requests to send emails
+- KC_SA_CLIENT_ID: Keycloak service account client ID for generating authenticating to the Intersection API
+- KC_SA_CLIENT_SECRET: Keycloak service account client secret for generating authenticating to the Intersection API
 - API_LOGGING_LEVEL: The level of which the CV Manager API will log. (DEBUG, INFO, WARNING, ERROR)
-- CSM_TLS_ENABLED: Set to "true" if the SMTP server requires TLS.
-- CSM_AUTH_ENABLED: Set to "true" if the SMTP server requires authentication.
 - WZDX_ENDPOINT: WZDX datafeed endpoint.
 - WZDX_API_KEY: API key for the WZDX datafeed.
 - TIMEZONE: Timezone to be used for the API.

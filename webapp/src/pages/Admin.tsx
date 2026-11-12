@@ -1,32 +1,17 @@
-import { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { selectIsAdminOrAbove, selectOrganizationName } from '../generalSlices/userSlice'
-import { updateTableData as updateIntersectionTableData } from '../features/adminIntersectionTab/adminIntersectionTabSlice'
+import { useSelector } from 'react-redux'
+import { selectIsAdminOrAbove } from '../generalSlices/userSlice'
 import '../features/adminRsuTab/Admin.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../store'
 import AdminOrganizationTab from '../features/adminOrganizationTab/AdminOrganizationTab'
 import AdminRsuTab from '../features/adminRsuTab/AdminRsuTab'
 import AdminUserTab from '../features/adminUserTab/AdminUserTab'
 import { NotFound } from './404'
-import { getUserNotifications } from '../features/adminNotificationTab/adminNotificationTabSlice'
 import VerticalTabs from '../components/VerticalTabs'
 import { headerTabHeight } from '../styles/index'
 import AdminIntersectionTab from '../features/adminIntersectionTab/AdminIntersectionTab'
-import { evaluateFeatureFlags } from '../feature-flags'
+import AdminFirmwareTab from '../features/adminFirmwareTab/AdminFirmwareTab'
 
 function Admin() {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
-  const organization = useSelector(selectOrganizationName)
   const isAdmin = useSelector(selectIsAdminOrAbove)
-
-  useEffect(() => {
-    // This preloads data for the admin pages
-    // Preload it with changes in dispatch and organization since it needs to be updated every time the organization is switched
-    // in order to show only RSUs, Intersections, and Users of selected organization
-    if (evaluateFeatureFlags('intersection')) dispatch(updateIntersectionTableData())
-    dispatch(getUserNotifications())
-  }, [dispatch, organization])
 
   return (
     <>
@@ -58,6 +43,11 @@ function Admin() {
                 title: 'Intersections',
                 child: <AdminIntersectionTab />,
                 tag: 'intersection',
+              },
+              {
+                path: 'firmware',
+                title: 'Firmware',
+                child: <AdminFirmwareTab />,
               },
               {
                 path: 'users',

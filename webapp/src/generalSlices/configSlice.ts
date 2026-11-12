@@ -1,14 +1,23 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import RsuApi from '../apis/rsu-api'
+import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
+import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { RootState } from '../store'
-import { RsuCommandPostBody, RsuDsrcFwdConfigs, RsuRxTxMsgFwdConfigs } from '../models/RsuApi'
+import {
+  RsuCommandPostBody,
+  RsuDsrcFwdConfigs,
+  RsuRxTxMsgFwdConfigs,
+  RsuUpgradeCheckPostBody,
+  RsuUpgradePostBody,
+} from '../models/RsuApi'
 
 const initialState = {
   msgFwdConfig: {} as any,
   errorState: '',
   changeSuccess: false,
   rebootChangeSuccess: false,
+  rebootRequestedIp: undefined as string | undefined,
   firmwareUpgradeAvailable: false,
   firmwareUpgradeName: '',
   firmwareUpgradeMsg: '',
@@ -18,7 +27,7 @@ const initialState = {
   includeSecurityHeader: false,
   addConfigPoint: false,
   configCoordinates: [] as number[][],
-  configList: [] as number[],
+    configList: [] as string[],
   msgFwdConfigType: 'database' as 'database' | 'rsu',
 }
 
@@ -137,41 +146,39 @@ export const deleteSnmpSet = createAsyncThunk(
   }
 )
 
-export const rebootRsu = createAsyncThunk('config/rebootRsu', async (ipList: string[], { getState }) => {
+export const rebootRsu = createAsyncThunk('config/rebootRsu', async (rsuIp: string, { getState }) => {
   const currentState = getState() as RootState
   const token = selectToken(currentState)
   const organization = selectOrganizationName(currentState)
 
-  const body: RsuCommandPostBody = {
-    command: 'reboot',
-    rsu_ip: ipList,
-    args: {},
-  }
+  if (!rsuIp) throw new Error('An RSU IPv4 address is required')
 
-  RsuApi.postRsuData(token, organization, body, '')
-
-  return
+  // Await admission only; SSH execution continues in the API after this request completes.
+  const response = await RsuRebootApi.reboot(token, organization, rsuIp)
+  return { ...response, rsuIp }
 })
 
 export const checkFirmwareUpgrade = createAsyncThunk(
   'config/checkFirmwareUpgrade',
-  async (rsuIp: string[], { getState }) => {
+  async (rsuIps: string[], { getState, rejectWithValue }) => {
+    if (rsuIps.length !== 1) {
+      return rejectWithValue('Firmware upgrade availability check requires exactly one RSU')
+    }
+
     const currentState = getState() as RootState
     const token = selectToken(currentState)
-    const organization = selectOrganizationName(currentState)
 
-    const body: RsuCommandPostBody = {
-      command: 'upgrade-check',
-      rsu_ip: rsuIp,
+    const body: RsuUpgradeCheckPostBody = {
+      rsu_ip: rsuIps[0],
       args: {},
     }
 
-    const response = await RsuApi.postRsuData(token, organization, body, '')
+    const response = await RsuFirmwareApi.postRsuUpgradeData(token, body, '/check')
     if (!response) {
-      return {
-        firmwareUpgradeAvailable: false,
-        firmwareUpgradeName: '',
-      }
+      return rejectWithValue('Failed to check firmware upgrade availability')
+    }
+    if (response.status >= 400) {
+      return rejectWithValue(response.message || 'Failed to check firmware upgrade availability')
     }
     return {
       firmwareUpgradeAvailable: response.body?.upgrade_available,
@@ -182,32 +189,103 @@ export const checkFirmwareUpgrade = createAsyncThunk(
 
 export const startFirmwareUpgrade = createAsyncThunk(
   'config/startFirmwareUpgrade',
-  async (ipList: string[], { getState }) => {
+  async (rsuIps: string[], { getState, rejectWithValue }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
-    const organization = selectOrganizationName(currentState)
 
-    const body: RsuCommandPostBody = {
-      command: 'upgrade-rsu',
-      rsu_ip: ipList,
+    const body: RsuUpgradePostBody = {
+      rsu_ips: rsuIps,
       args: {},
     }
 
-    const response = await RsuApi.postRsuData(token, organization, body, '')
+    const response = await RsuFirmwareApi.postRsuUpgradeData(token, body, '')
     if (!response) {
-      return { message: 'Firmware upgrades failed to be started', statusCode: 500 }
+      return rejectWithValue('Firmware upgrades failed to be started')
+    }
+    if (response.status >= 400) {
+      return rejectWithValue(response.message || 'Firmware upgrades failed to be started')
     }
 
-    if (ipList.length === 1) {
+    const perRsuResults = response.body as Record<string, { code?: number; data?: unknown }> | undefined
+    if (!perRsuResults || typeof perRsuResults !== 'object') {
+      return response.status === 200
+        ? { message: 'Firmware upgrades started successfully', statusCode: response.status }
+        : { message: 'Firmware upgrades failed to be started', statusCode: response.status }
+    }
+
+    const failedIps: string[] = []
+    const startedIps: string[] = []
+    const upToDateIps: string[] = []
+
+    const extractDataMessage = (data: unknown): string => {
+      if (typeof data === 'string') {
+        return data
+      }
+      if (data && typeof data === 'object' && 'message' in data) {
+        const message = (data as { message?: unknown }).message
+        return typeof message === 'string' ? message : ''
+      }
+      return ''
+    }
+
+    rsuIps.forEach((ip) => {
+      const code = perRsuResults?.[ip]?.code
+      const dataMessage = extractDataMessage(perRsuResults?.[ip]?.data)
+      const isUpToDate = code === 409 && dataMessage.toLowerCase().includes('already up to date')
+
+      if (code === 200 || code === 201) {
+        startedIps.push(ip)
+      } else if (isUpToDate) {
+        upToDateIps.push(ip)
+      } else {
+        failedIps.push(ip)
+      }
+    })
+
+    if (rsuIps.length === 1) {
+      if (upToDateIps.length > 0) {
+        return {
+          message: 'Selected RSU is already up to date.',
+          statusCode: 200,
+        }
+      }
+
+      return failedIps.length > 0
+        ? { message: 'Firmware upgrade failed to start.', statusCode: perRsuResults?.[rsuIps[0]]?.code ?? 500 }
+        : { message: 'Firmware upgrade started successfully.', statusCode: 200 }
+    }
+
+    if (failedIps.length === 0) {
+      if (upToDateIps.length > 0 && startedIps.length > 0) {
+        return {
+          message: `Firmware upgrade started for ${startedIps.length} RSUs. ${upToDateIps.length} RSUs already up to date.`,
+          statusCode: 200,
+        }
+      }
+      if (upToDateIps.length > 0) {
+        return {
+          message: 'Selected RSUs are already up to date.',
+          statusCode: 200,
+        }
+      }
+      return { message: `Firmware upgrade started for ${startedIps.length} RSUs.`, statusCode: 200 }
+    }
+
+    if (startedIps.length === 0) {
       return {
-        message: response.body?.[ipList[0]]?.data?.message,
-        statusCode: response.body?.[ipList[0]]?.code,
+        message: `Firmware upgrade failed for selected RSUs: ${failedIps.join(', ')}`,
+        statusCode: 500,
       }
     }
 
-    return response.status === 200
-      ? { message: 'Firmware upgrades started successfully', statusCode: response.status }
-      : { message: 'Firmware upgrades failed to be started', statusCode: response.status }
+    const successSummary = startedIps.length > 0 ? `Firmware upgrade started for ${startedIps.length} RSUs.` : ''
+    const upToDateSummary = upToDateIps.length > 0 ? ` ${upToDateIps.length} RSUs already up to date.` : ''
+    const firstFailedIpCode = failedIps.length > 0 ? (perRsuResults?.[failedIps[0]]?.code ?? 500) : 500
+
+    return {
+      message: `${successSummary}${upToDateSummary} Failed: ${failedIps.join(', ')}`.trim(),
+      statusCode: firstFailedIpCode,
+    }
   }
 )
 
@@ -219,17 +297,12 @@ export const geoRsuQuery = createAsyncThunk(
     const organization = selectOrganizationName(currentState)
     const configCoordinates = selectConfigCoordinates(currentState)
 
-    const response = await RsuApi.postRsuGeo(
-      token,
-      organization,
-      JSON.stringify({
-        geometry: configCoordinates,
-        vendor: vendor,
-      }),
-      ''
-    )
-    if (!response) {
-      return rejectWithValue('Failed to query RSUs by geometry')
+    const response = await RsuApi.postRsuGeo(token, organization, {
+      geometry: configCoordinates,
+      vendor,
+    })
+    if (response?.status !== 200) {
+      return rejectWithValue(response?.message || 'Failed to query RSUs by geometry')
     }
     return response
   },
@@ -341,9 +414,11 @@ export const configSlice = createSlice({
         state.loading = true
         state.value.rebootChangeSuccess = false
       })
-      .addCase(rebootRsu.fulfilled, (state) => {
+      .addCase(rebootRsu.fulfilled, (state, action) => {
         state.loading = false
         state.value.rebootChangeSuccess = true
+        // Keep a late response from showing an acceptance notice for a different selected RSU.
+        state.value.rebootRequestedIp = action.payload.rsuIp
       })
       .addCase(rebootRsu.rejected, (state) => {
         state.loading = false
@@ -361,11 +436,12 @@ export const configSlice = createSlice({
         state.value.firmwareUpgradeName = action.payload.firmwareUpgradeName
         if (!action.payload.firmwareUpgradeAvailable) state.value.firmwareUpgradeMsg = 'Firmware is up to date!'
       })
-      .addCase(checkFirmwareUpgrade.rejected, (state) => {
+      .addCase(checkFirmwareUpgrade.rejected, (state, action) => {
         state.loading = false
         state.value.firmwareUpgradeAvailable = false
         state.value.firmwareUpgradeName = ''
-        state.value.firmwareUpgradeMsg = 'An error occurred while checking for an upgrade'
+        state.value.firmwareUpgradeMsg =
+          (action.payload as string | undefined) || 'An error occurred while checking for an upgrade'
         state.value.firmwareUpgradeErr = true
       })
       .addCase(startFirmwareUpgrade.pending, (state) => {
@@ -380,11 +456,12 @@ export const configSlice = createSlice({
         if (action.payload.statusCode !== 201 && action.payload.statusCode !== 200)
           state.value.firmwareUpgradeErr = true
       })
-      .addCase(startFirmwareUpgrade.rejected, (state) => {
+      .addCase(startFirmwareUpgrade.rejected, (state, action) => {
         state.loading = false
         state.value.firmwareUpgradeAvailable = false
         state.value.firmwareUpgradeName = ''
-        state.value.firmwareUpgradeMsg = 'An error occurred while starting the firmware upgrade'
+        state.value.firmwareUpgradeMsg =
+          (action.payload as string | undefined) || 'An error occurred while starting the firmware upgrade'
         state.value.firmwareUpgradeErr = true
       })
       .addCase(geoRsuQuery.pending, (state) => {
@@ -409,6 +486,7 @@ export const configSlice = createSlice({
 export const selectMsgFwdConfig = (state: RootState) => state.config.value.msgFwdConfig
 export const selectChangeSuccess = (state: RootState) => state.config.value.changeSuccess
 export const selectRebootChangeSuccess = (state: RootState) => state.config.value.rebootChangeSuccess
+export const selectRebootRequestedIp = (state: RootState) => state.config.value.rebootRequestedIp
 export const selectErrorState = (state: RootState) => state.config.value.errorState
 export const selectFirmwareUpgradeAvailable = (state: RootState) => state.config.value.firmwareUpgradeAvailable
 export const selectFirmwareUpgradeName = (state: RootState) => state.config.value.firmwareUpgradeName

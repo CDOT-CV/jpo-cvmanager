@@ -23,7 +23,7 @@ public class ScmsHealth {
     private Instant timestamp;
 
     @NotNull
-    @Column(name = "health", nullable = false, columnDefinition = "bit(1)")
+    @Column(name = "health", nullable = false)
     private Boolean health;
 
     @Column(name = "expiration")

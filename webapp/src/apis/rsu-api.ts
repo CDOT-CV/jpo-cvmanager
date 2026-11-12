@@ -1,17 +1,16 @@
+import toast from 'react-hot-toast'
 import EnvironmentVars from '../EnvironmentVars'
 import { WZDxWorkZoneFeed } from '../models/wzdx/WzdxWorkZoneFeed42'
 import apiHelper from './api-helper'
+import { authApiHelper } from './intersections/api-helper-cviz'
 import {
   ApiMsgRespWithCodes,
   GetRsuCommandResp,
-  IssScmsStatus,
   RsuCommandPostBody,
   RsuCounts,
+  RsuInfo,
   RsuInfoList,
   RsuMsgFwdConfigs,
-  RsuOnlineStatusRespMultiple,
-  RsuOnlineStatusRespSingle,
-  SsmSrmData,
 } from '../models/RsuApi'
 
 class RsuApi {
@@ -21,27 +20,19 @@ class RsuApi {
     org: string,
     url_ext = '',
     query_params: Record<string, string> = {}
-  ): Promise<RsuInfoList> =>
-    apiHelper._getData({
-      url: EnvironmentVars.rsuInfoEndpoint + url_ext,
+  ): Promise<RsuInfoList> => {
+    const response = await authApiHelper.invokeApi({
+      path: `${EnvironmentVars.rsuInfoPath}${url_ext}`,
+      queryParams: query_params,
       token,
-      query_params,
-      additional_headers: { Organization: org },
+      headers: { Organization: org },
+      toastOnFailure: false,
       tag: 'rsu',
     })
-  getRsuOnline = async (
-    token: string,
-    org: string,
-    url_ext = '',
-    query_params: Record<string, string> = {}
-  ): Promise<RsuOnlineStatusRespMultiple | RsuOnlineStatusRespSingle> =>
-    apiHelper._getData({
-      url: EnvironmentVars.rsuOnlineEndpoint + url_ext,
-      token,
-      query_params,
-      additional_headers: { Organization: org },
-      tag: 'rsu',
-    })
+
+    const rsuArray = Array.isArray(response) ? (response as RsuInfo[]) : []
+    return { rsuList: rsuArray }
+  }
   getRsuCounts = async (
     token: string,
     org: string,
@@ -94,26 +85,6 @@ class RsuApi {
       additional_headers: { Organization: org },
       tag: 'rsu',
     })
-  getSsmSrmData = async (token: string, url_ext = '', query_params: Record<string, string> = {}): Promise<SsmSrmData> =>
-    apiHelper._getData({
-      url: EnvironmentVars.ssmSrmEndpoint + url_ext,
-      token,
-      query_params,
-      tag: 'rsu',
-    })
-  getIssScmsStatus = async (
-    token: string,
-    org: string,
-    url_ext = '',
-    query_params: Record<string, string> = {}
-  ): Promise<IssScmsStatus> =>
-    apiHelper._getData({
-      url: EnvironmentVars.issScmsStatusEndpoint + url_ext,
-      token,
-      query_params,
-      additional_headers: { Organization: org },
-      tag: 'rsu',
-    })
 
   // WZDx
   getWzdxData = async (token: string, url_ext = '', query_params = {}): Promise<WZDxWorkZoneFeed> =>
@@ -123,10 +94,6 @@ class RsuApi {
       query_params,
       tag: 'wzdx',
     })
-
-  // POST
-  postGeoMsgData = async (token: string, body: string, url_ext = ''): Promise<ApiMsgRespWithCodes<any>> =>
-    apiHelper._postData({ url: EnvironmentVars.geoMsgDataEndpoint + url_ext, body, token, tag: 'rsu' })
 
   // POST
   postRsuData = async (
@@ -145,31 +112,45 @@ class RsuApi {
   }
 
   // POST
-  postRsuGeo = async (token: string, org: string, body: string, url_ext: string): Promise<ApiMsgRespWithCodes<any>> => {
-    return await apiHelper._postData({
-      url: EnvironmentVars.rsuGeoQueryEndpoint + url_ext,
-      body,
+  postRsuGeo = async (
+    token: string,
+    org: string,
+    body: { geometry: number[][]; vendor?: string },
+    url_ext = ''
+  ): Promise<ApiMsgRespWithCodes<string[]> | null> => {
+    const response = await authApiHelper.invokeApi({
+      path: `${EnvironmentVars.rsuGeoQueryPath}${url_ext}`,
+      method: 'POST',
       token,
-      additional_headers: { Organization: org },
+      headers: { Organization: org },
+      body,
       tag: 'rsu',
+      toastOnFailure: false,
+      returnErrorBody: true,
+      failureMessage: 'Failed to query RSUs by geometry',
     })
-  }
 
-  // POST
-  postContactSupport = async (json: object): Promise<ApiMsgRespWithCodes<any>> => {
-    return await apiHelper._postData({
-      url: EnvironmentVars.contactSupport,
-      body: JSON.stringify(json),
-      tag: 'rsu',
-    })
-  }
+    if (!response) {
+      return null
+    }
 
-  // POST
-  postRsuErrorSummary = async (json: object): Promise<ApiMsgRespWithCodes<any>> => {
-    return await apiHelper._postData({
-      url: EnvironmentVars.rsuErrorSummary,
-      body: JSON.stringify(json),
-    })
+    if (response.__isErrorResponse) {
+      const message = response.body?.detail ?? `Failed to query RSUs by geometry (${response.status})`
+      if (response.status !== 401 && response.status !== 403) {
+        toast.error(message)
+      }
+      return {
+        body: [],
+        status: response.status,
+        message,
+      }
+    }
+
+    return {
+      body: Array.isArray(response) ? response : [],
+      status: 200,
+      message: '',
+    }
   }
 }
 

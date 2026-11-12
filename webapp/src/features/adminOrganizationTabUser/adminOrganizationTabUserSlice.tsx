@@ -1,7 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { selectToken, setOrganizationList } from '../../generalSlices/userSlice'
-import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { addOrModifyOrgAssociationByOrgName, selectToken } from '../../generalSlices/userSlice'
 import { RootState } from '../../store'
 import {
   AdminOrgTabUserAddMultiple,
@@ -19,30 +17,7 @@ import {
 
 const initialState = {
   selectedUserList: [] as AdminOrgUser[],
-  availableRoles: [] as { role: string }[],
 }
-
-export const getAvailableRoles = createAsyncThunk(
-  'adminOrganizationTabUser/getAvailableRoles',
-  async (_, { getState }) => {
-    const currentState = getState() as RootState
-    const token = selectToken(currentState)
-
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminAddUser,
-      token,
-      additional_headers: { 'Content-Type': 'application/json' },
-    })
-
-    switch (data.status) {
-      case 200:
-        return { success: true, message: '', data: data.body as AvailableRoles }
-      default:
-        return { success: false, message: data.message }
-    }
-  },
-  { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
-)
 
 export const userDeleteSingle = createAsyncThunk(
   'adminOrganizationTabUser/userDeleteSingle',
@@ -193,22 +168,22 @@ export const userBulkEdit = createAsyncThunk(
     const patchJson: adminOrgPatch = {
       name: selectedOrg,
       email: selectedOrgEmail,
-      users_to_modify: [],
+      users_to_modify: [] as adminOrgPatch['users_to_modify'],
     }
     const rows = Object.values(json)
-    let orgUpdateVal = {}
+    let orgUpdateVal = undefined as { name: string; role: UserRole } | undefined
     for (const row of rows) {
       if (row.newData.email === selectedUser) {
-        orgUpdateVal = { name: selectedOrg, role: row.newData.role }
+        orgUpdateVal = { name: selectedOrg, role: row.newData.role as UserRole }
       }
-      const userRole = { email: row.newData.email, role: row.newData.role }
-      patchJson.users_to_modify.push(userRole)
+      const userRole = { email: row.newData.email, role: row.newData.role as UserRole }
+      patchJson.users_to_modify!.push(userRole)
     }
     const res = await dispatch(editOrg(patchJson))
     dispatch(refresh({ selectedOrg, updateTableData }))
 
-    if (Object.keys(orgUpdateVal).length > 0) {
-      dispatch(setOrganizationList({ value: orgUpdateVal, orgName: selectedOrg, type: 'update' }))
+    if (orgUpdateVal) {
+      dispatch(addOrModifyOrgAssociationByOrgName({ name: selectedOrg, role: orgUpdateVal.role }))
     }
 
     if ((res.payload as any).success) {
@@ -262,35 +237,11 @@ export const adminOrganizationTabUserSlice = createSlice({
       state.value.selectedUserList = selectedUsers
     },
   },
-  extraReducers: (builder) => {
-    builder
-      .addCase(getAvailableRoles.pending, (state) => {
-        state.loading = true
-      })
-      .addCase(getAvailableRoles.fulfilled, (state, action) => {
-        state.loading = false
-        if (action.payload.success) {
-          const roleData = []
-          const apiData = action.payload.data
-          for (let i = 0; i < apiData.roles.length; i++) {
-            const role = {
-              role: apiData.roles[i],
-            }
-            roleData.push(role)
-          }
-          state.value.availableRoles = roleData
-        }
-      })
-      .addCase(getAvailableRoles.rejected, (state) => {
-        state.loading = false
-      })
-  },
 })
 
 export const { setSelectedUserList, setSelectedUserRole } = adminOrganizationTabUserSlice.actions
 
 export const selectLoading = (state: RootState) => state.adminOrganizationTabUser.loading
 export const selectSelectedUserList = (state: RootState) => state.adminOrganizationTabUser.value.selectedUserList
-export const selectAvailableRoles = (state: RootState) => state.adminOrganizationTabUser.value.availableRoles
 
 export default adminOrganizationTabUserSlice.reducer

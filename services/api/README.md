@@ -24,18 +24,9 @@ Expected headers for all endpoints:
 - `"Content-Type": "application/json"`
 - `"Authorization": "token"`
 
-### <b>/contact-support</b> <b>(POST)</b>
-
-Sends a support request email to all users subscribed to 'Support Requests' in the cv-manager. Please note that this functionality
-relies on the user_email_notification table in PostgreSQL to pull in all users subscribed to receive these notifications.
-
 ### <b>/rsuinfo</b> <b>(GET)</b>
 
 Returns all basic data for RSUs in the GCP Cloud SQL database. It performs a basic select all query from a table named "RsuData" that is located in a database specified by the environments variables. Returns single JSON object.
-
-### <b>/rsu-online-status</b> <b>(GET)</b>
-
-Returns the online status of every RSU and the last time each RSU has been documented to be online in a single JSON object.
 
 ### <b>/rsucounts</b> <b>(GET)</b>
 
@@ -54,44 +45,9 @@ Returns the message counts for a single, selected RSU from a BigQuery table. It 
 
 Returns the list of all ipv4 addresses with MAP message data in the PostgreSQL database when argument ip_list is true. Returns the MAP message geoJSON data for the RSU specified in the ip_address argument as a single JSON object when ip_list is false.
 
-### <b>/rsu-geo-msg-data</b> <b>(POST)</b>
+### <b>/rsu-geo-msg-data</b> <b>(POST, Java Intersection API)</b>
 
-Returns geoJSON data for BSM / PSM messages from a MongoDB collection given start time, end time, and geofence coordinates. It performs a find query on on either the MONGO_PROCESSED_BSM_COLLECTION_NAME or MONGO_PROCESSED_PSM_COLLECTION_NAME collection depending on the requested message type. Returns an array of GeoJSON objects. In the event that the number of records exceeds the threshold specified by the MAX_GEO_QUERY_RECORDS environment variable filtering will occur so that each nth record is returned.
-
-Example request body:
-
-```json
-{
-  "pointList": [
-    [-122.4194, 37.7749],
-    [-122.4194, 37.7749]
-  ],
-  "start": "2024-01-01T00:00:00Z",
-  "end": "2024-01-01T00:00:00Z",
-  "msg_type": "bsm"
-}
-```
-
-Example response:
-
-```json
-[
-  {
-    "type": "Feature",
-    "geometry": { "coordinates": [-105.0, 40.0], "type": "Point" },
-    "properties": {
-      "schemaVersion": 1,
-      "id": "test_id_001",
-      "originIp": "8.8.8.8",
-      "messageType": "BSM",
-      "time": "2025-01-17T03:45:52Z",
-      "heading": 1000.0,
-      "msgCnt": 1,
-      "speed": 0.0
-    }
-  }
-]
-```
+Processed BSM/PSM geospatial queries are now served by the Java Spring Boot Intersection API. The route is not registered by this Python service. See the [Intersection API endpoint and configuration documentation](../intersection-api/README.md#processed-rsu-geospatial-messages) for bearer-token authentication, request/response shape, feature flag, MongoDB settings, error responses, a smoke request, and rollback instructions.
 
 ## Admin Endpoints
 
@@ -132,33 +88,6 @@ body example:
   "snmp_credential_group": "snmp profile",
   "snmp_version_group": "snmp version",
   "organizations": ["Organization 1"]
-}
-```
-
-## Users
-
-### <b>/admin-new-user</b> <b>(GET)</b>
-
-Returns the field options for specific user fields that do not take free-form responses.
-
-- organizations
-- roles
-
-### <b>/admin-new-user</b> <b>(POST)</b>
-
-Adds a new user to the CV Manager database. Associates the user with every organization specified. The specified user will be able to login to the CV Manager as soon as this is complete. The email associated with the user MUST be a Gmail account or an email address that is an alias of a Gmail.
-
-body example:
-
-```
-{
-  "email": "jdoe@example.com",
-  "first_name": "John",
-  "last_name": "Doe",
-  "super_user": True,
-  "organizations": [
-    {"name": "Test Org", "role": "operator"}
-  ]
 }
 ```
 
@@ -241,11 +170,7 @@ HTTP URL Arguments:
 - PG_DB_PORT: The database port.
 - PG_PG_DB_USER: The database user that will be used to authenticate the cloud function when it queries the database.
 - PG_PG_DB_PASS: The database user's password that will be used to authenticate the cloud function.
-- MONGO_PROCESSED_BSM_COLLECTION_NAME: The database name for processed BSM messages output from the [Geojson Converter](https://github.com/usdot-jpo-ode/geojson-converter).
-- MONGO_PROCESSED_PSM_COLLECTION_NAME: The database name for processed PSM messages output from the [Geojson Converter](https://github.com/usdot-jpo-ode/geojson-converter).
-- MONGO_SSM_COLLECTION_NAME: The database name for SSM visualization data.
-- MONGO_SRM_COLLECTION_NAME: The database name for SRM visualization data.
-- MONGO_DB_URI: URI for the MongoDB connection.
+- MONGO_DB_URI: URI for the MongoDB connection used by the remaining Python RSU-count query. The geospatial BSM/PSM query uses the Java Intersection API MongoDB client.
 - MONGO_DB_NAME: Database name for RSU counts.
 - KEYCLOAK_ENDPOINT: Keycloak base URL to send requests to. Reference the sample.env for the URL formatting.
 - KEYCLOAK_REALM: Keycloak Realm name.

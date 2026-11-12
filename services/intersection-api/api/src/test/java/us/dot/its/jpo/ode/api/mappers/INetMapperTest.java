@@ -5,6 +5,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -24,7 +26,7 @@ class INetMapperTest {
     class MapInetAddressToStringTests {
         @Test
         void testMapInetAddressToString_ValidIpv4() throws UnknownHostException {
-            InetAddress address = InetAddress.getByName("192.168.1.100");
+            InetAddress address = RsuManagementService.toIpv4Address("192.168.1.100");
 
             String result = iNetMapper.mapInetAddressToString(address);
 
@@ -41,7 +43,7 @@ class INetMapperTest {
 
         @Test
         void testMapInetAddressToString_Localhost() throws UnknownHostException {
-            InetAddress address = InetAddress.getByName("127.0.0.1");
+            InetAddress address = RsuManagementService.toIpv4Address("127.0.0.1");
 
             String result = iNetMapper.mapInetAddressToString(address);
 
@@ -74,7 +76,7 @@ class INetMapperTest {
                     IllegalArgumentException.class,
                     () -> iNetMapper.mapStringToInetAddress("invalid-ip"));
 
-            assertTrue(exception.getMessage().contains("Invalid IP address"));
+            assertTrue(exception.getMessage().contains("Invalid IP address, should be like #.#.#.#, but was "));
             assertTrue(exception.getMessage().contains("invalid-ip"));
         }
     }
