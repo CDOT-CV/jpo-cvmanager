@@ -108,8 +108,17 @@ public final class ObuFirmwareModels {
     @Schema(description = "Whether the OBU OTA server should offer this firmware to OBUs")
     public record PublicationRequest(@NotNull Boolean published) {}
 
+    /**
+     * Publish state of a catalog entry. {@code replaced} lists the releases of the
+     * same build that publishing it withdrew, since only one release per build is
+     * published at a time.
+     */
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     @Schema(description = "Publish state of an OBU firmware catalog entry")
     public record Publication(Integer obuFirmwareId, boolean published,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) Instant publishedAt, String publishedBy) {}
+            @JsonFormat(shape = JsonFormat.Shape.STRING) Instant publishedAt, String publishedBy,
+            List<ReplacedFirmware> replaced) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record ReplacedFirmware(Integer obuFirmwareId, String fileName) {}
 }
