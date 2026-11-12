@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -22,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -46,6 +50,7 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 @Import(TestcontainersConfiguration.class)
 class ObuFirmwareTransactionTest {
     private static final String FILE_NAME = "ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig";
+    private static final String NEXT_RELEASE = "ob4-generic-ro-secureboot-y20.49.0-b230001.tar.sig";
     private static final ObjectChecksum CHECKSUM = new ObjectChecksum("CRC32C", "ImIEBA==");
 
     @Autowired private ObuFirmwarePublicationService publication;
@@ -53,12 +58,14 @@ class ObuFirmwareTransactionTest {
     @Autowired private ObuFirmwareImageRepository images;
     @Autowired private ManufacturerRepository manufacturers;
     @Autowired private PlatformTransactionManager transactions;
+    @Autowired private JdbcTemplate jdbc;
     @MockitoBean private ObjectStorageServiceRegistry storage;
 
     private final ObjectStorageService provider = mock(ObjectStorageService.class);
     private Manufacturer manufacturer;
     private ObuFirmwareImage image;
     private ObjectStorageLocation location;
+    private final List<ObuFirmwareImage> extraImages = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
@@ -66,31 +73,17 @@ class ObuFirmwareTransactionTest {
         manufacturer.setName("ObuTransaction-" + UUID.randomUUID());
         manufacturer = manufacturers.save(manufacturer);
 
-        image = new ObuFirmwareImage();
-        image.setManufacturer(manufacturer);
-        image.setFileName(FILE_NAME);
-        image.setMetadata(new CommsigniaObuFirmwareFileNameParser().parse(FILE_NAME).orElseThrow());
-        image.setStorageProvider("gcp");
-        image.setStorageContainer("bucket");
-        image.setObjectName("ota/" + manufacturer.getName() + "/" + FILE_NAME);
-        image.setContentLength(1024L);
-        image.setChecksumAlgorithm(CHECKSUM.algorithm());
-        image.setChecksum(CHECKSUM.value());
-        image.setProviderObjectVersion("17");
-        image = images.saveAndFlush(image);
-
-        location = new ObjectStorageLocation("gcp", "bucket", image.getObjectName());
         when(storage.getActiveService()).thenReturn(provider);
         when(storage.getService("gcp")).thenReturn(provider);
         when(provider.providerName()).thenReturn("gcp");
-        when(provider.getLocation(image.getObjectName())).thenReturn(location);
-        when(provider.getObjectMetadata(location, "CRC32C"))
-                .thenReturn(Optional.of(new StoredObjectMetadata(1024L, CHECKSUM, "17")));
+        image = saveImage(FILE_NAME);
+        location = new ObjectStorageLocation("gcp", "bucket", image.getObjectName());
     }
 
     @AfterEach
     void cleanUp() {
         images.findById(image.getId()).ifPresent(images::delete);
+        extraImages.forEach(extra -> images.findById(extra.getId()).ifPresent(images::delete));
         manufacturers.deleteById(manufacturer.getId());
     }
 
@@ -130,6 +123,88 @@ class ObuFirmwareTransactionTest {
                 .isInstanceOf(ObjectStorageUnavailableException.class);
 
         assertThat(images.findById(image.getId())).isPresent();
+    }
+
+    @Test
+    void concurrentPublicationsOfOneBuildLeaveExactlyOnePublished() throws Exception {
+        var next = saveImage(NEXT_RELEASE);
+        extraImages.add(next);
+        createPublishedBuildIndex();
+        try {
+            var start = new CountDownLatch(1);
+            try (var executor = Executors.newFixedThreadPool(2)) {
+                var first = executor.submit(() -> {
+                    await(start);
+                    return publication.setPublished(image.getId(), true, "first");
+                });
+                var second = executor.submit(() -> {
+                    await(start);
+                    return publication.setPublished(next.getId(), true, "second");
+                });
+                start.countDown();
+                var results = List.of(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS));
+
+                // The manufacturer lock serializes them, so the later one replaces the earlier
+                assertThat(results).filteredOn(result -> !result.replaced().isEmpty()).hasSize(1);
+            }
+            var published = images.findAll().stream()
+                    .filter(candidate -> candidate.getManufacturer().getId().equals(manufacturer.getId()))
+                    .filter(candidate -> Boolean.TRUE.equals(candidate.getPublished()))
+                    .toList();
+            assertThat(published).hasSize(1);
+        } finally {
+            dropPublishedBuildIndex();
+        }
+    }
+
+    @Test
+    void theDatabaseAllowsOnePublishedReleasePerBuild() {
+        var next = saveImage(NEXT_RELEASE);
+        extraImages.add(next);
+        createPublishedBuildIndex();
+        try {
+            publication.setPublished(image.getId(), true, "admin");
+            next.setPublished(true);
+
+            assertThatThrownBy(() -> images.saveAndFlush(next)).isInstanceOf(DataIntegrityViolationException.class);
+        } finally {
+            dropPublishedBuildIndex();
+        }
+    }
+
+    private ObuFirmwareImage saveImage(String fileName) {
+        var saved = new ObuFirmwareImage();
+        saved.setManufacturer(manufacturer);
+        saved.setFileName(fileName);
+        saved.setMetadata(new CommsigniaObuFirmwareFileNameParser().parse(fileName).orElseThrow());
+        saved.setStorageProvider("gcp");
+        saved.setStorageContainer("bucket");
+        saved.setObjectName("ota/" + manufacturer.getName() + "/" + fileName);
+        saved.setContentLength(1024L);
+        saved.setChecksumAlgorithm(CHECKSUM.algorithm());
+        saved.setChecksum(CHECKSUM.value());
+        saved.setProviderObjectVersion("17");
+        saved = images.saveAndFlush(saved);
+
+        var savedLocation = new ObjectStorageLocation("gcp", "bucket", saved.getObjectName());
+        when(provider.getLocation(saved.getObjectName())).thenReturn(savedLocation);
+        when(provider.getObjectMetadata(savedLocation, "CRC32C"))
+                .thenReturn(Optional.of(new StoredObjectMetadata(1024L, CHECKSUM, "17")));
+        return saved;
+    }
+
+    /** Integration tests build the schema from entities, so add the migration's index here. */
+    private void createPublishedBuildIndex() {
+        jdbc.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_obu_firmware_images_published_build
+                    ON obu_firmware_images (manufacturer, device_type, variant, writable_system_partition, secure_boot)
+                    NULLS NOT DISTINCT
+                    WHERE published
+                """);
+    }
+
+    private void dropPublishedBuildIndex() {
+        jdbc.execute("DROP INDEX IF EXISTS uq_obu_firmware_images_published_build");
     }
 
     private static void await(CountDownLatch latch) {
