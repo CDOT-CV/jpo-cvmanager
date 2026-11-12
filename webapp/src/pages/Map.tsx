@@ -54,6 +54,7 @@ import {
   selectAddConfigPoint,
   updateConfigPoints,
   geoRsuQuery,
+  notifyGeoRsuQueryResult,
   clearConfig,
   clearFirmware,
 } from '../generalSlices/configSlice'
@@ -1190,13 +1191,7 @@ function MapPage() {
                       }}
                       disabled={!(configCoordinates.length > 2)}
                       onClick={() => {
-                        dispatch(geoRsuQuery(selectedVendor)).then((result) => {
-                          if (geoRsuQuery.rejected.match(result)) {
-                            toast.error((result.payload as string) || 'Failed to query RSUs in the selected area')
-                          } else if ((result.payload?.body ?? []).length === 0) {
-                            toast.error('No RSUs owned by your organization were found in the selected area')
-                          }
-                        })
+                        void dispatch(geoRsuQuery(selectedVendor)).then(notifyGeoRsuQueryResult)
                       }}
                       className="museo-slab capital-case"
                     >

@@ -7,6 +7,7 @@ import reducer, {
   checkFirmwareUpgrade,
   startFirmwareUpgrade,
   geoRsuQuery,
+  notifyGeoRsuQueryResult,
 
   // reducers
   setDestIp,
@@ -14,6 +15,7 @@ import reducer, {
   toggleConfigPointSelect,
 } from './configSlice'
 import RsuApi from '../apis/rsu-api'
+import toast from 'react-hot-toast'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import { RootState } from '../store'
@@ -1126,5 +1128,40 @@ describe('reducers', () => {
       ...initialState,
       value: { ...initialState.value, addConfigPoint: !addConfigPoint },
     })
+  })
+})
+
+describe('notifyGeoRsuQueryResult', () => {
+  const fulfilled = (body?: string[]) => geoRsuQuery.fulfilled({ status: 200, body } as any, 'req', 'vendor')
+  let toastError: jest.SpyInstance
+
+  beforeEach(() => {
+    toastError = jest.spyOn(toast, 'error').mockReturnValue('id')
+  })
+
+  afterEach(() => {
+    toastError.mockRestore()
+  })
+
+  it('shows the rejection message when the query fails', () => {
+    notifyGeoRsuQueryResult(geoRsuQuery.rejected(null, 'req', 'vendor', 'Failed to verify RSU ownership'))
+    expect(toastError).toHaveBeenCalledWith('Failed to verify RSU ownership')
+  })
+
+  it('falls back to a generic message when the rejection has no payload', () => {
+    notifyGeoRsuQueryResult(geoRsuQuery.rejected(null, 'req', 'vendor'))
+    expect(toastError).toHaveBeenCalledWith('Failed to query RSUs in the selected area')
+  })
+
+  it('warns when no owned RSUs were found in the area', () => {
+    notifyGeoRsuQueryResult(fulfilled([]))
+    notifyGeoRsuQueryResult(fulfilled(undefined))
+    expect(toastError).toHaveBeenCalledTimes(2)
+    expect(toastError).toHaveBeenCalledWith('No RSUs owned by your organization were found in the selected area')
+  })
+
+  it('stays quiet when owned RSUs were selected', () => {
+    notifyGeoRsuQueryResult(fulfilled(['10.0.0.1']))
+    expect(toastError).not.toHaveBeenCalled()
   })
 })

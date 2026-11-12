@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
+import toast from 'react-hot-toast'
 import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
@@ -332,6 +333,17 @@ export const geoRsuQuery = createAsyncThunk(
     },
   }
 )
+
+// Tell the user when the area query selected nothing they are allowed to configure
+export const notifyGeoRsuQueryResult = (
+  result: ReturnType<typeof geoRsuQuery.fulfilled | typeof geoRsuQuery.rejected>
+) => {
+  if (geoRsuQuery.rejected.match(result)) {
+    toast.error((result.payload as string) || 'Failed to query RSUs in the selected area')
+  } else if ((result.payload?.body ?? []).length === 0) {
+    toast.error('No RSUs owned by your organization were found in the selected area')
+  }
+}
 
 export const configSlice = createSlice({
   name: 'config',
