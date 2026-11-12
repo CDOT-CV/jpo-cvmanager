@@ -44,6 +44,21 @@ class SnmpConfigTest {
         });
     }
 
+    @Test
+    void configuredTaskPoliciesOverrideAllFiveMutableDefaults() throws IOException {
+        context().withPropertyValues("snmp.queue-timeout=15s", "snmp.execution-timeout=90s",
+                "SNMP_REQUEST_TIMEOUT=8s", "snmp.read-retries=2", "snmp.rediscover-on-timeout=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    var options = context.getBean(SnmpProperties.class).taskOptions();
+                    assertThat(options.queueTimeout()).isEqualTo(Duration.ofSeconds(15));
+                    assertThat(options.executionTimeout()).isEqualTo(Duration.ofSeconds(90));
+                    assertThat(options.requestPolicy().requestTimeout()).isEqualTo(Duration.ofSeconds(8));
+                    assertThat(options.requestPolicy().readRetries()).isEqualTo(2);
+                    assertThat(options.requestPolicy().rediscoverOnTimeout()).isFalse();
+                });
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"0s", "-1s", "25h", "not-a-duration"})
     void invalidDeploymentTimeoutPreventsStartup(String timeout) throws IOException {
