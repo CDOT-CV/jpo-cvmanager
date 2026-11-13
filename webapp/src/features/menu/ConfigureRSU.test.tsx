@@ -195,13 +195,16 @@ it('shows the Intersection API ProblemDetail when message counts fail', () => {
 
 const ORG = 'Owner Org'
 
-const renderMultiRsu = (owners: Record<string, string>, isFetching = false,
+const renderMultiRsu = (
+  owners: Record<string, string>,
+  isFetching = false,
   { superUser = false, isError = false }: { superUser?: boolean; isError?: boolean } = {}
 ) => {
   vi.mocked(useGetAllRsusQuery).mockReturnValue({
-    currentData: isFetching || isError
-      ? undefined
-      : { content: Object.entries(owners).map(([ip, owner_organization]) => ({ ip, owner_organization })) },
+    currentData:
+      isFetching || isError
+        ? undefined
+        : { content: Object.entries(owners).map(([ip, owner_organization]) => ({ ip, owner_organization })) },
     isFetching,
     isError,
   } as any)

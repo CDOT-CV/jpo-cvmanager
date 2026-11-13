@@ -99,6 +99,7 @@ const ConfigureRSU = () => {
   )
   const singleOwnershipLoading = !isSuperUser && singleOwnershipFetching
   const multiOwnershipLoading = !isSuperUser && multiOwnershipFetching
+  const multiOwnershipFailed = !isSuperUser && multiOwnershipError
 
   const singleRsuIsOwnerOrg = isSuperUser || (!!rsuDetail && rsuDetail.owner_organization === organization)
   const multiRsuIsOwnerOrg =
@@ -295,7 +296,7 @@ const ConfigureRSU = () => {
                 <Typography>Message Forwarding</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <ConfigMenu loading={multiOwnershipLoading} error={!isSuperUser && multiOwnershipError}>
+                <ConfigMenu loading={multiOwnershipLoading} error={multiOwnershipFailed}>
                   <SnmpsetMenu
                     type="multi_rsu"
                     rsuIpList={selectedConfigList}
@@ -315,7 +316,7 @@ const ConfigureRSU = () => {
                 <Typography>Firmware</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <ConfigMenu loading={multiOwnershipLoading} error={!isSuperUser && multiOwnershipError}>
+                <ConfigMenu loading={multiOwnershipLoading} error={multiOwnershipFailed}>
                   <RsuFirmwareMenu
                     type="multi_rsu"
                     rsuIpList={selectedConfigList}
