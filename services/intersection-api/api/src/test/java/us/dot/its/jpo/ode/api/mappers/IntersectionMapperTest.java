@@ -13,8 +13,8 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -72,7 +72,7 @@ class IntersectionMapperTest {
             entity.setIntersectionName("Main St & 1st Ave");
             entity.setRefPt(testFixtures.createPoint(-104.9903, 39.7392));
             entity.setBbox(testFixtures.createBBox(39.73, -105.00, 39.74, -104.99));
-            entity.setOriginIp(InetAddress.getByName("192.168.1.1"));
+            entity.setOriginIp(RsuManagementService.toIpv4Address("192.168.1.1"));
             entity.setIntersectionOrganizations(List.of(orgEntry("CDOT"), orgEntry("Denver")));
 
             IntersectionDto result = mapper.toDto(entity);
@@ -176,7 +176,7 @@ class IntersectionMapperTest {
         void toDto_originIp_serializedToString() throws UnknownHostException {
             Intersection entity = new Intersection();
             entity.setIntersectionNumber("12109");
-            entity.setOriginIp(InetAddress.getByName("10.0.0.1"));
+            entity.setOriginIp(RsuManagementService.toIpv4Address("10.0.0.1"));
 
             IntersectionDto result = mapper.toDto(entity);
 

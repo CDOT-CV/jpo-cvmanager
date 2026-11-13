@@ -8,7 +8,8 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.*;
-import java.net.InetAddress;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
+
 import java.net.UnknownHostException;
 
 public class TestFixtures {
@@ -91,7 +92,7 @@ public class TestFixtures {
     public Rsu createRsu(String ip, RsuModel model, RsuCredential cred, SnmpCredential snmpCred, SnmpProtocol proto)
             throws UnknownHostException {
         Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(ip));
+        rsu.setIpv4Address(RsuManagementService.toIpv4Address(ip));
         rsu.setGeography(createPoint(-105.0, 40.0));
         rsu.setMilepost(faker.number().randomDouble(2, 0, 1000));
         rsu.setSerialNumber("SN-" + faker.crypto().md5().substring(0, 8));

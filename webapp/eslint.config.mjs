@@ -9,6 +9,17 @@ export default tseslint.config(
   { ignores: ['build/**'] },
   {
     rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@mui/icons-material',
+              message: 'Import icons from @mui/icons-material/<Icon> to avoid loading the full icon library in tests.',
+            },
+          ],
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'off',
       'no-empty-pattern': 'off',
     },

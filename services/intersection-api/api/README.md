@@ -222,7 +222,8 @@ also available through this API and the Firmware tab.
   the required suffix in `manufacturers.firmware_file_extension`; the selected
   file must match it. Only one active/verified upload is allowed per model/version,
   and existing objects are never overwritten. The `ota/` directory is reserved
-  for OBU firmware and excluded from this feature.
+  for OBU firmware (see [OBU Firmware Management](#obu-firmware-management)) and
+  excluded from this feature, and `ota` cannot be used as an RSU vendor name.
 - New upgrade rules connect different versions of the same model and must target
   a verified, unchanged cloud file. Each source can have only one destination.
   Legacy rules remain usable, and legacy firmware can be a source. Resolve any
@@ -238,3 +239,106 @@ also available through this API and the Firmware tab.
   and upload again. Use **Clean Up Records** for entries marked **Missing file**.
   Automatic cleanup expires stale uploads and removes old failed/expired records;
   it does not delete cloud files or verified firmware.
+
+## OBU Firmware Management
+
+OBU firmware is uploaded through the same signed-URL flow as RSU firmware and is
+stored in the same bucket, beneath the reserved `ota/` directory. It is cataloged
+separately from RSU firmware, in the `obu_firmware_uploads` and
+`obu_firmware_images` tables, because the OBU OTA server serves it by file name
+instead of by RSU model and version. Routes are under `/admin/obu-firmware` and
+require an authenticated admin or superuser.
+
+### File names
+
+OBUs choose firmware from the OTA server's manifest by file name, so uploads keep
+the vendor's original file name. The API reads the device type, variant, release
+version, and partition and secure-boot flags from the name. Commsignia names
+follow `<variant>-<rw|ro>[-secureboot]-<release>.tar.sig`, for example
+`ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig`, where the variant is
+`ob4-generic` or `rs4-generic` with an optional suffix. Names are limited to 128
+characters. This parsing must match the OBU OTA server's
+`commsignia_manifest.parse_firmware_name`; both test suites share the same cases.
+
+A manufacturer can receive OBU firmware uploads only when it exists in the
+`manufacturers` table and the API has a naming convention for it. Commsignia is
+currently the only supported manufacturer.
+
+Files are stored as `ota/<manufacturer>/<file name>`. A file name can be used
+once per manufacturer, and existing objects are never overwritten.
+
+### Serving uploads with the OBU OTA server
+
+The OBU OTA server does not serve firmware uploaded through this API yet. It
+offers every file in its configured storage folder, including uploads that are
+not verified or published, so **do not set `OBU_OTA_BLOB_STORAGE_PATH` to `ota/`
+or a folder beneath it**. A later change makes the OTA server serve only
+published catalog entries, and uploaded firmware should be served only after
+that change is deployed. Until then, deployments keep serving their existing
+firmware folder, and uploads through this API do not reach OBUs.
+
+### Upload flow
+
+1. Get the supported manufacturers from `GET /upload-options`. Each option lists
+   the file extension, the maximum name length, an example name, and
+   `file_name_pattern`, a JavaScript-compatible regular expression clients can use
+   to check a name before uploading. The API remains the authority on whether a
+   name is accepted.
+2. Request `POST /signed-upload-url` with `manufacturer_name`, `file_name`,
+   `content_length`, `checksum_algorithm`, `checksum`, and optionally
+   `content_type` (default `application/octet-stream`). Upload the file to the
+   returned URL using its method and required headers.
+3. Call `POST /uploads/{uploadId}/complete` to verify the size and checksum. A
+   verified upload is added to the OBU firmware catalog **unpublished**, and the
+   response includes its `obu_firmware_id`. Completion can be retried with the
+   same upload ID.
+
+Abandoned and failed OBU uploads are expired and purged by the same cleanup task
+and settings as RSU uploads. An unfinished upload reserves its file name until its
+signed URL expires plus `FIRMWARE_UPLOAD_EXPIRATION_GRACE`; a new upload request
+after that point expires it immediately instead of waiting for the next cleanup
+run. A file that reached storage but was never completed must be deleted from the
+OBU firmware list before the same name can be uploaded again.
+
+## OBU OTA Request History
+
+The OBU OTA server (`services/addons/images/obu_ota_server`) records every OBU
+firmware download attempt in the PostgreSQL `obu_ota_requests` table. The API
+exposes that history read-only at `GET /admin/obu-ota-requests` for admins and
+superusers. Requests are not tied to an organization, so admins of any
+organization can view the full history.
+
+Query parameters (all optional):
+
+<!-- prettier-ignore -->
+| Parameter | Description |
+| --- | --- |
+| `page`, `size` | Zero-based page number and page size (1-200, default 100) |
+| `serial` | Case-insensitive substring of the OBU serial number |
+| `manufacturer` | Manufacturer name (case-insensitive exact match) |
+| `status` | `success` or `error` |
+| `start`, `end` | Inclusive ISO-8601 instants, for example `2026-06-01T00:00:00Z` |
+| `sort` | `request_datetime`, `obu_sn`, `obu_firmware_version`, or `requested_firmware_version`, followed by `,asc` or `,desc` (default `request_datetime,desc`) |
+
+The response contains `items` and `total_elements`. Each item includes the
+request ID, OBU serial number, UTC request time, origin IP, the OBU's current
+firmware version, the requested firmware file, `status`, error message, and
+manufacturer name. The OTA server keeps only the newest `MAX_COUNT` successful
+requests per serial number.
+
+## RSU reboot
+
+- Supports Commsignia RSUs only.
+- Send `POST /devices/rsus/reboot/{rsuIp}` with the RSU's IPv4 address.
+- Requires operator access in the organization that owns the RSU's SSH credentials, or superuser access.
+- Uses SSH credentials stored in PostgreSQL. Non-root accounts need sudo access with the same password.
+- Returns `202` with a `requestId` and `status: ACCEPTED`. The command runs in the background; acceptance does not confirm a reboot.
+- Check logs using the request ID or RSU IP. A disconnect or `UNKNOWN` outcome does not confirm a restart. Check the device before retrying.
+- Commands are never retried automatically. Pending requests are not saved across API restarts.
+
+### Limits and SSH settings
+
+- Each API instance runs up to four commands at once, with no waiting queue. A request for a busy RSU returns `409`; full capacity returns `503`.
+- `RSU_REBOOT_CONCURRENCY` sets the command limit (default: `4`, range: 1?32).
+- `RSU_REBOOT_TIMEOUT` limits SSH setup and command execution (default: `60s`, range: 1?120 seconds). It does not wait for the RSU to restart.
+- Unknown or changed SSH host keys are accepted. No `known_hosts` file is required; SSH server identity is not verified.
