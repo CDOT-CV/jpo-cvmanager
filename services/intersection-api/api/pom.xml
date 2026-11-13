@@ -447,6 +447,13 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<dependency>
+				<groupId>org.apache.tika</groupId>
+				<artifactId>tika-core</artifactId>
+				<!-- CVE-2025-66516: postmark 1.13.0 (latest) still pulls tika-core 2.9.4.
+				     Remove this pin once postmark depends on tika-core >= 3.2.2. -->
+				<version>3.3.3</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<repositories>

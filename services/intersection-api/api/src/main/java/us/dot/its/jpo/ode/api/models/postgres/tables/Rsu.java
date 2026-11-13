@@ -23,7 +23,7 @@ public class Rsu {
     @Column(name = "rsu_id", nullable = false)
     private Integer id;
 
-    @Column(name = "geography", columnDefinition = "geography not null")
+    @Column(name = "geography", columnDefinition = "geography(Point,4326) not null")
     private Point geography;
 
     @NotNull

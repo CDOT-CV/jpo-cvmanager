@@ -1,4 +1,3 @@
-import PerfectScrollbar from 'react-perfect-scrollbar'
 import PropTypes from 'prop-types'
 import { format } from 'date-fns'
 import {
@@ -27,8 +26,8 @@ export const EventListResults = ({ events, eventsCount, onPageChange, onRowsPerP
 
   return (
     <Card sx={{ py: 0 }}>
-      <PerfectScrollbar>
-        <Box sx={{ minWidth: 1050, overflowX: 'auto' }}>
+      <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
+        <Box sx={{ minWidth: 1050 }}>
           <Table>
             <TableHead
               sx={{
@@ -79,7 +78,7 @@ export const EventListResults = ({ events, eventsCount, onPageChange, onRowsPerP
             </TableBody>
           </Table>
         </Box>
-      </PerfectScrollbar>
+      </Box>
       <TablePagination
         component="div"
         count={eventsCount}
