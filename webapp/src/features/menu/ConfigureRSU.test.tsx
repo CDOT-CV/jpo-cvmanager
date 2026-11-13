@@ -11,7 +11,9 @@ import { useGetRsuCountsByIpQuery } from '../api/rsuCountsApiSlice'
 import { useGetAllRsusQuery } from '../api/rsuApiSlice'
 
 vi.mock('../../components/SnmpwalkMenu', () => ({ default: () => null }))
-vi.mock('../../components/RsuRebootMenu', () => ({ default: () => null }))
+vi.mock('../../components/RsuRebootMenu', () => ({
+  default: ({ isOwnerOrg }: any) => <div data-testid="reboot">{`owner=${isOwnerOrg}`}</div>,
+}))
 // Surface the ownership props each multi-RSU menu receives
 vi.mock('../../components/SnmpsetMenu', () => ({
   default: ({ isOwnerOrg, ownerOrganization }: any) => (
@@ -129,6 +131,33 @@ it.each(['Commsignia', 'COMMSIGNIA', 'Kapsch', 'Yunex', undefined])(
     expect(screen.getByRole('button', { name: 'Firmware' })).toBeInTheDocument()
   }
 )
+
+it('lets a super user reboot a Commsignia RSU owned by another organization without an ownership lookup', () => {
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider
+        store={setupStore({
+          user: { value: { authLoginData: { data: { super_user: true } }, organization: { name: 'Some Other Org' } } },
+          rsu: {
+            value: {
+              selectedRsu: {
+                ...selectedRsu,
+                properties: { ...selectedRsu.properties, manufacturer_name: 'Commsignia' },
+              },
+            },
+          },
+        })}
+      >
+        <ConfigureRSU />
+      </Provider>
+    </ThemeProvider>
+  )
+
+  expect(screen.getByTestId('reboot')).toHaveTextContent('owner=true')
+  expect(screen.queryByLabelText('Checking RSU ownership')).not.toBeInTheDocument()
+  expect(screen.queryByText('Failed to verify RSU ownership. Please try again.')).not.toBeInTheDocument()
+})
 
 it('shows counts for all configured message types, not just the selected type', () => {
   mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))

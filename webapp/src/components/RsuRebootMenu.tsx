@@ -13,6 +13,7 @@ import {
 } from '../generalSlices/configSlice'
 
 import { selectRsuIpv4 } from '../generalSlices/rsuSlice'
+import { selectIsSuperUser } from '../generalSlices/userSlice'
 
 import './css/SnmpwalkMenu.css'
 import { Alert, Button, Typography, useTheme } from '@mui/material'
@@ -31,8 +32,9 @@ const RsuRebootMenu = ({ isOwnerOrg = true, ownerOrganization }: RsuRebootMenuPr
   const requestedIp = useSelector(selectRebootRequestedIp)
 
   const rsuIp = useSelector(selectRsuIpv4)
+  const isSuperUser = useSelector(selectIsSuperUser)
 
-  if (!isOwnerOrg) {
+  if (!isOwnerOrg && !isSuperUser) {
     return (
       <Alert severity="info">
         {ownerOrganization

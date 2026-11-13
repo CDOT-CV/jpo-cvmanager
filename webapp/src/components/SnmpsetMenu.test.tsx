@@ -29,3 +29,19 @@ it('shows the owner-only notice instead of the SNMP set form for a viewer organi
   expect(screen.getByRole('alert')).toHaveTextContent('This RSU is owned by "Owner Org"')
   expect(screen.queryByRole('button')).not.toBeInTheDocument()
 })
+
+it('shows the SNMP set form to a super user even when another organization owns the RSU', () => {
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider
+        store={setupStore({
+          user: { value: { authLoginData: { data: { super_user: true } }, organization: { name: 'Some Other Org' } } },
+        })}
+      >
+        <SnmpsetMenu type="single_rsu" rsuIpList={['192.0.2.10']} isOwnerOrg={false} ownerOrganization="Owner Org" />
+      </Provider>
+    </ThemeProvider>
+  )
+  expect(screen.queryByText(/Only the owner organization can perform this action/)).not.toBeInTheDocument()
+  expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
+})

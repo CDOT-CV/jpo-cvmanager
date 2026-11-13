@@ -15,6 +15,7 @@ import {
 
 import { RootState } from '../store'
 
+import { selectIsSuperUser } from '../generalSlices/userSlice'
 import './css/SnmpwalkMenu.css'
 import toast from 'react-hot-toast'
 import {
@@ -47,8 +48,9 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const destIp = useSelector(selectDestIp)
   const snmpMsgType = useSelector(selectSnmpMsgType)
+  const isSuperUser = useSelector(selectIsSuperUser)
 
-  if (!isOwnerOrg) {
+  if (!isOwnerOrg && !isSuperUser) {
     const prefix = type === 'single_rsu' ? 'This RSU is owned by' : 'Some selected RSUs are owned by'
     return (
       <Alert severity="info">

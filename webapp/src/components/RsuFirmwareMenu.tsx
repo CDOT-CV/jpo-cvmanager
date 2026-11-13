@@ -13,6 +13,7 @@ import {
   startFirmwareUpgrade,
 } from '../generalSlices/configSlice'
 
+import { selectIsSuperUser } from '../generalSlices/userSlice'
 import './css/SnmpwalkMenu.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
@@ -33,6 +34,7 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
   const firmwareUpgradeName = useSelector(selectFirmwareUpgradeName)
   const firmwareUpgradeMsg = useSelector(selectFirmwareUpgradeMsg)
   const firmwareUpgradeErr = useSelector(selectFirmwareUpgradeErr)
+  const isSuperUser = useSelector(selectIsSuperUser)
 
   const options = {
     title: 'RSU Firmware Upgrade',
@@ -58,7 +60,7 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
     onKeypressEscape: () => {},
   }
 
-  if (props.isOwnerOrg === false) {
+  if (props.isOwnerOrg === false && !isSuperUser) {
     return (
       <Alert severity="info">
         {props.ownerOrganization
