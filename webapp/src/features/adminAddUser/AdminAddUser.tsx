@@ -1,40 +1,42 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
 
-import '../adminRsuTab/Admin.css'
-import 'react-widgets/styles.css'
-import '../../styles/fonts/museo-slab.css'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
+import {
+    Box,
+    Button,
+    Card,
+    CircularProgress,
+    DialogActions,
+    DialogContent,
+    FormControl,
+    IconButton,
+    InputLabel,
+    MenuItem,
+    Select,
+    TextField,
+    Typography,
+} from '@mui/material'
+import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
-import Dialog from '@mui/material/Dialog'
-import {
-  Button,
-  DialogActions,
-  DialogContent,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  TextField,
-  Select,
-  Typography,
-  Box,
-  IconButton,
-  Card,
-  CircularProgress,
-} from '@mui/material'
+import 'react-widgets/styles.css'
+import { selectSuperUser } from '../../generalSlices/userSlice'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import { selectSuperUser } from '../../generalSlices/userSlice'
-import DeleteIcon from '@mui/icons-material/Delete'
-import AddIcon from '@mui/icons-material/Add'
+import '../../styles/fonts/museo-slab.css'
+import '../adminRsuTab/Admin.css'
 import { useCreateUserMutation, useGetUserAllowedSelectionsQuery } from '../api/userApiSlice'
 
 const AdminAddUser = () => {
   const navigate = useNavigate()
   const isSuperUser = useSelector(selectSuperUser)
-  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganization[]>([])
+  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganization[]>([
+    { organization: '', role: 'USER' },
+  ])
   const [submitAttempt, setSubmitAttempt] = useState(false)
   const [open, setOpen] = useState(true)
 
@@ -52,13 +54,6 @@ const AdminAddUser = () => {
       super_user: false,
     },
   })
-
-  // Initialize with one empty organization on mount
-  useEffect(() => {
-    if (selectedOrganizations.length === 0 && !isLoadingData) {
-      setSelectedOrganizations([{ organization: '', role: 'USER' }])
-    }
-  }, [isLoadingData])
 
   const handleClose = () => {
     setOpen(false)

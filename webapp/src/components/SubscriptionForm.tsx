@@ -77,6 +77,8 @@ const SubscriptionForm = ({
     })
     setSubscriptions(initial)
     setPrevSubscriptions(initial)
+    // Only synchronize incoming data; clearing the dirty flag after saving must not reload stale props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSubscriptions])
 
   const handleFrequencyToggle = (
@@ -106,7 +108,7 @@ const SubscriptionForm = ({
       setTimeout(() => {
         setSuccess(false)
       }, 3000)
-    } catch (err) {
+    } catch (_) {
       setError('Failed to save subscription preferences. Please try again.')
     } finally {
       setSaving(false)
