@@ -24,10 +24,13 @@ import us.dot.its.jpo.ode.api.storage.ObuFirmwareStorageLayout;
 @RequiredArgsConstructor
 public class ObuFirmwareDeletionService {
     static final String UNPUBLISH_FIRST_MESSAGE = "Unpublish this firmware before deleting it.";
+    static final String NOT_MANAGED_MESSAGE = "This file is not managed by CV Manager. Only OBU firmware in a "
+            + "manufacturer folder beneath ota/ can be deleted here.";
 
     private final ObjectStorageServiceRegistry storage;
     private final ObuFirmwareUploadRepository uploads;
     private final ObuFirmwareImageRepository images;
+    private final ObuFirmwareParserRegistry parsers;
 
     @Transactional
     public void delete(String objectId, String providerObjectVersion) {
@@ -68,6 +71,11 @@ public class ObuFirmwareDeletionService {
             throw new ObuFirmwareConflictException(liveUploadUrl.get());
         }
         var registered = images.findDestinationForUpdate(location.provider(), location.container(), objectName);
+        if (records.isEmpty() && registered.isEmpty() && !parsers.isUploadFolder(objectName)) {
+            // Files outside the upload folders belong to other services, such as the
+            // firmware folder an OBU OTA server serves directly
+            throw new IllegalArgumentException(NOT_MANAGED_MESSAGE);
+        }
         requireUnpublished(registered);
         // Recovery never deletes a cloud object. A file that reappeared must be
         // listed and explicitly confirmed with its current version first.

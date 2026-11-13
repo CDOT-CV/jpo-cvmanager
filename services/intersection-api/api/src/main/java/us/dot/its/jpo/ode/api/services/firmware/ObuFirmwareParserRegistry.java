@@ -39,6 +39,15 @@ public class ObuFirmwareParserRegistry {
                 : Optional.ofNullable(parsers.get(normalize(manufacturerName)));
     }
 
+    /**
+     * Whether an object is in a folder CV Manager uploads OBU firmware to:
+     * {@code ota/<manufacturer>/<file name>} for a manufacturer with a naming
+     * convention. Other objects beneath {@code ota/} belong to other services.
+     */
+    public boolean isUploadFolder(String objectName) {
+        return ObuFirmwareStorageLayout.manufacturerFolder(objectName).flatMap(this::find).isPresent();
+    }
+
     private static String normalize(String name) {
         return name.trim().toLowerCase(Locale.ROOT);
     }

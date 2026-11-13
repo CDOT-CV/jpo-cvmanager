@@ -36,7 +36,8 @@ class ObuFirmwareDeletionServiceTest {
     private final ObjectStorageService storage = mock(ObjectStorageService.class);
     private final ObuFirmwareUploadRepository uploads = mock(ObuFirmwareUploadRepository.class);
     private final ObuFirmwareImageRepository images = mock(ObuFirmwareImageRepository.class);
-    private final ObuFirmwareDeletionService service = new ObuFirmwareDeletionService(registry, uploads, images);
+    private final ObuFirmwareDeletionService service = new ObuFirmwareDeletionService(registry, uploads, images,
+            new ObuFirmwareParserRegistry(List.of(new CommsigniaObuFirmwareFileNameParser())));
 
     @BeforeEach
     void setUp() {
@@ -133,6 +134,40 @@ class ObuFirmwareDeletionServiceTest {
         local.setPublished(true);
         assertThatThrownBy(() -> service.cleanupMissingObject(localId))
                 .isInstanceOf(ObuFirmwareConflictException.class);
+    }
+
+    @Test
+    void refusesFilesOutsideTheUploadFoldersThatHaveNoRecords() {
+        // For example the firmware folder an OBU OTA server serves directly
+        for (String name : List.of("ota/firmwares/ob4-generic-ro-y20.48.2.tar.sig",
+                "ota/Commsignia/nested/ob4-generic-ro-y20.48.2.tar.sig", "ota/ob4-generic-ro-y20.48.2.tar.sig")) {
+            when(storage.getLocation(name)).thenReturn(new ObjectStorageLocation("gcp", "bucket", name));
+            when(uploads.findDestinationForUpdate("gcp", "bucket", name)).thenReturn(List.of());
+            when(images.findDestinationForUpdate("gcp", "bucket", name)).thenReturn(List.of());
+
+            assertThatThrownBy(() -> service.delete(ObjectIds.encode("gcp", name), "17"))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("not managed by CV Manager");
+            assertThatThrownBy(() -> service.cleanupMissingObject(ObjectIds.encode("gcp", name)))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("not managed by CV Manager");
+        }
+        verify(storage, never()).deleteObject(any(), any());
+        verify(images, never()).deleteAll(any());
+    }
+
+    @Test
+    void deletesRecordedFilesOutsideTheUploadFolders() {
+        // Records outlive a renamed manufacturer, so their files stay deletable
+        String name = "ota/Renamed/ob4-generic-ro-y20.48.2.tar.sig";
+        var location = new ObjectStorageLocation("gcp", "bucket", name);
+        var image = image(false);
+        when(storage.getLocation(name)).thenReturn(location);
+        when(uploads.findDestinationForUpdate("gcp", "bucket", name)).thenReturn(List.of());
+        when(images.findDestinationForUpdate("gcp", "bucket", name)).thenReturn(List.of(image));
+
+        service.delete(ObjectIds.encode("gcp", name), "17");
+
+        verify(images).deleteAll(List.of(image));
+        verify(storage).deleteObject(location, "17");
     }
 
     @Test

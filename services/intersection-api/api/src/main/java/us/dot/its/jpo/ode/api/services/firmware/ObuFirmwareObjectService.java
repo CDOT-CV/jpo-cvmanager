@@ -34,7 +34,8 @@ import us.dot.its.jpo.ode.api.storage.ObuFirmwareStorageLayout;
 
 /**
  * Lists OBU firmware by merging the catalog, the latest upload for each file, and
- * the files beneath {@code ota/} in object storage.
+ * the files in its upload folders, {@code ota/<manufacturer>/}, in object storage.
+ * Other objects beneath {@code ota/} belong to other services and are not listed.
  */
 @Slf4j
 @Service
@@ -48,7 +49,7 @@ public class ObuFirmwareObjectService {
     public static final String MISSING = "MISSING";
     /** A file whose upload has not been verified. */
     public static final String UNVERIFIED = "UNVERIFIED";
-    /** A file beneath {@code ota/} with no catalog entry or upload record. */
+    /** A file in an upload folder with no catalog entry or upload record. */
     public static final String UNTRACKED = "UNTRACKED";
     /** A catalog entry for a file on the OBU OTA server's local firmware folder. */
     public static final String LOCAL = "LOCAL";
@@ -141,6 +142,10 @@ public class ObuFirmwareObjectService {
             listed.add(name);
             var image = cloudImages.get(name);
             var upload = latestUploads.get(name);
+            if (image == null && upload == null && !parsers.isUploadFolder(name)) {
+                // Not written by CV Manager, such as a folder the OBU OTA server serves directly
+                continue;
+            }
             items.add(item(page.provider(), name, object, image, upload, storedFileState(object, image, upload)));
         }
 

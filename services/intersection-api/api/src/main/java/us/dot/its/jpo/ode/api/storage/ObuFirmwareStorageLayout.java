@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.storage;
 
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Object-storage layout for OBU firmware. Every OBU firmware object is stored
@@ -27,6 +28,20 @@ public final class ObuFirmwareStorageLayout {
         }
         int separator = objectName.indexOf('/');
         return isReservedName(separator < 0 ? objectName : objectName.substring(0, separator));
+    }
+
+    /**
+     * Returns the manufacturer folder of an object named
+     * {@code ota/<manufacturer>/<file name>}, or empty for any other name beneath
+     * {@code ota/}, such as a folder another service keeps there.
+     */
+    public static Optional<String> manufacturerFolder(String objectName) {
+        if (!isObuObjectName(objectName)) {
+            return Optional.empty();
+        }
+        String[] segments = objectName.split("/", -1);
+        return segments.length == 3 && !segments[1].isEmpty() && !segments[2].isEmpty()
+                ? Optional.of(segments[1]) : Optional.empty();
     }
 
     /**
