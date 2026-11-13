@@ -99,7 +99,9 @@ export const NotificationsTable = (props: { simple: boolean }) => {
     } else {
       console.error('Did not attempt to update notifications. Intersection ID:', dbIntersectionId)
     }
-  }, [dbIntersectionId, token])
+    // Intentionally omit 'token' from the dependency array to avoid unnecessary re-fetches
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbIntersectionId])
 
   const dismissNotifications = (ids: string[]) => {
     if (dbIntersectionId) {
