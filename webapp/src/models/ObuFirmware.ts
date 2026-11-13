@@ -64,6 +64,22 @@ export type ObuFirmwareUploadOptions = {
   manufacturers: ObuFirmwareManufacturerOption[]
 }
 
+// What the API reads from a file name it would accept for upload
+export type ObuFirmwareFileNameCheck = {
+  manufacturer: string
+  file_name: string
+  device_type: ObuFirmwareDeviceType
+  variant: string
+  release_version: string
+  writable_system_partition: boolean
+  secure_boot: boolean
+}
+
+export type ObuFirmwareFileNameCheckQuery = {
+  manufacturer_name: string
+  file_name: string
+}
+
 export type ObuFirmwareUploadUrlRequest = {
   manufacturer_name: string
   file_name: string
