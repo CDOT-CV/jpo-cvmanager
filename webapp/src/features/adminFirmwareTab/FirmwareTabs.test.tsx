@@ -7,6 +7,9 @@ import FirmwareTabs from './FirmwareTabs'
 
 vi.mock('./AdminFirmwareTab', () => ({ default: () => <div>RSU firmware table</div> }))
 vi.mock('../adminObuFirmwareTab/AdminObuFirmwareTab', () => ({ default: () => <div>OBU firmware table</div> }))
+vi.mock('../adminObuOtaRequestsTab/AdminObuOtaRequestsTab', () => ({
+  default: () => <div>OBU update requests table</div>,
+}))
 
 const CurrentPath = () => <div data-testid="path">{useLocation().pathname}</div>
 
@@ -53,6 +56,19 @@ describe('Firmware tabs', () => {
     expect(screen.getByTestId('path')).toHaveTextContent('/dashboard/admin/firmware/rsu')
     expect(screen.getByText('RSU firmware table')).toBeInTheDocument()
     expect(screen.queryByText('OBU firmware table')).not.toBeInTheDocument()
+  })
+
+  it('opens OBU update requests from its URL and from its sub-tab', () => {
+    renderAt('/dashboard/admin/firmware/obu-requests')
+
+    expect(screen.getByText('OBU update requests table')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'OBU Update Requests' })).toHaveAttribute('aria-selected', 'true')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'OBU Firmware' }))
+    expect(screen.queryByText('OBU update requests table')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'OBU Update Requests' }))
+    expect(screen.getByTestId('path')).toHaveTextContent('/dashboard/admin/firmware/obu-requests')
+    expect(screen.getByText('OBU update requests table')).toBeInTheDocument()
   })
 
   it('redirects unknown firmware paths to RSU firmware', () => {

@@ -2,6 +2,7 @@ import { ReactNode } from 'react'
 import { Box, Tab, Tabs, useTheme } from '@mui/material'
 import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import AdminObuFirmwareTab from '../adminObuFirmwareTab/AdminObuFirmwareTab'
+import AdminObuOtaRequestsTab from '../adminObuOtaRequestsTab/AdminObuOtaRequestsTab'
 import AdminFirmwareTab from './AdminFirmwareTab'
 
 type FirmwareSubTab = {
@@ -10,11 +11,13 @@ type FirmwareSubTab = {
   element: ReactNode
 }
 
-// RSU and OBU firmware come from separate paged APIs with different columns and
-// actions, so each keeps its own table under a shared Firmware tab
+// RSU firmware, OBU firmware, and OBU update requests come from separate paged APIs
+// with different columns and actions, so each keeps its own table under a shared
+// Firmware tab
 const firmwareSubTabs: FirmwareSubTab[] = [
   { path: 'rsu', label: 'RSU Firmware', element: <AdminFirmwareTab /> },
   { path: 'obu', label: 'OBU Firmware', element: <AdminObuFirmwareTab /> },
+  { path: 'obu-requests', label: 'OBU Update Requests', element: <AdminObuOtaRequestsTab /> },
 ]
 const DEFAULT_SUB_TAB = firmwareSubTabs[0].path
 

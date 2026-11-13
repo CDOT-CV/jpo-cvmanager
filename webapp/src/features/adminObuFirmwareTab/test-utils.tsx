@@ -80,8 +80,8 @@ export const MockAdminTable = ({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row: any) => (
-            <tr key={row[rowKey]}>
+          {rows.map((row: any, index: number) => (
+            <tr key={row[rowKey] ?? index}>
               {columns.map((column: any) => (
                 <td key={column.title}>{column.render ? column.render(row) : row[column.field]}</td>
               ))}
