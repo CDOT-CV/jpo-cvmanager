@@ -249,30 +249,63 @@ separately from RSU firmware, in the `obu_firmware_uploads` and
 instead of by RSU model and version. Routes are under `/admin/obu-firmware` and
 require an authenticated admin or superuser.
 
+### How OBUs install firmware
+
+An RSU advertises the OTA server to nearby OBUs. An OBU requests the server's
+manifest, which lists firmware files, and installs the newest file that matches
+its own **build**. A build is the combination of manufacturer, device type,
+variant, file system (read-only or read-write), and secure boot. The OBU checks
+the signature of the file before installing it.
+
 ### File names
 
-OBUs choose firmware from the OTA server's manifest by file name, so uploads keep
-the vendor's original file name. The API reads the device type, variant, release
-version, and partition and secure-boot flags from the name. Commsignia names
-follow `<variant>-<rw|ro>[-secureboot]-<release>.tar.sig`, for example
-`ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig`, where the variant is
-`ob4-generic` or `rs4-generic` with an optional suffix. Names are limited to 128
-characters. This parsing must match the OBU OTA server's
-`commsignia_manifest.parse_firmware_name`; both test suites share the same cases.
+OBUs choose firmware from the manifest by file name, so uploads keep the
+manufacturer's original file name. Each manufacturer has its own naming
+convention, from which the API reads the device type, variant, release version,
+and file system and secure-boot flags. The OBU OTA server parses names the same
+way; both test suites share the same cases.
 
 A manufacturer can receive OBU firmware uploads only when it exists in the
-`manufacturers` table and the API has a naming convention for it. Commsignia is
-currently the only supported manufacturer.
+`manufacturers` table and the API has a naming convention for it. See
+[Supported OBU manufacturers](#supported-obu-manufacturers).
+
+An upload is rejected with `400` when:
+
+- the name does not follow the manufacturer's naming convention or is longer
+  than 128 characters
+- the file is not OBU firmware, such as RSU firmware; manage RSU firmware under
+  [Firmware Management](#firmware-management)
+- the file is for a build the manufacturer does not support
 
 Files are stored as `ota/<manufacturer>/<file name>`. A file name can be used
 once per manufacturer, and existing objects are never overwritten.
+
+### Supported OBU manufacturers
+
+**Commsignia.** Names follow `<variant>-<rw|ro>[-secureboot]-<release>.tar.sig`,
+for example `ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig`, where the OBU
+variant is `ob4-generic` with an optional suffix. The supported OBU builds are:
+
+| Build | File name part |
+| --- | --- |
+| Read-only with secure boot | `-ro-secureboot-` |
+| Read-write with secure boot | `-rw-secureboot-` |
+| Read-write | `-rw-` |
+
+A read-only build without secure boot is not supported. The naming convention
+also matches RSU (`rs4-generic`) files, so untracked RSU files in `ota/` are
+still described in the listing, but they cannot be uploaded or published here.
+The naming convention is implemented by `CommsigniaObuFirmwareFileNameParser` and
+must match the OBU OTA server's `commsignia_manifest.parse_firmware_name`.
 
 ### Serving uploads with the OBU OTA server
 
 The OBU OTA server does not serve firmware uploaded through this API yet. It
 offers every file in its configured storage folder, including uploads that are
 not verified or published, so **do not set `OBU_OTA_BLOB_STORAGE_PATH` to `ota/`
-or a folder beneath it**. A later change makes the OTA server serve only
+or a folder beneath it**. A deployment that already serves a folder beneath
+`ota/` that is not a manufacturer upload folder, such as `ota/firmwares/`, keeps
+working: this API neither lists nor deletes files outside the upload folders. A later change makes the OTA server serve only
 published catalog entries, and uploaded firmware should be served only after
 that change is deployed. Until then, deployments keep serving their existing
 firmware folder, and uploads through this API do not reach OBUs.
@@ -299,6 +332,80 @@ signed URL expires plus `FIRMWARE_UPLOAD_EXPIRATION_GRACE`; a new upload request
 after that point expires it immediately instead of waiting for the next cleanup
 run. A file that reached storage but was never completed must be deleted from the
 OBU firmware list before the same name can be uploaded again.
+
+### Listing
+
+`GET /objects?page&size&manufacturer&search&published&sort` merges the catalog,
+the latest upload for each file, and the files in the upload folders in storage.
+An upload folder is `ota/<manufacturer>/` for a manufacturer with a naming
+convention. Other objects beneath `ota/` belong to other services and are left
+out, unless they have upload or catalog records. Results
+are filtered, sorted, and paged as one list. `size` is 1-200, `manufacturer` is
+matched ignoring case, `search` matches part of the object name, `published` is
+`true` or `false`, and `sort` is one of `manufacturer`, `file_name`,
+`release_version`, `device_type`, `content_length`, `updated_at`,
+`registered_at`, `published`, or `verification_status`, followed by `,asc` or
+`,desc` (default `manufacturer,asc`).
+
+Each entry has a `verification_status`:
+
+| Status | Meaning |
+| --- | --- |
+| `VERIFIED` | The stored file is the exact version that was verified |
+| `CHANGED` | The catalog entry's file was replaced or modified in storage |
+| `MISSING` | A catalog entry or upload record has no file in storage |
+| `UNVERIFIED` | The file's upload has not been verified |
+| `UNTRACKED` | A file in an upload folder with no records; details are read from its name |
+| `LOCAL` | A catalog entry for a file in the OBU OTA server's local firmware folder |
+| `UNKNOWN` | The file could not be checked, because storage is unavailable or the entry uses another bucket |
+
+When storage cannot be listed, the response has `storage_available: false` and
+contains catalog entries only, so deployments that serve only local firmware can
+still manage their catalog.
+
+### Publishing
+
+`PUT /images/{obuFirmwareId}/publication` with `{"published": true}` or
+`{"published": false}` sets whether the OBU OTA server should offer the firmware
+to OBUs. Both directions are idempotent. Publishing a cloud file first checks that
+storage still holds the exact version that was verified, and returns `409` if the
+file is missing or changed. Local files cannot be inspected by the API and are
+published as recorded.
+
+Because an OBU installs the newest firmware that matches its build, **only one
+release per build is published**. Publishing a release unpublishes the release of
+the same build that was published before, whichever version it is, so an older
+release can be published again to roll back. The response lists the withdrawn
+releases in `replaced`:
+
+```json
+{
+  "obu_firmware_id": 42,
+  "published": true,
+  "published_at": "2026-10-15T12:02:00Z",
+  "published_by": "admin@example.com",
+  "replaced": [{ "obu_firmware_id": 10, "file_name": "ob4-generic-ro-secureboot-y20.47.0-b220000.tar.sig" }]
+}
+```
+
+Releases of other builds stay published. The database enforces the rule with the
+`uq_obu_firmware_images_published_build` index, and two publications of the same
+build at the same moment are serialized; if one still conflicts, it returns `409`
+and can be retried.
+
+### Deleting
+
+- `DELETE /objects/{objectId}?provider_object_version=` deletes a file and its
+  upload and catalog records, using the object ID and version from the listing.
+  This also removes `UNTRACKED` and `UNVERIFIED` files, which frees their file name
+  for a new upload.
+- `DELETE /objects/{objectId}/records` removes the records of a `MISSING` file, or
+  the catalog entry of a `LOCAL` file. The file in the OTA server's local folder
+  must be removed there.
+- Files beneath `ota/` outside the upload folders that have no records return
+  `400`, so files another service keeps there cannot be deleted here.
+- Published firmware must be unpublished first. Deletion is also refused while an
+  issued upload URL can still write the file. OBU OTA request history is kept.
 
 ## OBU OTA Request History
 

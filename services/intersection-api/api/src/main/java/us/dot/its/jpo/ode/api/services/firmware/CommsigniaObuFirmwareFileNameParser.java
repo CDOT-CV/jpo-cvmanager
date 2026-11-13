@@ -46,6 +46,9 @@ public class CommsigniaObuFirmwareFileNameParser implements ObuFirmwareFileNameP
         return PATTERN;
     }
 
+    static final String SUPPORTED_BUILDS = "Supported OBU builds are read-only with secure boot, "
+            + "read-write with secure boot, and read-write.";
+
     @Override
     public String exampleFileName() {
         return "ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig";
@@ -107,5 +110,15 @@ public class CommsigniaObuFirmwareFileNameParser implements ObuFirmwareFileNameP
     private static boolean isRelease(String value) {
         // The name characters are already restricted to ASCII
         return !value.isEmpty() && Character.isLetterOrDigit(value.charAt(0));
+    }
+
+    /** The vendor defines three OBU builds; a read-only file system requires secure boot. */
+    @Override
+    public Optional<String> unsupportedBuild(ObuFirmwareFileMetadata metadata) {
+        if (Boolean.FALSE.equals(metadata.getWritableSystemPartition())
+                && !Boolean.TRUE.equals(metadata.getSecureBoot())) {
+            return Optional.of("Read-only OBU firmware must use secure boot. " + SUPPORTED_BUILDS);
+        }
+        return Optional.empty();
     }
 }

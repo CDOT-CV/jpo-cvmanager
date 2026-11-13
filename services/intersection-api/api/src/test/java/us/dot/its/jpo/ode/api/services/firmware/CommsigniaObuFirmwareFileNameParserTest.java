@@ -113,11 +113,47 @@ class CommsigniaObuFirmwareFileNameParserTest {
         assertThat(accepted).as("the generated names include accepted names").isGreaterThan(1000);
     }
 
+    @ParameterizedTest
+    @MethodSource("buildCases")
+    void supportsOnlyTheThreeDocumentedObuBuilds(String fileName, boolean supported) {
+        var metadata = parser.parse(fileName).orElseThrow();
+
+        assertThat(parser.unsupportedBuild(metadata).isEmpty()).isEqualTo(supported);
+    }
+
+    static Stream<Arguments> buildCases() {
+        return Stream.of(
+                Arguments.of("ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig", true),
+                Arguments.of("ob4-generic-rw-secureboot-y20.48.2-b228647.tar.sig", true),
+                Arguments.of("ob4-generic-rw-y20.48.2-b228647.tar.sig", true),
+                Arguments.of("ob4-generic-ro-y20.48.2-b228647.tar.sig", false));
+    }
+
+    @Test
+    void explainsWhichBuildsAreSupported() {
+        var metadata = parser.parse("ob4-generic-ro-y20.48.2-b228647.tar.sig").orElseThrow();
+
+        assertThat(parser.unsupportedBuild(metadata)).hasValueSatisfying(reason -> assertThat(reason)
+                .contains("secure boot").contains(CommsigniaObuFirmwareFileNameParser.SUPPORTED_BUILDS));
+    }
+
     @Test
     void describesTheCommsigniaConvention() {
         assertThat(parser.manufacturerName()).isEqualTo("Commsignia");
         assertThat(parser.fileExtension()).isEqualTo(".tar.sig");
         assertThat(parser.parse(parser.exampleFileName())).isPresent();
+    }
+
+    @Test
+    void registryRecognizesUploadFoldersOfManufacturersWithANamingConvention() {
+        var registry = new ObuFirmwareParserRegistry(List.of(parser));
+
+        assertThat(registry.isUploadFolder("ota/Commsignia/a.tar.sig")).isTrue();
+        assertThat(registry.isUploadFolder("ota/commsignia/a.tar.sig")).isTrue();
+        // The folder an OBU OTA server serves directly is not an upload folder
+        assertThat(registry.isUploadFolder("ota/firmwares/a.tar.sig")).isFalse();
+        assertThat(registry.isUploadFolder("ota/Commsignia/nested/a.tar.sig")).isFalse();
+        assertThat(registry.isUploadFolder("Commsignia/a.tar.sig")).isFalse();
     }
 
     @Test

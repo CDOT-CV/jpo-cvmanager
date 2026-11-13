@@ -25,4 +25,13 @@ public interface ObuFirmwareFileNameParser {
 
     /** Returns the metadata encoded in a file name, or empty when it does not follow the convention. */
     Optional<ObuFirmwareFileMetadata> parse(String fileName);
+
+    /**
+     * Returns why a parsed OBU file is not a build this manufacturer's OBUs install,
+     * or empty when it is. A name can follow the convention without being a
+     * supported OBU build.
+     */
+    default Optional<String> unsupportedBuild(ObuFirmwareFileMetadata metadata) {
+        return Optional.empty();
+    }
 }
