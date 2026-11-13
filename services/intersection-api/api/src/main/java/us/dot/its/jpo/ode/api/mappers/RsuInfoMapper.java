@@ -23,6 +23,7 @@ public interface RsuInfoMapper {
      * MapStruct will automatically map fields with the same name
      */
     @Mapping(source = "ipv4Address", target = "ipv4Address")
+    @Mapping(source = "firmwareVersion.id", target = "firmwareId")
     @Mapping(source = "geography", target = "geoPosition")
     @Mapping(source = "model", target = "model", qualifiedByName = "mapModelNames")
     @Mapping(source = "credential.nickname", target = "sshCredentialGroup")

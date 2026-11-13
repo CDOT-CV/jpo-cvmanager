@@ -22,6 +22,10 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
+import us.dot.its.jpo.ode.api.models.devices.management.RsuFirmwareOption;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
+import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
@@ -50,6 +54,7 @@ import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 @Slf4j
 @RequiredArgsConstructor
 public class RsuManagementService {
+    private final FirmwareImageRepository firmwareImages;
 
     private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
     private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
@@ -101,8 +106,18 @@ public class RsuManagementService {
 
     @Transactional
     public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) {
+        if (rsuInfoDto.getFirmwareId() == null) {
+            throw new IllegalArgumentException("Installed firmware is required");
+        }
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
+        var firmware = firmwareImages.findById(rsuInfoDto.getFirmwareId())
+                .orElseThrow(() -> new IllegalArgumentException("Installed firmware was not found"));
+        if (rsu.getModel() == null || !firmware.getModel().getId().equals(rsu.getModel().getId())
+                || !isSelectableFirmware(firmware)) {
+            throw new IllegalArgumentException("Installed firmware must be legacy or verified firmware for the selected RSU model");
+        }
+        rsu.setFirmwareVersion(firmware);
 
         InetAddress ipv4Address = rsu.getIpv4Address();
         if (ipv4Address != null && rsuRepository.findByIpv4Address(ipv4Address) != null) {
@@ -126,6 +141,23 @@ public class RsuManagementService {
         rsuOrganizationRepository.saveAll(toCreate);
 
         return rsu;
+    }
+
+    @Transactional(readOnly = true)
+    public List<RsuFirmwareOption> getFirmwareOptions(String modelName) {
+        var model = findRsuModelByName(modelName);
+        return firmwareImages.findModelImages(model.getId()).stream()
+                .filter(RsuManagementService::isSelectableFirmware)
+                .map(image -> new RsuFirmwareOption(image.getId(), image.getVersion(), image.getVerifiedUpload() == null))
+                .toList();
+    }
+
+    private static boolean isSelectableFirmware(FirmwareImage image) {
+        // This records installed device state, so historical verification is sufficient;
+        // the original package need not still be available in cloud storage.
+        return !"ota".equalsIgnoreCase(image.getModel().getManufacturer().getName())
+                && (image.getVerifiedUpload() == null
+                    || image.getVerifiedUpload().getStatus() == FirmwareUploadStatus.VERIFIED);
     }
 
     public RsuOrganization createRsuOrgRelationship(String orgName, Rsu rsu) {

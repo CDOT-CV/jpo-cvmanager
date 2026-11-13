@@ -47,7 +47,8 @@ class InfoControllerTest {
                 true,
                 false,
                 "ITS RS4",
-                "Commsignia");
+                "Commsignia",
+                "y20.48.2");
         GeoJsonPointDto geometry = new GeoJsonPointDto(new double[] { -104.9903, 39.7392 });
         return new RsuGeoInfoDto(rsuId, geometry, props);
     }
@@ -84,6 +85,7 @@ class InfoControllerTest {
                 .andExpect(jsonPath("$[0].geometry.coordinates[0]").value(-104.9903))
                 .andExpect(jsonPath("$[0].geometry.coordinates[1]").value(39.7392))
                 .andExpect(jsonPath("$[0].properties.rsu_id").value(1))
+                .andExpect(jsonPath("$[0].properties.firmware_version").value("y20.48.2"))
                 .andExpect(jsonPath("$[0].properties.ipv4_address").value("10.0.0.1"))
                 .andExpect(jsonPath("$[0].properties.serial_number").value("SN-1"))
                 .andExpect(jsonPath("$[0].properties.primary_route").value("I-999"))

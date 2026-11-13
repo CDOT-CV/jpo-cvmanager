@@ -43,6 +43,11 @@ import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelectio
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
+import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
@@ -66,6 +71,93 @@ import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 @ExtendWith(MockitoExtension.class)
 class RsuManagementServiceTest {
+    @Mock
+    private FirmwareImageRepository firmwareImages;
+
+    @Test
+    void installedFirmwareIsRequiredForCreation() {
+        assertThrows(IllegalArgumentException.class,
+                () -> rsuManagementService.createRsu(new RsuInfoDto(), List.of()));
+        verify(rsuRepository, never()).save(any());
+    }
+
+    @Test
+    void createsRsuWithLegacyOrOriginallyVerifiedFirmwareWithoutSettingATarget() {
+        for (boolean legacy : List.of(true, false)) {
+            var image = installedImage(1, legacy);
+            var request = new RsuInfoDto();
+            request.setFirmwareId(5);
+            var rsu = new Rsu();
+            rsu.setModel(image.getModel());
+            when(rsuMapper.toEntity(request)).thenReturn(rsu);
+            when(firmwareImages.findById(5)).thenReturn(Optional.of(image));
+            when(rsuRepository.save(rsu)).thenReturn(rsu);
+
+            var result = rsuManagementService.createRsu(request, List.of());
+
+            assertEquals(image, result.getFirmwareVersion());
+            assertNull(result.getTargetFirmwareVersion());
+        }
+    }
+
+    @Test
+    void rejectsMissingWrongModelAndUnverifiedInstalledFirmware() {
+        var request = new RsuInfoDto();
+        request.setFirmwareId(5);
+        var rsu = new Rsu();
+        rsu.setModel(installedImage(1, true).getModel());
+        when(rsuMapper.toEntity(request)).thenReturn(rsu);
+        when(firmwareImages.findById(5)).thenReturn(Optional.empty());
+        assertThrows(IllegalArgumentException.class, () -> rsuManagementService.createRsu(request, List.of()));
+        when(firmwareImages.findById(5)).thenReturn(Optional.of(installedImage(2, true)));
+        assertThrows(IllegalArgumentException.class, () -> rsuManagementService.createRsu(request, List.of()));
+        for (var status : List.of(FirmwareUploadStatus.PENDING, FirmwareUploadStatus.FAILED, FirmwareUploadStatus.EXPIRED)) {
+            var image = installedImage(1, false);
+            image.getVerifiedUpload().setStatus(status);
+            when(firmwareImages.findById(5)).thenReturn(Optional.of(image));
+            assertThrows(IllegalArgumentException.class, () -> rsuManagementService.createRsu(request, List.of()));
+        }
+        verify(rsuRepository, never()).save(any());
+    }
+
+    @Test
+    void firmwareOptionsContainOnlyLegacyAndVerifiedImagesOfTheRequestedModel() {
+        var legacy = installedImage(1, true);
+        var verified = installedImage(1, false);
+        verified.setId(6);
+        verified.setVersion("v2");
+        var failed = installedImage(1, false);
+        failed.getVerifiedUpload().setStatus(FirmwareUploadStatus.FAILED);
+        when(rsuModelRepository.findByNameAndManufacturerName("ITS-RS4-M", "Commsignia"))
+                .thenReturn(Optional.of(legacy.getModel()));
+        when(firmwareImages.findModelImages(1)).thenReturn(List.of(legacy, verified, failed));
+
+        var result = rsuManagementService.getFirmwareOptions("Commsignia ITS-RS4-M");
+
+        assertEquals(2, result.size());
+        assertEquals(5, result.get(0).firmwareId());
+        assertTrue(result.get(0).legacy());
+        assertEquals("v2", result.get(1).version());
+        assertEquals(false, result.get(1).legacy());
+    }
+
+    private FirmwareImage installedImage(int modelId, boolean legacy) {
+        var manufacturer = new Manufacturer();
+        manufacturer.setName("Commsignia");
+        var model = new RsuModel();
+        model.setId(modelId);
+        model.setManufacturer(manufacturer);
+        var image = new FirmwareImage();
+        image.setId(5);
+        image.setModel(model);
+        image.setVersion("v1");
+        if (!legacy) {
+            var upload = new FirmwareUpload();
+            upload.setStatus(FirmwareUploadStatus.VERIFIED);
+            image.setVerifiedUpload(upload);
+        }
+        return image;
+    }
 
     @Mock
     private ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
@@ -144,6 +236,7 @@ class RsuManagementServiceTest {
 
         Rsu mockRsu = new Rsu();
         RsuInfoDto mockDto = new RsuInfoDto(
+                null,
                 ipAddress,
                 new SimplePosition(39.7392, -105.0844),
                 123.4,
@@ -232,6 +325,7 @@ class RsuManagementServiceTest {
         Page<Rsu> rsuPage = new PageImpl<>(rsuList, pageable, 2);
 
         RsuInfoDto dto1 = new RsuInfoDto(
+                null,
                 "192.168.1.100",
                 new SimplePosition(39.7392, -105.0844),
                 123.4,
@@ -246,6 +340,7 @@ class RsuManagementServiceTest {
                 Boolean.TRUE,
                 Boolean.TRUE);
         RsuInfoDto dto2 = new RsuInfoDto(
+                null,
                 "192.168.1.101",
                 new SimplePosition(39.7400, -105.0850),
                 124.5,
@@ -385,6 +480,7 @@ class RsuManagementServiceTest {
         existingRsu.setRsuOrganizations(new HashSet<>());
 
         RsuInfoDto expectedDto = new RsuInfoDto(
+                null,
                 rsuIp,
                 new SimplePosition(39.7392, -105.0844),
                 150.0,

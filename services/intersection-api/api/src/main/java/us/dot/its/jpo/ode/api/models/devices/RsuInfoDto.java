@@ -2,6 +2,8 @@ package us.dot.its.jpo.ode.api.models.devices;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.groups.Default;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +22,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RsuInfoDto implements Serializable {
+    // New RSUs require installed firmware. Existing records may have no firmware value.
+    public interface Creation extends Default {}
+
+    @JsonProperty("firmware_id")
+    @NotNull(groups = Creation.class)
+    @Positive
+    Integer firmwareId;
+
     @JsonProperty("ip")
     @NotNull
     String ipv4Address;
