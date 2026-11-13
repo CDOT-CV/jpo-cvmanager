@@ -31,6 +31,10 @@ RUN apt-get update \
 
 WORKDIR /home
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV EMAIL_RATE_LIMIT_PER_USER=12
 ENV EMAIL_RATE_LIMIT_PER_INSTANCE=120
 

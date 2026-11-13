@@ -6,6 +6,24 @@ server:
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
     min-response-size: 1024
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-components: when-authorized
+      show-details: never
+      cache:
+        time-to-live: 10s
+
+spring.mail.properties.mail.smtp.connectiontimeout: 5000
+spring.mail.properties.mail.smtp.timeout: 5000
+spring.mail.properties.mail.smtp.writetimeout: 5000
+
 ### keycloak configuration
 keycloak:
   realm: cvmanager
@@ -73,6 +91,13 @@ spring:
     url: ${POSTGRES_SERVER_URL:jdbc:postgresql://cvmanager_postgres:5432}/postgres
     username: ${PG_DB_USER:postgres}
     password: ${PG_DB_PASS}
+    # Bound datasource waits so database health checks fail promptly when PostgreSQL is unavailable.
+    hikari:
+      connection-timeout: 5000
+      validation-timeout: 5000
+      data-source-properties:
+        connectTimeout: 5
+        socketTimeout: 60
   jpa:
     database: postgresql
   ### Spring Mail Settings (If using emailBroker SMTP)
