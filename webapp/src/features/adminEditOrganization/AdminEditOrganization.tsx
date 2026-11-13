@@ -56,12 +56,12 @@ const AdminEditOrganization = () => {
 
   useEffect(() => {
     dispatch(getOrgData({ orgName }))
-  }, [orgName])
+  }, [orgName, dispatch])
 
   useEffect(() => {
     const selectedOrg = (orgData ?? []).find((organization: AdminOrgSummary) => organization?.name === orgName)
     dispatch(setSelectedOrg(selectedOrg))
-  }, [orgData])
+  }, [orgData, orgName, dispatch])
 
   useEffect(() => {
     dispatch(getOrgData({ orgName: 'all', all: true, specifiedOrg: undefined }))
@@ -88,7 +88,7 @@ const AdminEditOrganization = () => {
   useEffect(() => {
     if (successMsg) navigate('..')
     dispatch(setSuccessMsg(''))
-  }, [successMsg])
+  }, [successMsg, dispatch, navigate])
 
   return (
     <Dialog open={open}>
