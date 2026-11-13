@@ -86,10 +86,10 @@ export const userApiSlice = createApi({
       invalidatesTags: (result, error, vars) => [{ type: USER_API_USER_TAG, id: USER_API_USER_LIST_ID }],
     }),
     patchUser: builder.mutation<void, { email: string; patch: Partial<AdminUser> }>({
-      query: ({ email, patch }) => ({
+      query: ({ email, patch: body }) => ({
         url: `/${email}`,
         method: 'PATCH',
-        body: { email: email, ...patch },
+        body,
       }),
       invalidatesTags: (result, error, { email }) => [
         { type: USER_API_USER_TAG, id: email },

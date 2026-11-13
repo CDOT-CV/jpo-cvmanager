@@ -72,8 +72,8 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
             "FROM Intersection i " +
             "JOIN i.intersectionOrganizations io " +
             "JOIN io.organization o " +
-            "WHERE o.name = :orgName")
-    List<String> findIntersectionsByOrganization(@Param("orgName") String orgName);
+            "WHERE o.id = :orgId")
+    List<String> findIntersectionsByOrganizationId(@Param("orgId") Integer orgId);
 
     boolean existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn(String intersectionId,
             List<String> orgNames);

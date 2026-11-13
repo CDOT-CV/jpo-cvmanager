@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import AdminTable, { buildAdminTableQueryParams } from '../../components/AdminTable'
-import { selectOrganizationId, selectOrganizationName, selectToken } from '../../generalSlices/userSlice'
+import { selectOrganizationId, selectToken } from '../../generalSlices/userSlice'
 import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
 import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
 import RsuStatusDialog from './RsuStatusDialog'
@@ -31,7 +31,6 @@ const AdminRsuTab = () => {
   const theme = useTheme()
 
   const token = useSelector(selectToken)
-  const organization = useSelector(selectOrganizationName)
   const organizationId = useSelector(selectOrganizationId)
 
   const tableRef = useRef<any>(null)
@@ -155,7 +154,7 @@ const AdminRsuTab = () => {
     },
     {
       tooltip: 'Remove All Selected From Organization',
-      icon: 'delete',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: {
         itemType: 'rowAction',
       },
@@ -237,7 +236,7 @@ const AdminRsuTab = () => {
         setIsRefreshing(false)
       }
     },
-    [columns, trigger, organization, currentQueryRef, markTableRenderedData]
+    [columns, trigger, organizationId, currentQueryRef, markTableRenderedData]
   )
 
   const onEdit = (row: AdminEditRsuFormType) => {

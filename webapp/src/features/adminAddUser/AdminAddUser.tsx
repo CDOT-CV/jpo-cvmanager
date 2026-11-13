@@ -24,7 +24,8 @@ import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import 'react-widgets/styles.css'
-import { selectSuperUser } from '../../generalSlices/userSlice'
+import { selectFilteredOrganizationNameObjects, selectSuperUser } from '../../generalSlices/userSlice'
+import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
@@ -34,15 +35,17 @@ import { useCreateUserMutation, useGetUserAllowedSelectionsQuery } from '../api/
 const AdminAddUser = () => {
   const navigate = useNavigate()
   const isSuperUser = useSelector(selectSuperUser)
-  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganization[]>([
-    { organization: '', role: 'USER' },
+  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganizationOptionalOrg[]>([
+    { organization: undefined, role: 'USER' },
   ])
-  const [submitAttempt, setSubmitAttempt] = useState(false)
   const [open, setOpen] = useState(true)
 
   // RTK Query hooks
   const { data: allowedSelections, isLoading: isLoadingData } = useGetUserAllowedSelectionsQuery()
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation()
+  const allowedOrganizations = useSelector((state: RootState) =>
+    selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
+  )
 
   const {
     register,
@@ -61,7 +64,7 @@ const AdminAddUser = () => {
   }
 
   const handleAddOrganization = () => {
-    setSelectedOrganizations([...selectedOrganizations, { organization: '', role: 'USER' }])
+    setSelectedOrganizations([...selectedOrganizations, { organization: undefined, role: 'USER' }])
   }
 
   const handleRemoveOrganization = (index: number) => {
@@ -73,7 +76,7 @@ const AdminAddUser = () => {
     setSelectedOrganizations(selectedOrganizations.filter((_, i) => i !== index))
   }
 
-  const handleOrganizationChange = (index: number, field: keyof UserOrganization, value: string) => {
+  const handleOrganizationChange = (index: number, field: keyof UserOrganization, value: number | UserRole) => {
     const updated = [...selectedOrganizations]
 
     // If changing organization, check for duplicates
@@ -83,9 +86,9 @@ const AdminAddUser = () => {
         toast.error('This organization has already been added')
         return
       }
-      updated[index] = { ...updated[index], organization: value }
+      updated[index] = { ...updated[index], organization: value as number }
     } else {
-      updated[index] = { ...updated[index], role: value as UserOrganization['role'] }
+      updated[index] = { ...updated[index], role: value as UserRole }
     }
 
     setSelectedOrganizations(updated)
@@ -93,38 +96,23 @@ const AdminAddUser = () => {
 
   // Get available organizations excluding already selected ones
   const getAvailableOrganizations = (currentIndex: number) => {
-    const selectedOrgNames = selectedOrganizations
-      .map((org, index) => (index !== currentIndex ? org.organization : null))
-      .filter((org) => org !== null && org !== '')
-
-    return allowedSelections?.organizations?.filter((org) => !selectedOrgNames.includes(org)) || []
+    const selectedOrgIds = new Set(
+      selectedOrganizations
+        .map((org, index) => (index !== currentIndex ? org.organization : null))
+        .filter((org) => org !== null && org !== undefined)
+    )
+    return allowedOrganizations?.filter((org) => !selectedOrgIds.has(org.id)) || []
   }
 
-  const checkForm = (): boolean => {
-    if (selectedOrganizations.length === 0) return false
+  const hasOrganizations =
+    selectedOrganizations.length > 0 && selectedOrganizations.some((org) => org.organization !== undefined)
 
-    // Check that all organizations have both org and role selected
-    const allFieldsFilled = selectedOrganizations.every((org) => org.organization !== '' && org.role)
-
-    // Check for duplicate organizations
-    const orgNames = selectedOrganizations.map((org) => org.organization).filter((name) => name !== '')
-    const hasDuplicates = new Set(orgNames).size !== orgNames.length
-
-    return allFieldsFilled && !hasDuplicates
-  }
+  const checkForm = (): boolean =>
+    selectedOrganizations.length > 0 && selectedOrganizations.every((org) => org.organization !== undefined)
 
   const handleFormSubmit = async (data: AdminUserCreationBody) => {
-    setSubmitAttempt(true)
-
     if (!checkForm()) {
-      const orgNames = selectedOrganizations.map((org) => org.organization).filter((name) => name !== '')
-      const hasDuplicates = new Set(orgNames).size !== orgNames.length
-
-      if (hasDuplicates) {
-        toast.error('Cannot add the same organization multiple times')
-      } else {
-        toast.error('Please fill out all required fields')
-      }
+      toast.error('Must select at least one organization')
       return
     }
 
@@ -132,7 +120,10 @@ const AdminAddUser = () => {
       const requestBody = {
         ...data,
         super_user: isSuperUser ? Boolean(data.super_user) : false,
-        organizations: selectedOrganizations,
+        organizations: selectedOrganizations.map((org) => ({
+          organization: org.organization as number,
+          role: org.role,
+        })),
       }
 
       await createUser(requestBody).unwrap()
@@ -140,8 +131,7 @@ const AdminAddUser = () => {
 
       // Reset form
       reset()
-      setSelectedOrganizations([{ organization: '', role: 'USER' }])
-      setSubmitAttempt(false)
+      setSelectedOrganizations([{ organization: undefined, role: 'USER' }])
 
       handleClose()
     } catch (error: any) {
@@ -288,22 +278,24 @@ const AdminAddUser = () => {
                     <InputLabel id={`organization-label-${index}`}>Organization</InputLabel>
                     <Select
                       labelId={`organization-label-${index}`}
-                      value={orgRole.organization}
+                      value={orgRole.organization ?? ''}
                       label="Organization"
-                      onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value)}
+                      onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value as number)}
                       required
                     >
                       {getAvailableOrganizations(index).map((org) => (
-                        <MenuItem key={org} value={org}>
-                          {org}
+                        <MenuItem key={org.id} value={org.id}>
+                          {org.name}
                         </MenuItem>
                       ))}
                       {/* Show currently selected org even if it would be filtered out */}
-                      {orgRole.organization && !getAvailableOrganizations(index).includes(orgRole.organization) && (
-                        <MenuItem key={orgRole.organization} value={orgRole.organization}>
-                          {orgRole.organization}
-                        </MenuItem>
-                      )}
+                      {orgRole.organization !== undefined &&
+                        !getAvailableOrganizations(index).some((org) => org.id === orgRole.organization) && (
+                          <MenuItem key={orgRole.organization} value={orgRole.organization}>
+                            {allowedOrganizations?.find((org) => org.id === orgRole.organization)?.name ||
+                              orgRole.organization}
+                          </MenuItem>
+                        )}
                     </Select>
                   </FormControl>
 
@@ -312,9 +304,9 @@ const AdminAddUser = () => {
                     <Select
                       value={orgRole.role}
                       label="Role"
-                      onChange={(e) => handleOrganizationChange(index, 'role', e.target.value)}
+                      onChange={(e) => handleOrganizationChange(index, 'role', e.target.value as UserRole)}
                       required
-                      disabled={!orgRole.organization}
+                      disabled={orgRole.organization === undefined}
                     >
                       {allowedSelections?.roles?.map((role) => (
                         <MenuItem key={role.toUpperCase()} value={role.toUpperCase()}>
@@ -346,10 +338,8 @@ const AdminAddUser = () => {
               </Card>
             ))}
 
-            {selectedOrganizations.length > 0 && submitAttempt && !checkForm() && (
-              <ErrorMessageText role="alert">
-                Please complete all organization and role selections. Each organization can only be added once.
-              </ErrorMessageText>
+            {!hasOrganizations && (
+              <ErrorMessageText role="alert">Must select at least one organization</ErrorMessageText>
             )}
           </Box>
         </Form>
@@ -371,7 +361,7 @@ const AdminAddUser = () => {
           variant="contained"
           style={{ position: 'absolute', bottom: 10, right: 10 }}
           className="museo-slab capital-case"
-          disabled={isCreating}
+          disabled={isCreating || !hasOrganizations}
         >
           {isCreating ? 'Adding...' : 'Add User'}
         </Button>

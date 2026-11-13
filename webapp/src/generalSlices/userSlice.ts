@@ -156,8 +156,10 @@ export const userSlice = createSlice({
       )
       if (index > -1) {
         state.value.authLoginData.data.organizations[index].name = action.payload.newName
-        state.value.organization = state.value.authLoginData.data.organizations[index]
-        SecureStorageManager.setUserRole(state.value.organization)
+        if (state.value.organization?.organization === action.payload.id) {
+          state.value.organization = state.value.authLoginData.data.organizations[index]
+          SecureStorageManager.setUserRole(state.value.organization)
+        }
       }
     },
     setLoading: (state, action) => {
@@ -254,6 +256,11 @@ export const selectLoadingGlobal = (state: RootState) => {
   }
   return loading
 }
+export const selectFilteredOrganizationNameObjects = (state: RootState, organizationIds: number[]) =>
+  organizationIds.map((id) => ({
+    id,
+    name: (state.user.value.authLoginData?.data.organizations ?? []).find((org) => org.organization === id)?.name ?? id,
+  }))
 
 export const selectIsUserOrAbove = (state: RootState) => {
   if (selectIsSuperUser(state)) {

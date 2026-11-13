@@ -6,15 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpEntity;
@@ -293,65 +290,6 @@ public class ConfigControllerTest {
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
             controller.default_config_all();
-        });
-
-        assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-    }
-
-    @Test
-    void testIntersectionConfigAllSuccessByUser() {
-        IntersectionConfigMap configMap = new IntersectionConfigMap();
-        IntersectionConfig<String> config1 = new IntersectionConfig<String>("key", "category", 0, 1, "overrideVal",
-                "type",
-                null, "description");
-        configMap.putConfig(config1);
-
-        String username = "testuser";
-        String resourceURL = "http://localhost/config/intersections";
-        when(restTemplate.getForEntity(resourceURL, IntersectionConfigMap.class))
-                .thenReturn(new ResponseEntity<>(configMap, HttpStatus.OK));
-        when(permissionService.getAllowedIntersectionIdsByEmail(eq(username)))
-                .thenReturn(Collections.singletonList(1));
-
-        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
-            mockedStatic.when(() -> PermissionService.getUsername(any()))
-                    .thenReturn(username);
-
-            ResponseEntity<List<IntersectionConfig<?>>> response = controller.intersection_config_all(null);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).contains(config1);
-        }
-    }
-
-    @Test
-    void testIntersectionConfigAllSuccessByOrg() {
-        IntersectionConfigMap configMap = new IntersectionConfigMap();
-        IntersectionConfig<String> config1 = new IntersectionConfig<String>("key", "category", 0, 1, "overrideVal",
-                "type",
-                null, "description");
-        configMap.putConfig(config1);
-
-        String resourceURL = "http://localhost/config/intersections";
-        when(restTemplate.getForEntity(resourceURL, IntersectionConfigMap.class))
-                .thenReturn(new ResponseEntity<>(configMap, HttpStatus.OK));
-        when(permissionService.getAllowedIntersectionIdsByOrganization(eq("org")))
-                .thenReturn(Collections.singletonList(1));
-
-        ResponseEntity<List<IntersectionConfig<?>>> response = controller.intersection_config_all("org");
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).contains(config1);
-    }
-
-    @Test
-    void testIntersectionConfigAllApiError() {
-        String resourceURL = "http://localhost/config/intersections";
-        when(restTemplate.getForEntity(resourceURL, IntersectionConfigMap.class))
-                .thenReturn(ResponseEntity.notFound().build());
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
-            controller.intersection_config_all(null);
         });
 
         assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);

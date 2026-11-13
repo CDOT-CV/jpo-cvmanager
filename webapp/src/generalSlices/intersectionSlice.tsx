@@ -18,11 +18,11 @@ export const initialState = {
 
 export const getIntersections = createAsyncThunk(
   'intersection/getIntersections',
-  async (organizationName: string | undefined, { getState }) => {
+  async (orgId: number | undefined, { getState }) => {
     const currentState = getState() as RootState
     const authToken = selectToken(currentState)!
 
-    const intersections = await MessageMonitorApi.getIntersections({ token: authToken, organization: organizationName })
+    const intersections = await MessageMonitorApi.getIntersections({ token: authToken, orgId: orgId })
     intersections.push({
       intersectionID: -1,
       rsuIP: '0.0.0.0',

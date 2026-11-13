@@ -147,7 +147,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     },
     {
       tooltip: 'Remove All Selected From Organization',
-      icon: 'delete',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: {
         itemType: 'rowAction',
       },
@@ -214,7 +214,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
 
   useEffect(() => {
     setSelectedRsuList([])
-  }, [selectedOrgName])
+  }, [selectedOrgId])
 
   const rsuOnDelete = async (rsu: AdminRsu) => {
     const loadingToast = toast.loading(`Deleting RSU ${rsu.ip}...`)

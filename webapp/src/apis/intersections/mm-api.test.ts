@@ -17,13 +17,13 @@ describe('MessageMonitorApi', () => {
     const mockResponse = [{ intersectionId: 12109 }]
     ;(authApiHelper.invokeApi as any).mockResolvedValue(mockResponse)
 
-    const result = await MessageMonitorApi.getIntersections({ token: 'token', organization: 'org' } as any)
+    const result = await MessageMonitorApi.getIntersections({ token: 'token', orgId: 1 } as any)
 
     expect(result).toEqual(mockResponse)
     expect(authApiHelper.invokeApi).toHaveBeenCalledWith({
       path: '/intersections',
       token: 'token',
-      headers: { Organization: 'org' },
+      headers: { Organization: '1' },
       failureMessage: 'Failed to retrieve intersection list',
       tag: 'intersection',
     })

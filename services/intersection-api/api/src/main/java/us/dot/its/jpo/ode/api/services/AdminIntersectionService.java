@@ -275,14 +275,14 @@ public class AdminIntersectionService {
      * @param patch the patch request body
      */
     @Transactional
-    public void patchIntersection(IntersectionPatch patch, List<Organization> qualifiedOrgs) {
-        String origNumber = patch.getOrigIntersectionId().toString();
+    public void patchIntersection(Integer intersectionNumber, IntersectionPatch patch,
+            List<Organization> qualifiedOrgs) {
 
-        Intersection intersection = intersectionRepository.findByIntersectionNumber(origNumber)
+        Intersection intersection = intersectionRepository.findByIntersectionNumber(intersectionNumber.toString())
                 .orElseThrow(() -> {
-                    log.error("Intersection not found for patching: {}", origNumber);
+                    log.error("Intersection not found for patching: {}", intersectionNumber);
                     return new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "Intersection not found: " + origNumber);
+                            "Intersection not found: " + intersectionNumber);
                 });
 
         var updatedIntersection = intersectionMapper.partialUpdate(intersection, patch);
@@ -312,7 +312,7 @@ public class AdminIntersectionService {
         }
 
         // Handle RSUs to add
-        if (!patch.getRsusToAdd().isEmpty()) {
+        if (patch.getRsusToAdd() != null && !patch.getRsusToAdd().isEmpty()) {
             List<InetAddress> ipsToAdd = patch.getRsusToAdd().stream()
                     .map(inetMapper::mapStringToInetAddress)
                     .collect(Collectors.toList());
@@ -334,7 +334,7 @@ public class AdminIntersectionService {
         }
 
         // Step 5: Remove RSU associations
-        if (!patch.getRsusToRemove().isEmpty()) {
+        if (patch.getRsusToRemove() != null && !patch.getRsusToRemove().isEmpty()) {
             List<InetAddress> ipsToRemove = patch.getRsusToRemove().stream()
                     .map(inetMapper::mapStringToInetAddress)
                     .collect(Collectors.toList());
