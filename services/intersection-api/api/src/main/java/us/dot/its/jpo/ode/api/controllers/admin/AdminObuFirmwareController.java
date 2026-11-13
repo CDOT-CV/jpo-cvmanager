@@ -5,6 +5,7 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,6 +29,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
+import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.FileNameCheck;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.ObjectPage;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.Publication;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.PublicationRequest;
@@ -59,6 +61,24 @@ public class AdminObuFirmwareController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public UploadOptions getUploadOptions() {
         return uploadOptionsService.getOptions();
+    }
+
+    @Operation(summary = "Check an OBU firmware file name before uploading it",
+            description = "Applies the file name checks of signed-upload-url and returns the details read from "
+                    + "the name. Nothing is reserved or written.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "The name is accepted"),
+            @ApiResponse(responseCode = "400", description = "The name is not accepted for upload; detail explains why"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role"),
+            @ApiResponse(responseCode = "404", description = "Manufacturer was not found"),
+            @ApiResponse(responseCode = "409", description = "The file is already in the catalog or being uploaded")
+    })
+    @GetMapping(value = "/file-name-check", produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    public FileNameCheck checkFileName(
+            @RequestParam(name = "manufacturer_name") @NotBlank @Size(max = 128) String manufacturerName,
+            @RequestParam(name = "file_name") @NotBlank @Size(max = 128) String fileName) {
+        return uploadService.checkFileName(manufacturerName, fileName);
     }
 
     @Operation(summary = "List OBU firmware files, their catalog entries, and their verification state")
