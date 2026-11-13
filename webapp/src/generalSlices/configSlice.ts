@@ -1,18 +1,17 @@
 import { createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit'
 import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
-import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import RsuMessageForwardingApi from '../apis/intersections/rsu-message-forwarding-api'
 import {
   ForwardingMessageType,
   MessageForwardingResponse,
   MessageForwardingResult,
 } from '../models/RsuMessageForwarding'
+import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { RootState } from '../store'
 import {
   ApiMsgRespWithCodes,
-  RsuCommandPostBody,
   RsuDsrcFwdConfigs,
   RsuRxTxMsgFwdConfigs,
   RsuUpgradeCheckPostBody,

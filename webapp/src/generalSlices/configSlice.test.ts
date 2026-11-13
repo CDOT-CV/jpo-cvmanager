@@ -15,9 +15,9 @@ import reducer, {
 } from './configSlice'
 import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
-import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import RsuMessageForwardingApi from '../apis/intersections/rsu-message-forwarding-api'
 import { MessageForwardingResult } from '../models/RsuMessageForwarding'
+import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import { RootState } from '../store'
 
 describe('config reducer', () => {

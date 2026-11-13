@@ -87,7 +87,7 @@ class RsuMessageForwardingApi {
 }
 
 // Adapt the row-oriented API to the existing RX/TX cards and cached RSU 4.1 display.
-// Dates already carry the API's configured display timezone, matching the previous UI.
+// Preserve UTC timestamps from both cached and live API responses.
 function formatConfigurations(rows: MessageForwardingConfiguration[]): RsuMsgFwdConfigs['RsuFwdSnmpwalk'] {
   const receive: RsuDsrcFwdConfigs = {}
   const transmit: RsuDsrcFwdConfigs = {}
