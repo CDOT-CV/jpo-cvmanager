@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 /**
  * Flat properties block inside a GeoJSON Feature returned by the
  * /devices/rsus/info endpoint.
- * Mirrors the column set selected by the Python rsuinfo.get_rsu_data query.
+ * Includes protocol and ownership metadata for the webapp forwarding controls.
  */
 @Data
 @NoArgsConstructor
@@ -39,6 +39,13 @@ public class RsuGeoInfoPropertiesDto {
 
     @JsonProperty("model_name")
     private String modelName;
+
+    @JsonProperty("snmp_protocol_code")
+    private String snmpProtocolCode;
+
+    // Ownership currently follows the SSH credential group, matching PermissionService.
+    @JsonProperty("owner_organization_id")
+    private Integer ownerOrganizationId;
 
     @JsonProperty("manufacturer_name")
     private String manufacturerName;

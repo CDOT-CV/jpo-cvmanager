@@ -1,70 +1,113 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import SnmpwalkItem from './SnmpwalkItem'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector, useDispatch, useStore } from 'react-redux'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from './AdminDeletionOptions'
-import { selectRsuIpv4 } from '../generalSlices/rsuSlice'
+import { selectRsuIpv4, forwardingUnavailableReason } from '../generalSlices/rsuSlice'
 import {
   selectMsgFwdConfig,
   selectMsgFwdConfigType,
+  selectErrorState,
+  selectLoading,
 
   // Actions
-  getCachedSnmpFwdConfigsFromDatabase, getRsuMsgConfigsFromRsu,
+  getCachedSnmpFwdConfigsFromDatabase,
+  getRsuMsgConfigsFromRsu,
 } from '../generalSlices/configSlice'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import './css/SnmpwalkMenu.css'
 import {
   // Actions
-  deleteSnmpSet,
+  deleteSnmpRow,
 } from '../generalSlices/configSlice'
-import { Button, Tooltip } from '@mui/material'
+import { Button, Tooltip, Typography } from '@mui/material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import toast from 'react-hot-toast'
+import { RsuDsrcFwdConfigs, RsuMsgFwdConfigSingle } from '../models/RsuApi'
 
 const SnmpwalkMenu = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const store = useStore<RootState>()
 
   const msgFwdConfig = useSelector(selectMsgFwdConfig)
   const msgFwdConfigType = useSelector(selectMsgFwdConfigType)
+  const error = useSelector(selectErrorState)
+  const loading = useSelector(selectLoading)
 
-  const isConfigEmpty = React.useMemo(() => {
-    if (!msgFwdConfig) return true
-    if (Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') && Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable')) {
-      const txEmpty = !Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') ||
-        Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable ?? {}).length === 0
-      const rxEmpty = !Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ||
-        Object.keys(msgFwdConfig.rsuReceivedMsgTable ?? {}).length === 0
-      return txEmpty && rxEmpty
-    }
-    return Object.keys(msgFwdConfig).length === 0
-  }, [msgFwdConfig])
+  // DSRC rows may coexist with RX/TX rows in the historical PostgreSQL snapshot.
+  const legacyRows = Object.fromEntries(
+    Object.entries(msgFwdConfig).filter(([key]) => /^\d+$/.test(key))
+  ) as RsuDsrcFwdConfigs
+  const receiveRows = msgFwdConfig.rsuReceivedMsgTable ?? {}
+  const transmitRows = msgFwdConfig.rsuXmitMsgFwdingTable ?? {}
+  const isConfigEmpty = [legacyRows, receiveRows, transmitRows].every((rows) => Object.keys(rows).length === 0)
 
   const rsuIp = useSelector(selectRsuIpv4)
+  const writeUnavailable = useSelector((state: RootState) => forwardingUnavailableReason(state, [rsuIp], 'write'))
+  const refreshUnavailable = useSelector((state: RootState) => forwardingUnavailableReason(state, [rsuIp], 'live'))
+
+  const cachedUnavailable = useSelector((state: RootState) => forwardingUnavailableReason(state, [rsuIp], 'cached'))
 
   useEffect(() => {
     // Refresh Data
-    dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
-  }, [rsuIp, dispatch])
+    if (rsuIp && !cachedUnavailable) dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+  }, [rsuIp, cachedUnavailable, dispatch])
 
-  const handleDelete = (countsMsgType: string, ip: string) => {
+  const refreshLive = async (notifySuccess = false) => {
+    const before = store.getState()
+    if (selectRsuIpv4(before) !== rsuIp || forwardingUnavailableReason(before, [rsuIp], 'live')) return
+    const data = await dispatch(getRsuMsgConfigsFromRsu(rsuIp))
+    const current = store.getState()
+    // Late replies must not reload an old RSU or replace a newer read.
+    if (selectRsuIpv4(current) !== rsuIp || current.config.value.forwardingReadRequestId !== data.meta.requestId) return
+    if (getRsuMsgConfigsFromRsu.rejected.match(data)) {
+      if (!forwardingUnavailableReason(current, [rsuIp], 'cached')) {
+        toast.error('Failed to fetch RSU message forwarding configuration, loading cached data')
+        await dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+      }
+    } else if (notifySuccess) {
+      toast.success('Successfully fetched RSU message forwarding configuration')
+    }
+  }
+
+  const handleDelete = (row: RsuMsgFwdConfigSingle) => {
+    if (
+      (row.table !== 'RECEIVE' && row.table !== 'TRANSMIT') ||
+      !row.index || row.deletable === false || typeof row.Port !== 'number'
+    ) return
+    const table = row.table
+    const port = row.Port
     const buttons = [
       {
         label: 'Yes',
-        onClick: () => {
-          dispatch(
-            deleteSnmpSet({
-              ipList: [rsuIp],
-              snmpMsgType: countsMsgType,
-              destIp: ip,
-            })
-          ).then((data: any) => {
-            if (data.payload.changeSuccess) {
-              toast.success('Successfully deleted SNMP forwarding')
-            } else {
-              toast.error('Failed to delete SNMP forwarding: ' + data.payload.errorState)
-            }
-          })
+        onClick: async () => {
+          const data = await dispatch(deleteSnmpRow({
+            rsuIp, table, index: row.index, destIp: row.IP, port,
+          }))
+          const completed = deleteSnmpRow.fulfilled.match(data) && data.payload.changeSuccess
+          const result = deleteSnmpRow.fulfilled.match(data) ? data.payload.result : undefined
+          const removed = result?.changed === true && result.writeState === 'VERIFIED'
+          const absent = result?.changed === false && result.writeState === 'NOT_SUBMITTED'
+          const message = deleteSnmpRow.fulfilled.match(data) ? data.payload.errorState : data.error.message
+
+          if (completed) {
+            toast.success('Successfully deleted message forwarding')
+          } else if (removed || absent) {
+            toast.error('Forwarding removal confirmed. Cached configuration was not updated.')
+          } else {
+            toast.error('Failed to delete message forwarding: ' + (message || 'Request did not complete'))
+          }
+
+          const current = store.getState()
+          if (selectRsuIpv4(current) !== rsuIp) return
+          // Another malformed row may prevent snapshot synchronization after a verified delete.
+          // Refresh the live list even then so operators can continue repairing the table.
+          if (selectMsgFwdConfigType(current) === 'rsu' && !forwardingUnavailableReason(current, [rsuIp], 'live')) {
+            await refreshLive()
+          } else if (completed && !forwardingUnavailableReason(current, [rsuIp], 'cached')) {
+            await dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+          }
         },
       },
       {
@@ -73,93 +116,84 @@ const SnmpwalkMenu = () => {
       },
     ]
     const alertOptions = Options(
-      'Delete SNMP Configuration',
-      `Are you sure you want to delete SNMP forwarding for ${countsMsgType} messages to the IP: ${ip}? `,
+      'Delete Message Forwarding',
+      `Delete ${row['Message Type']} message forwarding to ${row.IP}?`,
       buttons
     )
 
     confirmAlert(alertOptions)
   }
 
+  if (cachedUnavailable) return <p>{cachedUnavailable}</p>
+
   return (
     <div>
-      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-        {isConfigEmpty && (
-          <h5 className="museo-slab">No message forwarding configurations were found. This may indicate that none are configured or that there was an error retrieving them. Verify that this RSU is configured and refresh.</h5>
+      <div style={{ textAlign: 'center' }}>
+        {error && <p role="alert">{error}</p>}
+        {isConfigEmpty && !error && !loading && (
+          <h5 className="museo-slab">No message forwarding configurations were found.</h5>
         )}
       </div>
-      <div>
-        {Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') && Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ? (
-          <div>
-            <h2 id="snmptxheader">TX Forward Table</h2>
-            {Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable ?? {}).map((index) => (
-              <div key={'msgFwd-' + index}>
+      {[...Object.values(receiveRows), ...Object.values(transmitRows)].some(
+        (row: RsuMsgFwdConfigSingle) => row.validationError
+      ) && (
+        <Typography role="alert" variant="body2" color="warning.main" sx={{ mt: 1 }}>
+          Some forwarding configurations are incomplete. Remove invalid rows before adding configurations.
+        </Typography>
+      )}
+      {[
+        { title: 'TX Forward Table', rows: transmitRows, editable: !writeUnavailable },
+        { title: 'RX Forward Table', rows: receiveRows, editable: !writeUnavailable },
+        { title: 'RSU 4.1 Forward Table', rows: legacyRows, editable: false },
+      ].map(
+        ({ title, rows, editable }) =>
+          Object.keys(rows).length > 0 && (
+            <div key={title}>
+              <Typography component="h3" variant="subtitle1" sx={{ fontWeight: 'bold', mt: 1, mb: 0.5 }}>
+                {title}
+              </Typography>
+              {Object.entries(rows as RsuDsrcFwdConfigs).map(([index, content]) => (
                 <SnmpwalkItem
-                  key={'snmptxitem-' + index}
-                  content={msgFwdConfig.rsuXmitMsgFwdingTable[index]}
-                  handleDelete={handleDelete}
+                  key={index}
+                  content={content}
                   index={index}
+                  handleDelete={
+                    editable && (content.table === 'RECEIVE' || content.table === 'TRANSMIT') && content.index
+                      ? handleDelete
+                      : undefined
+                  }
                 />
-              </div>
-            ))}
-
-            <h2 id="snmprxheader">RX Forward Table</h2>
-            {Object.keys(msgFwdConfig.rsuReceivedMsgTable ?? {}).map((index) => (
-              <div>
-                <SnmpwalkItem
-                  key={'snmprxitem-' + index}
-                  content={msgFwdConfig.rsuReceivedMsgTable[index]}
-                  handleDelete={handleDelete}
-                  index={index}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div>
-            {Object.keys(msgFwdConfig).map((index) => (
-              <div>
-                <SnmpwalkItem
-                  key={'snmpitem-' + index}
-                  content={msgFwdConfig[index]}
-                  handleDelete={handleDelete}
-                  index={index}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div id="msgfwddiv">
-        <Tooltip title="Refresh Message Forwarding">
-          <Button
-            startIcon={<RefreshIcon />}
-            variant="outlined"
-            onClick={() => {
-              dispatch(getRsuMsgConfigsFromRsu(rsuIp)).then((data: any) => {
-                if (getRsuMsgConfigsFromRsu.rejected.match(data)) {
-                  toast.error('Failed to fetch RSU message forwarding configuration, loading cached data')
-                  dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
-                } else if (getRsuMsgConfigsFromRsu.fulfilled.match(data)) {
-                  toast.success('Successfully fetched RSU message forwarding configuration')
-                }
-              })
-            }}
-            size="large"
-            sx={{
-              marginTop: '20px',
-            }}
-            color="info"
-            className="museo-slab capital-case"
-          >
-            Refresh Message Forwarding
-          </Button>
-        </Tooltip>
-      </div>
-      <br />
-      <h3 className="museo-slab">
+              ))}
+            </div>
+          )
+      )}
+      {refreshUnavailable && (
+        <Typography sx={{ mt: 1.5, mb: 1, pl: 1, borderLeft: 3, borderColor: 'info.main' }}>
+          <strong style={{ fontWeight: 700 }}>{refreshUnavailable}</strong>
+        </Typography>
+      )}
+      {!refreshUnavailable && (
+        <div id="msgfwddiv">
+          <Tooltip title="Refresh Message Forwarding">
+            <Button
+              startIcon={<RefreshIcon />}
+              variant="outlined"
+              onClick={() => refreshLive(true)}
+              size="large"
+              sx={{
+                marginTop: '8px',
+              }}
+              color="info"
+              className="museo-slab capital-case"
+            >
+              Refresh Message Forwarding
+            </Button>
+          </Tooltip>
+        </div>
+      )}
+      <Typography variant="body2" sx={{ mt: 1 }}>
         Source: {msgFwdConfigType === 'database' ? 'Cached (Database)' : 'Live (RSU)'}
-      </h3>
+      </Typography>
     </div>
   )
 }
