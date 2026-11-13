@@ -303,7 +303,9 @@ must match the OBU OTA server's `commsignia_manifest.parse_firmware_name`.
 The OBU OTA server does not serve firmware uploaded through this API yet. It
 offers every file in its configured storage folder, including uploads that are
 not verified or published, so **do not set `OBU_OTA_BLOB_STORAGE_PATH` to `ota/`
-or a folder beneath it**. A later change makes the OTA server serve only
+or a folder beneath it**. A deployment that already serves a folder beneath
+`ota/` that is not a manufacturer upload folder, such as `ota/firmwares/`, keeps
+working: this API neither lists nor deletes files outside the upload folders. A later change makes the OTA server serve only
 published catalog entries, and uploaded firmware should be served only after
 that change is deployed. Until then, deployments keep serving their existing
 firmware folder, and uploads through this API do not reach OBUs.
@@ -334,7 +336,10 @@ OBU firmware list before the same name can be uploaded again.
 ### Listing
 
 `GET /objects?page&size&manufacturer&search&published&sort` merges the catalog,
-the latest upload for each file, and the files beneath `ota/` in storage. Results
+the latest upload for each file, and the files in the upload folders in storage.
+An upload folder is `ota/<manufacturer>/` for a manufacturer with a naming
+convention. Other objects beneath `ota/` belong to other services and are left
+out, unless they have upload or catalog records. Results
 are filtered, sorted, and paged as one list. `size` is 1-200, `manufacturer` is
 matched ignoring case, `search` matches part of the object name, `published` is
 `true` or `false`, and `sort` is one of `manufacturer`, `file_name`,
@@ -350,7 +355,7 @@ Each entry has a `verification_status`:
 | `CHANGED` | The catalog entry's file was replaced or modified in storage |
 | `MISSING` | A catalog entry or upload record has no file in storage |
 | `UNVERIFIED` | The file's upload has not been verified |
-| `UNTRACKED` | A file beneath `ota/` with no records; details are read from its name |
+| `UNTRACKED` | A file in an upload folder with no records; details are read from its name |
 | `LOCAL` | A catalog entry for a file in the OBU OTA server's local firmware folder |
 | `UNKNOWN` | The file could not be checked, because storage is unavailable or the entry uses another bucket |
 
@@ -397,6 +402,8 @@ and can be retried.
 - `DELETE /objects/{objectId}/records` removes the records of a `MISSING` file, or
   the catalog entry of a `LOCAL` file. The file in the OTA server's local folder
   must be removed there.
+- Files beneath `ota/` outside the upload folders that have no records return
+  `400`, so files another service keeps there cannot be deleted here.
 - Published firmware must be unpublished first. Deletion is also refused while an
   issued upload URL can still write the file. OBU OTA request history is kept.
 

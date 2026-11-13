@@ -145,6 +145,18 @@ class CommsigniaObuFirmwareFileNameParserTest {
     }
 
     @Test
+    void registryRecognizesUploadFoldersOfManufacturersWithANamingConvention() {
+        var registry = new ObuFirmwareParserRegistry(List.of(parser));
+
+        assertThat(registry.isUploadFolder("ota/Commsignia/a.tar.sig")).isTrue();
+        assertThat(registry.isUploadFolder("ota/commsignia/a.tar.sig")).isTrue();
+        // The folder an OBU OTA server serves directly is not an upload folder
+        assertThat(registry.isUploadFolder("ota/firmwares/a.tar.sig")).isFalse();
+        assertThat(registry.isUploadFolder("ota/Commsignia/nested/a.tar.sig")).isFalse();
+        assertThat(registry.isUploadFolder("Commsignia/a.tar.sig")).isFalse();
+    }
+
+    @Test
     void registryFindsParsersByManufacturerIgnoringCase() {
         var registry = new ObuFirmwareParserRegistry(List.of(parser));
 
