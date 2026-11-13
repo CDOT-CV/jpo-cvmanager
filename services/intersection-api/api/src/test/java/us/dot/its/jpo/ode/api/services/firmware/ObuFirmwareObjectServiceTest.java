@@ -91,6 +91,10 @@ class ObuFirmwareObjectServiceTest {
         stored.add(object("ob4-generic-ro-y20.6.tar.sig", "19"));
         stored.add(object("ob4-generic-ro-secureboot-y20.9.tar.sig", "20"));
         stored.add(new StorageObject("ota/Commsignia/", 0, UPDATED, "1", null));
+        // Folders other services keep beneath ota/ are not CV Manager's to list
+        stored.add(new StorageObject("ota/firmwares/ob4-generic-ro-y20.10.tar.sig", 1024, UPDATED, "1", CHECKSUM));
+        stored.add(new StorageObject("ota/Commsignia/nested/ob4-generic-ro-y20.11.tar.sig", 1024, UPDATED, "1",
+                CHECKSUM));
 
         var page = service.list(0, 200, null, null, null, "file_name,asc");
 
@@ -133,6 +137,7 @@ class ObuFirmwareObjectServiceTest {
                 .returns(null, Item::obuFirmwareId);
         // An upload that can still write its file is in progress, not missing
         assertThat(byFile).doesNotContainKey("ob4-generic-ro-y20.8.tar.sig");
+        assertThat(byFile).doesNotContainKeys("ob4-generic-ro-y20.10.tar.sig", "ob4-generic-ro-y20.11.tar.sig");
     }
 
     @Test
@@ -179,17 +184,21 @@ class ObuFirmwareObjectServiceTest {
                 image(2, "ob4-generic-ro-y20.2.tar.sig", "gcp", "17")));
         stored.add(object("ob4-generic-ro-y20.1.tar.sig", "17"));
         stored.add(object("ob4-generic-ro-y20.2.tar.sig", "17"));
+        stored.add(new StorageObject("ota/Commsignia/firmware.bin", 1, UPDATED, "1", CHECKSUM));
+        // A folder without a naming convention is not an upload folder
         stored.add(new StorageObject("ota/Other/firmware.bin", 1, UPDATED, "1", CHECKSUM));
 
         assertThat(service.list(0, 100, null, null, true, null).objects())
                 .extracting(Item::obuFirmwareId).containsExactly(1);
         assertThat(service.list(0, 100, null, null, false, null).objects()).extracting(Item::fileName)
-                .containsExactly("ob4-generic-ro-y20.2.tar.sig", "firmware.bin");
+                .containsExactlyInAnyOrder("ob4-generic-ro-y20.2.tar.sig", "firmware.bin");
         assertThat(service.list(0, 100, " commsignia ", "Y20.2", null, null).objects())
                 .extracting(Item::obuFirmwareId).containsExactly(2);
-        assertThat(service.list(0, 100, "Other", null, null, null).objects())
+        // An untracked name outside the naming convention is listed without details
+        assertThat(service.list(0, 100, null, "firmware.bin", null, null).objects())
                 .extracting(Item::verificationStatus, Item::deviceType)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("UNTRACKED", null));
+        assertThat(service.list(0, 100, "Other", null, null, null).objects()).isEmpty();
     }
 
     @Test
