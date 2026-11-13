@@ -194,7 +194,6 @@ const AdminEditRsu = () => {
 
   const isLoading = isLoadingRsu || isLoadingAllowedSelections
 
-  // "Viewer" RSUs belong to another organization's credential group and cannot be edited (super users excepted)
   if (rsuInfo && !isSuperUser && rsuInfo.owner_organization !== organization) {
     return (
       <NotFound

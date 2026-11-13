@@ -82,8 +82,6 @@ const ConfigureRSU = () => {
   const organization = useSelector(selectOrganizationName)
   const isSuperUser = !!useSelector(selectIsSuperUser)
 
-  // Super users can act on any RSU (matches the API's isSuperUser() bypass), so they skip the ownership lookups.
-  // currentData (not data) so a previously selected RSU's ownership is never applied to the new selection
   const {
     currentData: rsuDetail,
     isFetching: singleOwnershipFetching,

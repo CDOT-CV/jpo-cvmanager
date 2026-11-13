@@ -213,7 +213,6 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     })
   }
 
-  // The org-level endpoints only update RSUs owned by the organization (enforced by the API)
   const confirmOrgRsuOptionChange = async (title: string, updateOwnedRsus: () => Promise<any>) => {
     const result: any = await dispatch(getOrgData({ orgName: selectedOrg }))
     const orgRsus: AdminOrgRsu[] | undefined = result.payload?.success

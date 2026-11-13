@@ -114,7 +114,6 @@ const AdminRsuTab = () => {
     setSelectedRsuIp(null)
   }
 
-  // Super users can manage any RSU (matches the API's isSuperUser() bypass)
   const isViewerRsu = (row: AdminEditRsuFormType) => !isSuperUser && row.owner_organization !== organization
 
   const tableActions: AdminTableAction<AdminEditRsuFormType>[] = [

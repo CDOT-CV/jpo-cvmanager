@@ -307,7 +307,6 @@ export const geoRsuQuery = createAsyncThunk(
       return rejectWithValue(response?.message || 'Failed to query RSUs by geometry')
     }
 
-    // Super users can configure any RSU (matches the API's isSuperUser() bypass)
     if (selectIsSuperUser(currentState)) {
       return response
     }
@@ -339,7 +338,6 @@ export const geoRsuQuery = createAsyncThunk(
   }
 )
 
-// Tell the user when the area query selected nothing they are allowed to configure
 export const notifyGeoRsuQueryResult = (
   result: ReturnType<typeof geoRsuQuery.fulfilled | typeof geoRsuQuery.rejected>
 ) => {
