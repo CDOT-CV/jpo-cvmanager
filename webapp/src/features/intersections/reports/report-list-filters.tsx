@@ -4,7 +4,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import dayjs from 'dayjs'
 import PropTypes from 'prop-types'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 
 export type ReportListFilter = {
   startDate: Date | undefined
@@ -19,14 +19,22 @@ interface ReportListFiltersProps {
   setOpenReportGenerationDialog: (open: boolean) => void
 }
 
+const getFilterError = ({ startDate, endDate }: ReportListFilter): string => {
+  if (startDate === undefined || endDate === undefined) {
+    return 'Start Date and End Date must be set'
+  }
+  if (startDate >= endDate) {
+    return 'Start Date must be before End Date'
+  }
+  return ''
+}
+
 export const ReportListFilters = (props: ReportListFiltersProps) => {
   const { filters, onChange, loading, setOpenReportGenerationDialog } = props
-  const [currentFilters, setCurrentFilters] = useState(filters)
-  const [filtersValid, setFiltersValid] = useState([true, ''])
-
-  useEffect(() => {
-    handleUpdatedFilters(filters)
-  }, [filters])
+  const [draft, setDraft] = useState<{ source: ReportListFilter; value: ReportListFilter } | null>(null)
+  // Discard local edits when the parent supplies a new filter value.
+  const currentFilters = draft?.source === filters ? draft.value : filters
+  const filterError = getFilterError(currentFilters)
 
   const startDateChange = (date: Date | undefined) => {
     handleUpdatedFilters({ ...currentFilters, startDate: date })
@@ -36,23 +44,10 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
     handleUpdatedFilters({ ...currentFilters, endDate: date })
   }
 
-  const handleUpdatedFilters = (filters: ReportListFilter) => {
-    setCurrentFilters(filters)
-
-    // Validate the updated filters and update the state accordingly
-    let filtersValidLocal = true
-    const reasons: string[] = []
-    if (filters.startDate === undefined || filters.endDate === undefined) {
-      filtersValidLocal = false
-      reasons.push('Start Date and End Date must be set')
-    } else if (filters.startDate >= filters.endDate) {
-      filtersValidLocal = false
-      reasons.push('Start Date must be before End Date')
-    }
-    // TODO: validate dates
-    setFiltersValid([filtersValidLocal, reasons.join('\n')])
-    if (filtersValidLocal) {
-      onChange?.(filters)
+  const handleUpdatedFilters = (updatedFilters: ReportListFilter) => {
+    setDraft({ source: filters, value: updatedFilters })
+    if (!getFilterError(updatedFilters)) {
+      onChange(updatedFilters)
     }
   }
 
@@ -81,9 +76,9 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
           />
         </LocalizationProvider>
       </Box>
-      {!filtersValid[0] && (
+      {Boolean(filterError) && (
         <Typography color="red" sx={{ mt: 3 }} variant="subtitle2">
-          Invalid filters: {filtersValid[1]}
+          Invalid filters: {filterError}
         </Typography>
       )}
       <Box sx={{ m: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
