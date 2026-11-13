@@ -24,7 +24,7 @@ Werkzeug==3.0.0
 uuid==1.30
 multidict==6.0.5
 python-keycloak==5.8.1
-paramiko==3.5.0
+paramiko==5.0.0
 scp==0.15.0
 waitress==3.0.2
 fastapi==0.110.0
