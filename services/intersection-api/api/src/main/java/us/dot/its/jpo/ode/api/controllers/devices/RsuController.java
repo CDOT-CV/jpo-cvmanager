@@ -1,17 +1,14 @@
 package us.dot.its.jpo.ode.api.controllers.devices;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,10 +27,14 @@ import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
@@ -68,11 +69,12 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public Page<RsuInfoDto> getAllRsus(
-            @RequestHeader(name = "Organization", required = true) String organization,
-            @RequestParam(name = "search", required = false) String search,
+            @RequestHeader(name = "Organization", required = true) Integer orgId,
+                    @RequestParam(name = "search", required = false) String search,
             @PageableDefault(size = 100) Pageable pageable) {
         Pageable mappedPageable = mapSortFields(pageable);
 
+        Organization organization = permissionService.getOrganizationById(orgId);
         Page<RsuInfoDto> allRsuInfo = rsuManagementService.getAllRsuInfo(organization, search, mappedPageable);
         return allRsuInfo;
     }
@@ -104,41 +106,43 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ModifyRsuAllowedSelections getAllowedSelections() {
-        ModifyRsuAllowedSelections allowedSelections = rsuManagementService
-                .getAllowedSelections(permissionService.getCvManagerAuthToken());
-
-        return allowedSelections;
+        List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
+                .getQualifiedOrgList(UserRole.ADMIN);
+        return rsuManagementService.getAllowedSelections(qualifiedOrgs);
     }
 
     @Operation(summary = "Create RSU", description = "Create a new RSU")
     @PostMapping(produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && " +
+            "@PermissionService.hasRoleInOrgIds('ADMIN', #body.organizations))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Created"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
     })
     public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body) {
-        if (!permissionService.hasRoleInOrgNames(UserRole.OPERATOR, body.getOrganizations())) {
-            // This catches unqualified orgs or nonexistent orgs
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "User not qualified to modify all specified organizations");
-        }
+        CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
 
-        rsuManagementService.createRsu(body, body.getOrganizations());
+        rsuManagementService.createRsu(body, qualifiedOrgs);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @Operation(summary = "Modify RSU", description = "Modify RSU information")
     @PatchMapping(produces = "application/json", params = "rsu_ip")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwner(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwner(#rsuIp, 'OPERATOR') and " +
+            "@PermissionService.hasRole('OPERATOR') and " +
+            "@PermissionService.hasRoleInOrgIds('ADMIN', #body.organizationsToAdd) and " +
+            "@PermissionService.hasRoleInOrgIds('ADMIN', #body.organizationsToRemove))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of the RSU requested"),
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
             @Validated @RequestBody RsuPatch body) {
-        rsuManagementService.modifyRsu(rsuIp, body, permissionService.getCvManagerAuthToken());
+        List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
+                .getQualifiedOrgList(UserRole.ADMIN);
+        rsuManagementService.modifyRsu(rsuIp, body, qualifiedOrgs);
         rsuOptionManagementService.modifyRsuOption(rsuIp, body);
 
         return ResponseEntity.noContent().build();
