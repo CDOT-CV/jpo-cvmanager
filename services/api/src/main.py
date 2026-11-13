@@ -11,8 +11,6 @@ from rsu_querymsgfwd import RsuQueryMsgFwd
 from rsu_commands import RsuCommandRequest
 from rsu_snmp_fwd_fetch import RsuSnmpFwdFetch
 from wzdx_feed import WzdxFeed
-from admin_new_org import AdminNewOrg
-from admin_org import AdminOrg, AdminOrgTimDeposit, AdminOrgSnmpMonitoring
 import smtp_error_handler
 from common import common_environment
 
@@ -38,10 +36,6 @@ def apply_cors_header(response):
 api = Api(app)
 
 api.add_resource(HealthCheck, "/")
-api.add_resource(AdminNewOrg, "/admin-new-org")
-api.add_resource(AdminOrg, "/admin-org")
-api.add_resource(AdminOrgTimDeposit, "/admin-org-tim-deposit")
-api.add_resource(AdminOrgSnmpMonitoring, "/admin-org-snmp-monitoring")
 
 if api_environment.ENABLE_RSU_FEATURES:
     api.add_resource(RsuQueryCounts, "/rsucounts")

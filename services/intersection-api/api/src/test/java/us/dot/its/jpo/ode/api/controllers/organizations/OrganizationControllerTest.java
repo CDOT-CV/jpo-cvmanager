@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,6 +43,7 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.organizations.NewOrganizationBody;
 import us.dot.its.jpo.ode.api.models.organizations.OrganizationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
@@ -134,6 +136,56 @@ class OrganizationControllerTest {
         otherOrg = new Organization();
         otherOrg.setId(2);
         otherOrg.setName("OtherOrg");
+    }
+
+    // ==================== POST /organizations ====================
+
+    @Nested
+    @DisplayName("POST /organizations createOrganization")
+    class CreateOrganization {
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 201 with the created organization ID")
+        void validBody_returns201WithCreatedId() throws Exception {
+            Organization createdOrg = new Organization();
+            createdOrg.setId(42);
+            when(organizationManagementService.createOrganization(any())).thenReturn(createdOrg);
+
+            mockMvc.perform(post("/organizations")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"name\":\"New Org\",\"email\":\"new@org.test\"}"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$").value(42));
+
+            verify(organizationManagementService)
+                    .createOrganization(new NewOrganizationBody("New Org", "new@org.test"));
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 409 when an organization with the same name already exists")
+        void duplicateName_returns409() throws Exception {
+            when(organizationManagementService.createOrganization(any()))
+                    .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Organization with name already exists"));
+
+            mockMvc.perform(post("/organizations")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"name\":\"Existing Org\",\"email\":\"existing@org.test\"}"))
+                    .andExpect(status().isConflict());
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 400 and does not call the service for malformed JSON")
+        void malformedBody_returns400() throws Exception {
+            mockMvc.perform(post("/organizations")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"name\":"))
+                    .andExpect(status().isBadRequest());
+
+            Mockito.verifyNoInteractions(organizationManagementService);
+        }
     }
 
     // ==================== PATCH /organizations ====================
