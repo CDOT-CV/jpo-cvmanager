@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react'
-import PropTypes from 'prop-types'
 import { Box, Button, CircularProgress, Typography } from '@mui/material'
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import dayjs from 'dayjs'
+import PropTypes from 'prop-types'
+import React, { useState } from 'react'
 
 export type ReportListFilter = {
-  startDate: Date | null
-  endDate: Date | null
+  startDate: Date | undefined
+  endDate: Date | undefined
 }
 
 interface ReportListFiltersProps {
@@ -19,41 +19,35 @@ interface ReportListFiltersProps {
   setOpenReportGenerationDialog: (open: boolean) => void
 }
 
+const getFilterError = ({ startDate, endDate }: ReportListFilter): string => {
+  if (startDate === undefined || endDate === undefined) {
+    return 'Start Date and End Date must be set'
+  }
+  if (startDate >= endDate) {
+    return 'Start Date must be before End Date'
+  }
+  return ''
+}
+
 export const ReportListFilters = (props: ReportListFiltersProps) => {
   const { filters, onChange, loading, setOpenReportGenerationDialog } = props
-  const [currentFilters, setCurrentFilters] = useState(filters)
-  const [filtersValid, setFiltersValid] = useState([true, ''])
+  const [draft, setDraft] = useState<{ source: ReportListFilter; value: ReportListFilter } | null>(null)
+  // Discard local edits when the parent supplies a new filter value.
+  const currentFilters = draft?.source === filters ? draft.value : filters
+  const filterError = getFilterError(currentFilters)
 
-  useEffect(() => {
-    setCurrentFilters(filters)
-  }, [filters])
-
-  useEffect(() => {
-    updateFiltersValid()
-  }, [currentFilters])
-
-  const startDateChange = (date: Date | null) => {
-    setCurrentFilters({ ...currentFilters, startDate: date })
+  const startDateChange = (date: Date | undefined) => {
+    handleUpdatedFilters({ ...currentFilters, startDate: date })
   }
 
-  const endDateChange = (date: Date | null) => {
-    setCurrentFilters({ ...currentFilters, endDate: date })
+  const endDateChange = (date: Date | undefined) => {
+    handleUpdatedFilters({ ...currentFilters, endDate: date })
   }
 
-  const updateFiltersValid = () => {
-    let filtersValidLocal = true
-    const reasons: string[] = []
-    if (currentFilters.startDate === null || currentFilters.endDate === null) {
-      filtersValidLocal = false
-      reasons.push('Start Date and End Date must be set')
-    } else if (currentFilters.startDate >= currentFilters.endDate) {
-      filtersValidLocal = false
-      reasons.push('Start Date must be before End Date')
-    }
-    // TODO: validate dates
-    setFiltersValid([filtersValidLocal, reasons.join('\n')])
-    if (filtersValidLocal) {
-      onChange?.(currentFilters)
+  const handleUpdatedFilters = (updatedFilters: ReportListFilter) => {
+    setDraft({ source: filters, value: updatedFilters })
+    if (!getFilterError(updatedFilters)) {
+      onChange(updatedFilters)
     }
   }
 
@@ -82,9 +76,9 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
           />
         </LocalizationProvider>
       </Box>
-      {!filtersValid[0] && (
+      {Boolean(filterError) && (
         <Typography color="red" sx={{ mt: 3 }} variant="subtitle2">
-          Invalid filters: {filtersValid[1]}
+          Invalid filters: {filterError}
         </Typography>
       )}
       <Box sx={{ m: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>

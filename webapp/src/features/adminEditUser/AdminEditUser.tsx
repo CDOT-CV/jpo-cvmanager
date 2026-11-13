@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
@@ -58,36 +58,23 @@ const AdminEditUser = () => {
     handleSubmit,
     control,
     formState: { errors },
-    reset,
   } = useForm<UserFormData>({
-    defaultValues: {
-      orig_email: '',
-      email: '',
-      first_name: '',
-      last_name: '',
-      super_user: false,
-      organizations: [],
-    },
+    values: userInfo
+      ? {
+          orig_email: userInfo.email,
+          email: userInfo.email,
+          first_name: userInfo.first_name,
+          last_name: userInfo.last_name,
+          super_user: userInfo.super_user,
+          organizations: userInfo.organizations,
+        }
+      : undefined,
   })
 
   const { fields, append, remove, update } = useFieldArray({
     control,
     name: 'organizations',
   })
-
-  // Initialize form when user data loads
-  useEffect(() => {
-    if (userInfo) {
-      reset({
-        orig_email: userInfo.email,
-        email: userInfo.email,
-        first_name: userInfo.first_name,
-        last_name: userInfo.last_name,
-        super_user: userInfo.super_user,
-        organizations: userInfo.organizations,
-      })
-    }
-  }, [userInfo, reset])
 
   const onSubmit = async (data: UserFormData) => {
     if (data.organizations.length === 0 || data.organizations.some((org) => org.organization === undefined)) {

@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react'
-import { Box, Button, Card, Container, InputAdornment, Tab, Tabs, TextField, Typography, useTheme } from '@mui/material'
-import { ConfigParamListTable } from '../../features/intersections/configuration/configuration-list-table'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SearchIcon from '@mui/icons-material/Search'
-import { selectSelectedIntersectionId } from '../../generalSlices/intersectionSlice'
+import { Box, Button, Card, Container, InputAdornment, Tab, Tabs, TextField, Typography, useTheme } from '@mui/material'
+import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
-import { useGetIntersectionParametersQuery } from '../../features/api/intersectionConfigSlice'
 import { Route, Routes } from 'react-router-dom'
-import ConfigParamEdit from './configuration/edit'
-import ConfigParamCreate from './configuration/create'
-import ConfigParamRemove from './configuration/remove'
+import { useGetIntersectionParametersQuery } from '../../features/api/intersectionConfigSlice'
+import { ConfigParamListTable } from '../../features/intersections/configuration/configuration-list-table'
+import { selectSelectedIntersectionId } from '../../generalSlices/intersectionSlice'
 import { NotFound } from '../../pages/404'
+import ConfigParamCreate from './configuration/create'
+import ConfigParamEdit from './configuration/edit'
+import ConfigParamRemove from './configuration/remove'
 
 const tabs = [
   {
@@ -85,7 +85,7 @@ const Page = () => {
   const [currentTab, setCurrentTab] = useState('GENERAL')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
-  const [currentDescription, setCurrentDescription] = useState('')
+  const [currentDescription, setCurrentDescription] = useState('General configuration parameters')
   const intersectionId = useSelector(selectSelectedIntersectionId)
   const [filter, setFilter] = useState({
     query: '',
@@ -96,16 +96,12 @@ const Page = () => {
 
   const { data: parameters, refetch } = useGetIntersectionParametersQuery(intersectionId)
 
-  useEffect(() => {
-    updateDescription()
-  }, [currentTab])
-
   const handleTabsChange = (event, value) => {
     const updatedFilter = { ...filter, tab: value }
     setCurrentTab(value)
+    updateDescription(value)
     setFilter(updatedFilter)
     setPage(0)
-    setCurrentTab(value)
   }
 
   const handleQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,9 +119,9 @@ const Page = () => {
     setRowsPerPage(parseInt(event.target.value, 10))
   }
 
-  const updateDescription = () => {
+  const updateDescription = (currentTabValue: string) => {
     for (let i = 0; i < tabs.length; i++) {
-      if (tabs[i].value === currentTab) {
+      if (tabs[i].value === currentTabValue) {
         setCurrentDescription(tabs[i].description)
       }
     }

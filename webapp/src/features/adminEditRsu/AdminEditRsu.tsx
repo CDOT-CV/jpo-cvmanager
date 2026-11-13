@@ -1,5 +1,5 @@
 import { ErrorMessage } from '@hookform/error-message'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 
@@ -71,28 +71,29 @@ const AdminEditRsu = () => {
     formState: { errors },
     setValue,
     watch,
-    reset,
   } = useForm<AdminEditRsuFormType>({
-    defaultValues: {
-      orig_ip: '',
-      ip: '',
-      geo_position: {
-        latitude: '',
-        longitude: '',
-      },
-      milepost: '',
-      primary_route: '',
-      other_route: '',
-      serial_number: '',
-      model: '',
-      scms_id: '',
-      ssh_credential_group: '',
-      snmp_credential_group: '',
-      snmp_version_group: '',
-      organizations: [],
-      tim_deposit: false,
-      snmp_monitoring: false,
-    },
+    values: rsuInfo
+      ? {
+          orig_ip: rsuInfo.ip,
+          ip: rsuInfo.ip,
+          geo_position: {
+            latitude: rsuInfo.geo_position.latitude.toString(),
+            longitude: rsuInfo.geo_position.longitude.toString(),
+          },
+          milepost: String(rsuInfo.milepost),
+          primary_route: rsuInfo.primary_route,
+          other_route: '',
+          serial_number: rsuInfo.serial_number,
+          model: rsuInfo.model,
+          scms_id: rsuInfo.scms_id,
+          ssh_credential_group: rsuInfo.ssh_credential_group,
+          snmp_credential_group: rsuInfo.snmp_credential_group,
+          snmp_version_group: rsuInfo.snmp_version_group,
+          organizations: rsuInfo.organizations,
+          tim_deposit: rsuInfo.tim_deposit ?? false,
+          snmp_monitoring: rsuInfo.snmp_monitoring ?? false,
+        }
+      : undefined,
   })
 
   // Watch form values
@@ -102,32 +103,6 @@ const AdminEditRsu = () => {
   const watchedSnmpGroup = watch('snmp_credential_group')
   const watchedSnmpVersion = watch('snmp_version_group')
   const watchedOrganizations = watch('organizations')
-
-  // Initialize form when RSU data loads
-  useEffect(() => {
-    if (rsuInfo) {
-      reset({
-        orig_ip: rsuInfo.ip,
-        ip: rsuInfo.ip,
-        geo_position: {
-          latitude: rsuInfo.geo_position.latitude.toString(),
-          longitude: rsuInfo.geo_position.longitude.toString(),
-        },
-        milepost: String(rsuInfo.milepost),
-        primary_route: rsuInfo.primary_route,
-        other_route: '',
-        serial_number: rsuInfo.serial_number,
-        model: rsuInfo.model,
-        scms_id: rsuInfo.scms_id,
-        ssh_credential_group: rsuInfo.ssh_credential_group,
-        snmp_credential_group: rsuInfo.snmp_credential_group,
-        snmp_version_group: rsuInfo.snmp_version_group,
-        organizations: rsuInfo.organizations,
-        tim_deposit: rsuInfo.tim_deposit ?? false,
-        snmp_monitoring: rsuInfo.snmp_monitoring ?? false,
-      })
-    }
-  }, [rsuInfo, reset])
 
   const onSubmit = async (data: AdminEditRsuFormType) => {
     setSubmitAttempt(true)

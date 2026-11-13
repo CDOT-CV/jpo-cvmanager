@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
@@ -35,7 +35,9 @@ import { useCreateUserMutation, useGetUserAllowedSelectionsQuery } from '../api/
 const AdminAddUser = () => {
   const navigate = useNavigate()
   const isSuperUser = useSelector(selectSuperUser)
-  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganizationOptionalOrg[]>([])
+  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganizationOptionalOrg[]>([
+    { organization: undefined, role: 'USER' },
+  ])
   const [open, setOpen] = useState(true)
 
   // RTK Query hooks
@@ -55,13 +57,6 @@ const AdminAddUser = () => {
       super_user: false,
     },
   })
-
-  // Initialize with one empty organization on mount
-  useEffect(() => {
-    if (selectedOrganizations.length === 0 && !isLoadingData) {
-      setSelectedOrganizations([{ organization: undefined, role: 'USER' }])
-    }
-  }, [isLoadingData])
 
   const handleClose = () => {
     setOpen(false)

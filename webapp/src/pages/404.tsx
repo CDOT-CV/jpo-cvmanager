@@ -28,7 +28,7 @@ export const NotFound = ({
     if (shouldRedirect) {
       dispatch(setRouteNotFound(true))
     }
-  }, [])
+  }, [shouldRedirect, dispatch])
   return (
     <div
       style={{
