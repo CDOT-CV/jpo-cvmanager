@@ -342,3 +342,80 @@ requests per serial number.
 - `RSU_REBOOT_CONCURRENCY` sets the command limit (default: `4`, range: 1?32).
 - `RSU_REBOOT_TIMEOUT` limits SSH setup and command execution (default: `60s`, range: 1?120 seconds). It does not wait for the RSU to restart.
 - Unknown or changed SSH host keys are accepted. No `known_hosts` file is required; SSH server identity is not verified.
+
+## Local SNMP library dependency
+
+The API uses the local [JPO SNMP library](../snmp/README.md). From the repository
+root, build both modules with:
+
+```sh
+mvn -f services/intersection-api/pom.xml -pl api -am verify
+```
+
+For IDE runs or API-only builds, first run `mvn -f services/intersection-api/snmp/pom.xml install`.
+Docker builds install the library automatically; no Net-SNMP installation is needed.
+
+## RSU message forwarding
+
+- Live reads and changes support NTCIP 1218 only. Existing RSU 4.1/DSRC rows remain
+  viewable from PostgreSQL, but new RSU protocol assignments must use NTCIP 1218.
+- Cached reads require USER access through an RSU organization association.
+  Live reads require USER access and SSH-credential ownership; changes require
+  OPERATOR access and ownership. The selected `Organization` applies; superusers
+  retain access regardless of ownership.
+- SNMP credentials come from PostgreSQL. RSU management addresses use IPv4 and port 161.
+
+Routes under `/devices/rsus/message-forwarding`:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/{rsuIp}` | Cached forwarding rows |
+| GET | `/{rsuIp}/live` | Live forwarding rows, including validation warnings |
+| POST | Base path | Create a forwarding row on each selected RSU |
+| DELETE | Base path | Delete using message-type presets |
+| DELETE | `/{rsuIp}/rows/{table}/{index}` | Delete a selected row using its actual table/index |
+
+### Requests
+
+Create requests accept 1-100 unique RSU IPv4 addresses:
+
+```json
+{
+  "rsu_ips": ["192.0.2.10"],
+  "message_type": "MAP",
+  "destination_ip": "198.51.100.3",
+  "include_security": true
+}
+```
+
+- Supported types: `BSM`, `SPAT`, `MAP`, `SSM`, `SRM`, and `TIM`. Each selects a fixed
+  table and UDP port. `include_security` controls IEEE 1609.2 security headers.
+- Creation adds a new row. Preset deletion accepts the same body without
+  `include_security` and removes the highest-index match for message type,
+  destination, and preset port. No match is a successful no-op.
+- Selected-row deletion accepts `destination_ip` and `destination_port`, which
+  must match the stored row. It can remove malformed or manually created rows,
+  including invalid ports or non-IPv4 destinations. Unreadable guards require
+  manual repair; creating new destinations still requires IPv4.
+
+### Results and limits
+
+- Changes return HTTP 200 with results keyed by RSU IP. Check `execution`,
+  `writeState`, `changed`, and `databaseSync` for each device; 200 does not mean
+  every change succeeded. Writes are verified and never retried automatically.
+  Check the device before retrying an uncertain write.
+- After a verified change, a complete read replaces the PostgreSQL snapshot.
+  Failed reads or database updates preserve the previous snapshot and the
+  response's verified device-change evidence.
+- Live refresh does not update PostgreSQL. Malformed rows include `validationError`
+  and nullable fields; failed table walks return an HTTP error. Dates use UTC.
+- Each API instance runs up to 24 tasks with 128 queued. Defaults allow 30 seconds
+  in the queue and 60 seconds for execution. Requests wait for completion; allow
+  for both budgets in upstream HTTP timeouts. Tasks for the same RSU run serially
+  within an instance; multiple replicas need separate write coordination.
+- `SNMP_REQUEST_TIMEOUT` sets the timeout per attempt (default `5s`, one read retry).
+  Set it in the deployment environment or Compose `.env`, then recreate the API
+  container. Other limits are defined in [SnmpProperties](src/main/java/us/dot/its/jpo/ode/api/config/SnmpProperties.java).
+
+See [Swagger API](#swagger-api) for request and response schemas and the
+[SNMP README](../snmp/README.md) for library behavior.

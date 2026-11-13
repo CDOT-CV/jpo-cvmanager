@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 
 import cve_coverage as coverage
 
@@ -47,6 +48,18 @@ class CoverageTests(unittest.TestCase):
         purls = re.findall(r"pkg:[^\s\"',\]]+", ignore.read_text(encoding="utf-8"))
         self.assertTrue(purls)
         self.assertEqual([purl for purl in purls if re.search(r"[@?#]", purl)], [])
+
+    def test_intersection_api_scan_build_includes_the_local_snmp_module(self):
+        target = next(t for t in json.loads(coverage.INVENTORY.read_text(encoding="utf-8"))
+                      if t["id"] == "intersection-api")
+        root = Path(__file__).resolve().parents[2] / target["maven_context"]
+        ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+        modules = [m.text for m in ET.parse(root / "pom.xml").findall("m:modules/m:module", ns)]
+        self.assertIn(target["maven_module"], modules)
+        self.assertTrue((root / target["maven_module"] / "settings.xml").is_file())
+        artifacts = {ET.parse(root / module / "pom.xml").findtext("m:artifactId", namespaces=ns)
+                     for module in modules}
+        self.assertIn("jpo-snmp", artifacts)
 
     def test_inventory_rejects_duplicate_ids(self):
         with self.assertRaisesRegex(ValueError, "Duplicate"):

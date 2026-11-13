@@ -6,7 +6,7 @@ Java SNMP library for Connected Vehicle devices.
   - JDK 22 was chosen for compatibility with the Intersection API. This library can move to JDK 25 when the Intersection API does.
 - Supports generic SNMPv3 operations and NTCIP 1218 RSU helpers.
 - No Spring or database dependency. RSU 4.1 is not supported.
-- Maven: `usdot.jpo.ode:jpo-snmp:1.0.0-SNAPSHOT`.
+- Maven: `usdot.jpo.ode:jpo-snmp:1.0.0-alpha1`.
 
 ## Choose an operation
 
