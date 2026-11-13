@@ -339,14 +339,19 @@ export const geoRsuQuery = createAsyncThunk(
 )
 
 export const notifyGeoRsuQueryResult = (
-  result: ReturnType<typeof geoRsuQuery.fulfilled | typeof geoRsuQuery.rejected>
+  result: ReturnType<typeof geoRsuQuery.fulfilled | typeof geoRsuQuery.rejected>,
+  isSuperUser = false
 ) => {
   if (geoRsuQuery.rejected.match(result)) {
     // The thunk never ran (its condition guard skipped it), so there is nothing to report
     if (result.meta.condition) return
     toast.error((result.payload as string) || 'Failed to query RSUs in the selected area')
   } else if ((result.payload?.body ?? []).length === 0) {
-    toast.error('No RSUs owned by your organization were found in the selected area')
+    toast.error(
+      isSuperUser
+        ? 'No RSUs were found in the selected area'
+        : 'No RSUs owned by your organization were found in the selected area'
+    )
   }
 }
 

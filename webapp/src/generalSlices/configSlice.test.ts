@@ -1193,6 +1193,11 @@ describe('notifyGeoRsuQueryResult', () => {
     expect(toastError).toHaveBeenCalledWith('No RSUs owned by your organization were found in the selected area')
   })
 
+  it('does not mention ownership to super users when the area is empty', () => {
+    notifyGeoRsuQueryResult(fulfilled([]), true)
+    expect(toastError).toHaveBeenCalledWith('No RSUs were found in the selected area')
+  })
+
   it('stays quiet when owned RSUs were selected', () => {
     notifyGeoRsuQueryResult(fulfilled(['10.0.0.1']))
     expect(toastError).not.toHaveBeenCalled()
