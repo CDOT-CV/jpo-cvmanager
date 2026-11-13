@@ -1,14 +1,14 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
-import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
-import { getQueryString } from './intersectionConfigSlice'
 import { AdminRsu, AdminRsuAllowedSelections, AdminRsuPatch } from '../../models/Rsu'
 import { PaginatedQueryParams, PaginatedResponse } from '../../models/pagination'
+import { RootState } from '../../store'
 import { AdminRsuCreationBody } from '../adminAddRsu/AdminAddRsu'
+import { getQueryString } from './intersectionConfigSlice'
 
 export interface GetAllRsusParams extends PaginatedQueryParams {
-  organization: string
+  organization: number
 }
 
 // Tag type constants
@@ -45,7 +45,7 @@ export const rsuApiSlice = createApi({
             search: search,
           })}`,
           headers: {
-            Organization: organization,
+            Organization: organization.toString(),
           },
         }
       },

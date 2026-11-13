@@ -24,3 +24,6 @@ Dockerfile text eol=lf
 *.py     text eol=lf
 *.java   text eol=lf
 *.properties text eol=lf
+
+# Vitest/Jest snapshots must stay LF to avoid constant false diffs on Windows
+*.snap   text eol=lf

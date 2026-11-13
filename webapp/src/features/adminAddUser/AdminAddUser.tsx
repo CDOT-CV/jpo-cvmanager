@@ -6,19 +6,19 @@ import { useSelector } from 'react-redux'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {
-    Box,
-    Button,
-    Card,
-    CircularProgress,
-    DialogActions,
-    DialogContent,
-    FormControl,
-    IconButton,
-    InputLabel,
-    MenuItem,
-    Select,
-    TextField,
-    Typography,
+  Box,
+  Button,
+  Card,
+  CircularProgress,
+  DialogActions,
+  DialogContent,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material'
 import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
@@ -273,9 +273,8 @@ const AdminAddUser = () => {
                 onClick={handleAddOrganization}
                 className="museo-slab capital-case"
                 disabled={
-                  allowedSelections?.organizations &&
-                  selectedOrganizations.filter((org) => org.organization !== '').length >=
-                    allowedSelections.organizations.length
+                  !!allowedSelections?.organizations &&
+                  selectedOrganizations.length >= allowedSelections.organizations.length
                 }
               >
                 Add Organization
@@ -286,8 +285,9 @@ const AdminAddUser = () => {
               <Card key={index} sx={{ mb: 2, p: 2, position: 'relative' }}>
                 <Box display="flex" gap={2} flexDirection={{ xs: 'column', sm: 'row' }} sx={{ pr: 5 }}>
                   <FormControl fullWidth>
-                    <InputLabel>Organization</InputLabel>
+                    <InputLabel id={`organization-label-${index}`}>Organization</InputLabel>
                     <Select
+                      labelId={`organization-label-${index}`}
                       value={orgRole.organization}
                       label="Organization"
                       onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value)}

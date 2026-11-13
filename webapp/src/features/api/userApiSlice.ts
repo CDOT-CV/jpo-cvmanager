@@ -1,24 +1,24 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
-import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
-import { getQueryString } from './intersectionConfigSlice'
 import { PaginatedQueryParams, PaginatedResponse } from '../../models/pagination'
+import { RootState } from '../../store'
+import { getQueryString } from './intersectionConfigSlice'
 
 export interface GetUsersParams extends PaginatedQueryParams {
-  organization: string
+  organization: number
 }
 
 // Tag type constants
-const USER_API_USER_TAG = 'User' as const
-const USER_API_ALLOWED_SELECTIONS_TAG = 'AllowedSelections' as const
-const USER_API_USER_LIST_ID = 'LIST' as const
+export const USER_API_USER_TAG = 'User' as const
+export const USER_API_ALLOWED_SELECTIONS_TAG = 'AllowedSelections' as const
+export const USER_API_USER_LIST_ID = 'LIST' as const
 
 export const userApiSlice = createApi({
   reducerPath: 'userApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/users`,
-    prepareHeaders: (headers, { getState, endpoint }) => {
+    prepareHeaders: (headers, { getState }) => {
       const currentState = getState() as RootState
       const token = selectToken(currentState)
 
@@ -42,7 +42,7 @@ export const userApiSlice = createApi({
             search: search,
           })}`,
           headers: {
-            Organization: organization,
+            Organization: organization?.toString(),
           },
         }
       },
