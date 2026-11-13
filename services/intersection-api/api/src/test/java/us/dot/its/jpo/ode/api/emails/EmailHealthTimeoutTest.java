@@ -32,6 +32,30 @@ import us.dot.its.jpo.ode.api.emails.health.SendGridHealthIndicator;
 class EmailHealthTimeoutTest {
 
     @Test
+    @SuppressWarnings("deprecation")
+    void postmarkHealthAndSendingUseSeparateClients() throws Exception {
+        EmailProperties properties = new EmailProperties();
+        EmailProperties.PostmarkProperties postmarkProperties = new EmailProperties.PostmarkProperties();
+        postmarkProperties.setApiKey("test-token");
+        properties.setPostmark(postmarkProperties);
+        ApiClient sendingClient = properties.apiClient();
+        ApiClient healthClient = properties.postmarkHealthCheck();
+        try {
+            assertThat(healthClient).isNotSameAs(sendingClient);
+            assertThat(healthClient.getHttpClient().getClient()).isNotSameAs(sendingClient.getHttpClient().getClient());
+            org.apache.hc.client5.http.config.RequestConfig.Builder builder =
+                    (org.apache.hc.client5.http.config.RequestConfig.Builder) ReflectionTestUtils
+                            .getField(sendingClient.getHttpClient(), "clientConfigBuilder");
+            org.apache.hc.client5.http.config.RequestConfig config = builder.build();
+            assertThat(config.getConnectTimeout().toMilliseconds()).isEqualTo(60_000);
+            assertThat(config.getResponseTimeout().toMilliseconds()).isEqualTo(60_000);
+        } finally {
+            sendingClient.getHttpClient().getClient().close();
+            healthClient.getHttpClient().getClient().close();
+        }
+    }
+
+    @Test
     @Timeout(value = 20, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
     @SuppressWarnings("deprecation")
     void postmarkHealthCheckTimesOutOnStalledResponse() throws Exception {
@@ -48,10 +72,17 @@ class EmailHealthTimeoutTest {
         assertThat(config.getConnectTimeout().toMilliseconds()).isEqualTo(5_000);
         assertThat(config.getResponseTimeout().toMilliseconds()).isEqualTo(5_000);
 
-        try (StalledServer server = new StalledServer()) {
+        try (StalledServer server = new StalledServer();
+                PostmarkHealthIndicator indicator = new PostmarkHealthIndicator(client)) {
             ReflectionTestUtils.setField(client, "baseUrl", server.address());
             client.setSecureConnection(false);
-            assertTimeout(new PostmarkHealthIndicator(client).health(), server, "/server/");
+            Health health = indicator.health();
+            assertThat(server.requestPath).isEqualTo("/server/");
+            assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+            assertThat(health.getDetails().get("error").toString())
+                    .containsAnyOf("timed out", "SocketTimeoutException");
+            assertThat(Duration.ofNanos(System.nanoTime() - server.requestStartedNanos))
+                    .isBetween(Duration.ofSeconds(4), Duration.ofSeconds(6));
         } finally {
             client.getHttpClient().getClient().close();
         }
