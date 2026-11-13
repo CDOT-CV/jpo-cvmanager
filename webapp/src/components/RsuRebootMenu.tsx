@@ -13,19 +13,36 @@ import {
 } from '../generalSlices/configSlice'
 
 import { selectRsuIpv4 } from '../generalSlices/rsuSlice'
+import { selectIsSuperUser } from '../generalSlices/userSlice'
 
 import './css/SnmpwalkMenu.css'
-import { Button, Typography, useTheme } from '@mui/material'
+import { Alert, Button, Typography, useTheme } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import toast from 'react-hot-toast'
 
-const RsuRebootMenu = () => {
+type RsuRebootMenuProps = {
+  isOwnerOrg?: boolean
+  ownerOrganization?: string
+}
+
+const RsuRebootMenu = ({ isOwnerOrg = true, ownerOrganization }: RsuRebootMenuProps) => {
   const theme = useTheme()
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const changeSuccess = useSelector(selectRebootChangeSuccess)
   const requestedIp = useSelector(selectRebootRequestedIp)
 
   const rsuIp = useSelector(selectRsuIpv4)
+  const isSuperUser = useSelector(selectIsSuperUser)
+
+  if (!isOwnerOrg && !isSuperUser) {
+    return (
+      <Alert severity="info">
+        {ownerOrganization
+          ? `This RSU is owned by "${ownerOrganization}". Only the owner organization can perform this action.`
+          : 'Only the owner organization can perform this action.'}
+      </Alert>
+    )
+  }
 
   const options = {
     title: 'RSU Reboot',

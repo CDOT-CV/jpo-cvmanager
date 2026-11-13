@@ -17,14 +17,25 @@ import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import ModeEditOutline from '@mui/icons-material/ModeEditOutline'
 import Refresh from '@mui/icons-material/Refresh'
 
+export type AdminTableRowAction<RowData extends object> = {
+  action: (rowData: RowData) => Action<RowData>
+  position: 'row'
+}
+export const rowAction = <RowData extends object>(
+  action: (rowData: RowData) => Action<RowData>
+): AdminTableRowAction<RowData> => ({ action, position: 'row' })
+
+export type AdminTableAction<RowData extends object> = Action<RowData> | AdminTableRowAction<RowData>
+
 interface AdminTableProps {
-  actions: (Action<any> | ((row: any) => Action<any>))[]
+  actions: (AdminTableAction<any> | ((row: any) => Action<any>))[]
   columns: Column<any>[]
   data?: any[] // Optional for client-side pagination
   defaultPageSize?: number
   title: string
   editable?: any
   selection?: boolean
+  selectionProps?: (rowData: any) => any
   tableLayout?: 'auto' | 'fixed'
   pageSizeOptions?: any
   search?: boolean
@@ -156,6 +167,7 @@ const AdminTable = (props: AdminTableProps) => {
         tableRef={props.tableRef}
         options={{
           selection: props.selection === undefined ? true : props.selection,
+          selectionProps: props.selectionProps,
           searchFieldAlignment: 'left',
           actionsColumnIndex: -1,
           tableLayout: props.tableLayout === undefined ? 'fixed' : props.tableLayout,

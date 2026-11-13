@@ -23,6 +23,7 @@ export type AdminRsu = {
   organizations: string[]
   tim_deposit: boolean
   snmp_monitoring: boolean
+  owner_organization: string
 }
 
 export type AdminRsuPatch = Partial<{

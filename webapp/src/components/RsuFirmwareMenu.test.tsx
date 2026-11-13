@@ -114,3 +114,36 @@ describe('RsuFirmwareMenu message block (multi_rsu type)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
+
+it('shows the owner-only notice instead of firmware controls for a viewer organization', () => {
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider store={setupStore({})}>
+        <RsuFirmwareMenu type="single_rsu" rsuIpList={['192.0.2.10']} isOwnerOrg={false} ownerOrganization="Owner Org" />
+      </Provider>
+    </ThemeProvider>
+  )
+  expect(screen.getByRole('alert')).toHaveTextContent('This RSU is owned by "Owner Org"')
+  expect(screen.queryByRole('button')).not.toBeInTheDocument()
+})
+
+it('shows firmware controls to a super user even when another organization owns the RSU', () => {
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider
+        store={setupStore({
+          user: { value: { authLoginData: { data: { super_user: true } }, organization: { name: 'Some Other Org' } } },
+        })}
+      >
+        <RsuFirmwareMenu
+          type="single_rsu"
+          rsuIpList={['192.0.2.10']}
+          isOwnerOrg={false}
+          ownerOrganization="Owner Org"
+        />
+      </Provider>
+    </ThemeProvider>
+  )
+  expect(screen.queryByText(/Only the owner organization can perform this action/)).not.toBeInTheDocument()
+  expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
+})

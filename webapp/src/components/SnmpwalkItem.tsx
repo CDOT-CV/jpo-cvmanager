@@ -1,5 +1,7 @@
 import { Box, Button, Typography, useTheme } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { useSelector } from 'react-redux'
+import { selectIsSuperUser } from '../generalSlices/userSlice'
 
 export type SnmpwalkRowProps = {
   title: string
@@ -25,9 +27,13 @@ export type SnmpwalkItemProps = {
   index: string
   content: any
   handleDelete: (countsMsgType: string, ip: string) => void
+  isOwnerOrg?: boolean
 }
 
 const SnmpwalkItem = (props: SnmpwalkItemProps) => {
+  const isSuperUser = useSelector(selectIsSuperUser)
+  const { isOwnerOrg = true } = props
+  const canDelete = isOwnerOrg || isSuperUser
   const theme = useTheme()
 
   return (
@@ -51,13 +57,15 @@ const SnmpwalkItem = (props: SnmpwalkItemProps) => {
       <SnmpWalkRow title="Security:" value={props.content['Full WSMP']} />
       <SnmpWalkRow title="Active:" value={props.content['Config Active']} />
 
-      <Button
-        sx={{ marginLeft: 20, marginTop: -4 }}
-        onClick={() => props.handleDelete(props.content['Message Type'], props.content['IP'])}
-        startIcon={<DeleteIcon />}
-      >
-        Delete
-      </Button>
+      {canDelete && (
+        <Button
+          sx={{ marginLeft: 20, marginTop: -4 }}
+          onClick={() => props.handleDelete(props.content['Message Type'], props.content['IP'])}
+          startIcon={<DeleteIcon />}
+        >
+          Delete
+        </Button>
+      )}
     </Box>
   )
 }

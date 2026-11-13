@@ -128,3 +128,31 @@ it('does not show another RSU\'s accepted reboot as this device\'s result', () =
   )
   expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })
+
+it('shows the owner-only notice instead of the reboot control for a viewer organization', () => {
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider store={setupStore({})}>
+        <RsuRebootMenu isOwnerOrg={false} ownerOrganization="Owner Org" />
+      </Provider>
+    </ThemeProvider>
+  )
+  expect(screen.getByRole('alert')).toHaveTextContent('This RSU is owned by "Owner Org"')
+  expect(screen.queryByRole('button', { name: 'Reboot RSU' })).not.toBeInTheDocument()
+})
+
+it('shows the reboot control to a super user even when another organization owns the RSU', () => {
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider
+        store={setupStore({
+          user: { value: { authLoginData: { data: { super_user: true } }, organization: { name: 'Some Other Org' } } },
+        })}
+      >
+        <RsuRebootMenu isOwnerOrg={false} ownerOrganization="Owner Org" />
+      </Provider>
+    </ThemeProvider>
+  )
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Reboot RSU' })).toBeInTheDocument()
+})

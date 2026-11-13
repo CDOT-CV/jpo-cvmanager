@@ -1,13 +1,13 @@
 import { useCallback, useRef, useState } from 'react'
 import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
 import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
-import AdminTable, { buildAdminTableQueryParams } from '../../components/AdminTable'
+import AdminTable, { AdminTableAction, buildAdminTableQueryParams, rowAction } from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import RsuStatusDialog from './RsuStatusDialog'
 import { selectToken } from '../../generalSlices/userSlice'
 
-import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { selectIsSuperUser, selectOrganizationName } from '../../generalSlices/userSlice'
 import { useSelector } from 'react-redux'
 import './Admin.css'
 import { Action } from '@material-table/core'
@@ -33,6 +33,7 @@ const AdminRsuTab = () => {
 
   const token = useSelector(selectToken)
   const organization = useSelector(selectOrganizationName)
+  const isSuperUser = useSelector(selectIsSuperUser)
 
   const tableRef = useRef<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -113,46 +114,52 @@ const AdminRsuTab = () => {
     setSelectedRsuIp(null)
   }
 
-  const tableActions: Action<AdminEditRsuFormType>[] = applyFlagsToList<Action<AdminEditRsuFormType> & FlaggedElem>([
-    {
-      tag: 'rsuStatusMonitor',
-      icon: () => <InfoOutlinedIcon sx={{ color: theme.palette.custom.rowActionIcon }} />,
-      tooltip: 'RSU Status',
-      position: 'row',
-      iconProps: {
-        itemType: 'rowAction',
+  const isViewerRsu = (row: AdminEditRsuFormType) => !isSuperUser && row.owner_organization !== organization
+
+  const tableActions: AdminTableAction<AdminEditRsuFormType>[] = [
+    ...applyFlagsToList<Action<AdminEditRsuFormType> & FlaggedElem>([
+      {
+        tag: 'rsuStatusMonitor',
+        icon: () => <InfoOutlinedIcon sx={{ color: theme.palette.custom.rowActionIcon }} />,
+        tooltip: 'RSU Status',
+        position: 'row',
+        iconProps: {
+          itemType: 'rowAction',
+        },
+        onClick: (event, rowData: AdminEditRsuFormType) => {
+          handleStatusClick(rowData)
+        },
       },
-      onClick: (event, rowData: AdminEditRsuFormType) => {
-        handleStatusClick(rowData)
-      },
-    },
-    {
+    ]),
+    rowAction((rowData: AdminEditRsuFormType) => ({
       icon: () => <ModeEditOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       tooltip: 'Edit RSU',
       position: 'row',
       iconProps: {
         itemType: 'rowAction',
       },
-      onClick: (event, rowData: AdminEditRsuFormType) => {
-        onEdit(rowData)
+      hidden: isViewerRsu(rowData),
+      onClick: (_event: any, row: AdminEditRsuFormType) => {
+        onEdit(row)
       },
-    },
-    {
+    })),
+    rowAction((rowData: AdminEditRsuFormType) => ({
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       tooltip: 'Delete RSU',
       position: 'row',
       iconProps: {
         itemType: 'rowAction',
       },
-      onClick: (event, rowData: AdminEditRsuFormType) => {
+      hidden: isViewerRsu(rowData),
+      onClick: (_event: any, row: AdminEditRsuFormType) => {
         const buttons = [
-          { label: 'Yes', onClick: () => onDelete(rowData) },
+          { label: 'Yes', onClick: () => onDelete(row) },
           { label: 'No', onClick: () => {} },
         ]
-        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + rowData.ip + '"?', buttons)
+        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + row.ip + '"?', buttons)
         confirmAlert(alertOptions)
       },
-    },
+    })),
     {
       tooltip: 'Remove All Selected From Organization',
       icon: 'delete',
@@ -197,7 +204,7 @@ const AdminRsuTab = () => {
         navigate('addRsu')
       },
     },
-  ])
+  ]
 
   const handleQueryChange = useCallback(
     async (query) => {
@@ -275,6 +282,7 @@ const AdminRsuTab = () => {
                 title={''}
                 columns={columns}
                 actions={tableActions}
+                selectionProps={(row: AdminEditRsuFormType) => ({ disabled: isViewerRsu(row) })}
                 handleQueryChange={handleQueryChange}
                 isLoading={isRefreshing}
                 tableRef={tableRef}
