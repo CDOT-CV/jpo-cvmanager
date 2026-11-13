@@ -342,6 +342,7 @@ requests per serial number.
 - `RSU_REBOOT_CONCURRENCY` sets the command limit (default: `4`, range: 1?32).
 - `RSU_REBOOT_TIMEOUT` limits SSH setup and command execution (default: `60s`, range: 1?120 seconds). It does not wait for the RSU to restart.
 - Unknown or changed SSH host keys are accepted. No `known_hosts` file is required; SSH server identity is not verified.
+
 ## Local SNMP library dependency
 
 The API uses the local [JPO SNMP library](../snmp/README.md). From the repository
