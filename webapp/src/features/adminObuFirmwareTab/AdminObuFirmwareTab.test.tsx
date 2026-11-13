@@ -22,6 +22,14 @@ vi.mock('../../components/AdminTable', async () => ({
   default: (await import('./test-utils')).MockAdminTable,
 }))
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn(), loading: vi.fn() } }))
+vi.mock('./ObuFirmwareUploadForm', () => ({
+  default: ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) => (
+    <div role="dialog" aria-label="Add OBU Firmware">
+      <button onClick={onSuccess}>Finish upload</button>
+      <button onClick={onClose}>Close upload</button>
+    </div>
+  ),
+}))
 
 const publication = (replaced: ObuFirmwareReplacement[]): ObuFirmwarePublication => ({
   obu_firmware_id: 1,
@@ -255,6 +263,22 @@ describe('OBU firmware tab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Next Page' }))
     await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 })))
+  })
+
+  it('opens the upload form and reloads the list after an upload', async () => {
+    renderTab()
+    await screen.findByText('verified.tar.sig')
+    expect(screen.queryByRole('dialog', { name: 'Add OBU Firmware' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'New' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close upload' }))
+    expect(screen.queryByRole('dialog', { name: 'Add OBU Firmware' })).not.toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'New' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Finish upload' }))
+    expect(screen.queryByRole('dialog', { name: 'Add OBU Firmware' })).not.toBeInTheDocument()
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2))
   })
 
   it('reports listing failures', async () => {
