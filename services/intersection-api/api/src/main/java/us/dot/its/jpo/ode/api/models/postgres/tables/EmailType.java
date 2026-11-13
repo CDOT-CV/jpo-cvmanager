@@ -57,4 +57,14 @@ public class EmailType {
     @Column(name = "supports_monthly", nullable = false)
     private Boolean supportsMonthly;
 
+    /**
+     * True when users subscribe to this email type separately for each of their
+     * organizations; false for system-wide email types, which have a single
+     * subscription per user.
+     */
+    @NotNull
+    @ColumnDefault("true")
+    @Column(name = "organization_scoped", nullable = false)
+    private Boolean organizationScoped;
+
 }
