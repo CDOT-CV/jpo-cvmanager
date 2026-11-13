@@ -26,6 +26,7 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.ObjectChecksum;
 import us.dot.its.jpo.ode.api.models.storage.ObjectStorageLocation;
 import us.dot.its.jpo.ode.api.models.storage.ObjectUploadRequest;
+import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.FileNameCheck;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.UploadUrlRequest;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.UploadVerification;
 import us.dot.its.jpo.ode.api.models.storage.SignedUploadUrl;
@@ -67,34 +68,39 @@ public class ObuFirmwareUploadService {
     private final ObuFirmwareRegistrationService registration;
     private final FirmwareUploadCleanupProperties cleanupProperties;
 
-    public FirmwareUploadUrl createSignedUploadUrl(UploadUrlRequest request, String createdBy) {
-        // Resolve the manufacturer and its naming convention from trusted records
-        String manufacturerName = validatePathSegment(request.manufacturerName(), "manufacturer_name");
-        if (ObuFirmwareStorageLayout.isReservedName(manufacturerName)) {
-            throw new IllegalArgumentException("manufacturer_name is reserved");
-        }
-        Manufacturer manufacturer = manufacturers.findFirstByNameIgnoreCaseOrderByIdAsc(manufacturerName)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Manufacturer '" + manufacturerName + "' was not found"));
-        // A manufacturer without a naming convention is never offered by the upload
-        // options, so requesting one is a client error rather than an outage
-        ObuFirmwareFileNameParser parser = parsers.find(manufacturer.getName())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "OBU firmware uploads are not supported for manufacturer '" + manufacturer.getName() + "'"));
+    /** A file name accepted for upload, with the manufacturer and details read from it. */
+    private record AcceptedFile(Manufacturer manufacturer, String fileName, ObuFirmwareFileMetadata metadata) {}
 
-        String fileName = validatePathSegment(request.fileName(), "file_name");
-        ObuFirmwareFileMetadata metadata = parser.parse(fileName)
-                .orElseThrow(() -> new IllegalArgumentException("file_name must follow the "
-                        + manufacturer.getName() + " OBU firmware naming convention, for example "
-                        + parser.exampleFileName()));
-        // The OBU OTA server serves only OBU firmware, and only builds OBUs install
-        if (metadata.getDeviceType() != ObuFirmwareDeviceType.OBU) {
-            throw new IllegalArgumentException(
-                    "Only OBU firmware can be uploaded here. Manage RSU firmware under RSU Firmware.");
+    /**
+     * Applies the file name checks of {@link #createSignedUploadUrl} without reserving
+     * the name, so a client can show what the API reads from a file before uploading.
+     * Nothing is written.
+     */
+    public FileNameCheck checkFileName(String manufacturerName, String fileName) {
+        AcceptedFile accepted = acceptFileName(manufacturerName, fileName);
+        Manufacturer manufacturer = accepted.manufacturer();
+        if (images.existsByManufacturerIdAndFileName(manufacturer.getId(), accepted.fileName())) {
+            throw new FirmwareVersionAlreadyExistsException(ObuFirmwareRegistrationService.ALREADY_EXISTS_MESSAGE);
         }
-        parser.unsupportedBuild(metadata).ifPresent(reason -> {
-            throw new IllegalArgumentException(reason);
-        });
+        var inProgress = FirmwareUploadSupport.uploadInProgressMessage(
+                uploads.findByManufacturerIdAndFileNameAndStatus(manufacturer.getId(), accepted.fileName(),
+                        FirmwareUploadStatus.PENDING),
+                Instant.now(), cleanupProperties.getExpirationGrace());
+        if (inProgress.isPresent()) {
+            throw new FirmwareVersionAlreadyExistsException(inProgress.get());
+        }
+
+        ObuFirmwareFileMetadata metadata = accepted.metadata();
+        return new FileNameCheck(manufacturer.getName(), accepted.fileName(), metadata.getDeviceType(),
+                metadata.getVariant(), metadata.getReleaseVersion(), metadata.getWritableSystemPartition(),
+                metadata.getSecureBoot());
+    }
+
+    public FirmwareUploadUrl createSignedUploadUrl(UploadUrlRequest request, String createdBy) {
+        AcceptedFile accepted = acceptFileName(request.manufacturerName(), request.fileName());
+        Manufacturer manufacturer = accepted.manufacturer();
+        String fileName = accepted.fileName();
+        ObuFirmwareFileMetadata metadata = accepted.metadata();
 
         if (request.contentLength() == null || request.contentLength() <= 0) {
             throw new IllegalArgumentException("content_length must be greater than zero");
@@ -140,6 +146,40 @@ public class ObuFirmwareUploadService {
 
         return new FirmwareUploadUrl(upload.getId(), signedUrl.uploadUrl(), signedUrl.method(),
                 location.objectName(), signedUrl.expiresAt(), signedUrl.requiredHeaders());
+    }
+
+    /**
+     * Resolves the manufacturer and its naming convention from trusted records and
+     * accepts only OBU firmware in a build the manufacturer supports.
+     */
+    private AcceptedFile acceptFileName(String requestedManufacturerName, String requestedFileName) {
+        String manufacturerName = validatePathSegment(requestedManufacturerName, "manufacturer_name");
+        if (ObuFirmwareStorageLayout.isReservedName(manufacturerName)) {
+            throw new IllegalArgumentException("manufacturer_name is reserved");
+        }
+        Manufacturer manufacturer = manufacturers.findFirstByNameIgnoreCaseOrderByIdAsc(manufacturerName)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Manufacturer '" + manufacturerName + "' was not found"));
+        // A manufacturer without a naming convention is never offered by the upload
+        // options, so requesting one is a client error rather than an outage
+        ObuFirmwareFileNameParser parser = parsers.find(manufacturer.getName())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "OBU firmware uploads are not supported for manufacturer '" + manufacturer.getName() + "'"));
+
+        String fileName = validatePathSegment(requestedFileName, "file_name");
+        ObuFirmwareFileMetadata metadata = parser.parse(fileName)
+                .orElseThrow(() -> new IllegalArgumentException("file_name must follow the "
+                        + manufacturer.getName() + " OBU firmware naming convention, for example "
+                        + parser.exampleFileName()));
+        // The OBU OTA server serves only OBU firmware, and only builds OBUs install
+        if (metadata.getDeviceType() != ObuFirmwareDeviceType.OBU) {
+            throw new IllegalArgumentException(
+                    "Only OBU firmware can be uploaded here. Manage RSU firmware under RSU Firmware.");
+        }
+        parser.unsupportedBuild(metadata).ifPresent(reason -> {
+            throw new IllegalArgumentException(reason);
+        });
+        return new AcceptedFile(manufacturer, fileName, metadata);
     }
 
     /**

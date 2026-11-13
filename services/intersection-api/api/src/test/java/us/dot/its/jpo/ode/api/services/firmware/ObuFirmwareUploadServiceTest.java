@@ -36,6 +36,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareUpload;
 import us.dot.its.jpo.ode.api.models.storage.ObjectChecksum;
 import us.dot.its.jpo.ode.api.models.storage.ObjectStorageLocation;
 import us.dot.its.jpo.ode.api.models.storage.ObjectUploadRequest;
+import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.FileNameCheck;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.ManufacturerOption;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.UploadUrlRequest;
 import us.dot.its.jpo.ode.api.models.storage.SignedUploadUrl;
@@ -235,6 +236,49 @@ class ObuFirmwareUploadServiceTest {
                 .hasMessageContaining("in progress").hasMessageContaining("63 minutes");
         verify(uploads, never()).expirePendingUploads(any(), any(), any(), any(), any());
         verifyNoInteractions(objectStorageService);
+    }
+
+    @Test
+    void checksAFileNameWithTheUploadRulesWithoutWritingAnything() {
+        var check = service.checkFileName(" commsignia ", " " + FILE_NAME + " ");
+
+        assertThat(check).isEqualTo(new FileNameCheck("Commsignia", FILE_NAME, ObuFirmwareDeviceType.OBU,
+                "ob4-generic", "y20.48.2-b228647", false, true));
+        verify(uploads, never()).save(any());
+        verify(uploads, never()).expirePendingUploads(any(), any(), any(), any(), any());
+        verifyNoInteractions(objectStorageServices, objectStorageService);
+    }
+
+    @Test
+    void fileNameChecksRejectWhatUploadsReject() {
+        assertThatThrownBy(() -> service.checkFileName("Commsignia", "rs4-generic-ro-y20.48.2-b228647.tar.sig"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Only OBU firmware");
+        assertThatThrownBy(() -> service.checkFileName("Commsignia", "ob4-generic-ro-y20.48.2-b228647.tar.sig"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Supported OBU builds");
+        assertThatThrownBy(() -> service.checkFileName("Commsignia", "firmware.tar.sig"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining(FILE_NAME);
+        assertThatThrownBy(() -> service.checkFileName("ota", FILE_NAME))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("reserved");
+
+        when(images.existsByManufacturerIdAndFileName(1, FILE_NAME)).thenReturn(true);
+        assertThatThrownBy(() -> service.checkFileName("Commsignia", FILE_NAME))
+                .isInstanceOf(FirmwareVersionAlreadyExistsException.class).hasMessageContaining("already exists");
+        verifyNoInteractions(objectStorageService);
+    }
+
+    @Test
+    void fileNameChecksReportAnUploadInProgressWithoutExpiringOthers() {
+        var pending = pendingUpload();
+        pending.setExpiresAt(Instant.now().plus(Duration.ofMinutes(3)));
+        var abandoned = pendingUpload();
+        abandoned.setExpiresAt(Instant.now().minus(Duration.ofHours(2)));
+        when(uploads.findByManufacturerIdAndFileNameAndStatus(1, FILE_NAME, FirmwareUploadStatus.PENDING))
+                .thenReturn(List.of(abandoned), List.of(pending, abandoned));
+
+        assertThat(service.checkFileName("Commsignia", FILE_NAME).fileName()).isEqualTo(FILE_NAME);
+        assertThatThrownBy(() -> service.checkFileName("Commsignia", FILE_NAME))
+                .isInstanceOf(FirmwareVersionAlreadyExistsException.class).hasMessageContaining("in progress");
+        verify(uploads, never()).expirePendingUploads(any(), any(), any(), any(), any());
     }
 
     @Test

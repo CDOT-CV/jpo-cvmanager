@@ -76,6 +76,15 @@ public final class ObuFirmwareModels {
         }
     }
 
+    /**
+     * What the API reads from an OBU firmware file name, once the name passes the
+     * same checks as an upload request.
+     */
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    @Schema(description = "OBU firmware details read from an accepted file name")
+    public record FileNameCheck(String manufacturer, String fileName, ObuFirmwareDeviceType deviceType,
+            String variant, String releaseVersion, Boolean writableSystemPartition, Boolean secureBoot) {}
+
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     @Schema(description = "Verified state of an OBU firmware upload and its catalog entry")
     public record UploadVerification(UUID uploadId, FirmwareUploadStatus status, String objectName,

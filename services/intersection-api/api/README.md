@@ -315,11 +315,17 @@ firmware folder, and uploads through this API do not reach OBUs.
    `file_name_pattern`, a JavaScript-compatible regular expression clients can use
    to check a name before uploading. The API remains the authority on whether a
    name is accepted.
-2. Request `POST /signed-upload-url` with `manufacturer_name`, `file_name`,
+2. Optionally check the file name with
+   `GET /file-name-check?manufacturer_name=&file_name=`. It applies the same name
+   checks as the next step and returns what the API reads from the name
+   (`device_type`, `variant`, `release_version`, `writable_system_partition`,
+   `secure_boot`), or the `400`/`404`/`409` the upload request would return. It
+   reserves and writes nothing.
+3. Request `POST /signed-upload-url` with `manufacturer_name`, `file_name`,
    `content_length`, `checksum_algorithm`, `checksum`, and optionally
    `content_type` (default `application/octet-stream`). Upload the file to the
    returned URL using its method and required headers.
-3. Call `POST /uploads/{uploadId}/complete` to verify the size and checksum. A
+4. Call `POST /uploads/{uploadId}/complete` to verify the size and checksum. A
    verified upload is added to the OBU firmware catalog **unpublished**, and the
    response includes its `obu_firmware_id`. Completion can be retried with the
    same upload ID.
