@@ -12,10 +12,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapper;
+import us.dot.its.jpo.ode.api.models.credentials.CredentialSummaryDTO;
 import us.dot.its.jpo.ode.api.models.credentials.SnmpCredentialDTO;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -42,6 +46,18 @@ public class SnmpCredentialController {
     public SnmpCredentialDTO getByNickname(
             SnmpCredentialGetRequest request) throws EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.getByNickname(request.getNickname()));
+    }
+
+    /**
+     * Lists the SNMP credentials an organization owns or uses on its RSUs, without
+     * passwords. Ownership is reported per credential so clients can tell which
+     * ones the organization may manage.
+     */
+    @GetMapping("/list")
+    @PreAuthorize("@PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public List<CredentialSummaryDTO> listForOrganization(
+            @RequestParam("organization") String organization) throws EntityNotFoundException {
+        return snmpCredentialManagementService.listForOrganization(organization);
     }
 
     @PostMapping("/update")
