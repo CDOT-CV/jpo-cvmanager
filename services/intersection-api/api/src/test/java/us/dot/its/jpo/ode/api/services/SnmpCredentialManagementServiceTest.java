@@ -12,6 +12,10 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 
+import us.dot.its.jpo.ode.api.models.credentials.CredentialSummaryDTO;
+
+import java.net.InetAddress;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -321,5 +325,59 @@ class SnmpCredentialManagementServiceTest {
 
         // Act & Assert
         assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.deleteByNickname(nickname));
+    }
+
+    @Test
+    void testListForOrganization_Success() throws Exception {
+        // Arrange
+        String organizationName = "organization";
+        Organization mockOrganization = mock(Organization.class);
+        when(mockOrganization.getName()).thenReturn(organizationName);
+        Organization mockOtherOrganization = mock(Organization.class);
+        when(mockOtherOrganization.getName()).thenReturn("otherOrganization");
+        when(mockOrganizationRepository.findByName(organizationName)).thenReturn(Optional.of(mockOrganization));
+
+        SnmpCredential ownedUnused = new SnmpCredential();
+        ownedUnused.setNickname("owned");
+        ownedUnused.setUsername("ownedUser");
+        ownedUnused.setPassword("ownedPassword");
+        ownedUnused.setOwnerOrganization(mockOrganization);
+
+        SnmpCredential usedNotOwned = new SnmpCredential();
+        usedNotOwned.setNickname("foreign");
+        usedNotOwned.setUsername("foreignUser");
+        usedNotOwned.setPassword("foreignPassword");
+        usedNotOwned.setOwnerOrganization(mockOtherOrganization);
+
+        SnmpCredentialRepository.CredentialRsuUsage usage1 = mock(SnmpCredentialRepository.CredentialRsuUsage.class);
+        when(usage1.getNickname()).thenReturn("foreign");
+        when(usage1.getIpv4Address()).thenReturn(InetAddress.getByName("10.0.0.1"));
+        SnmpCredentialRepository.CredentialRsuUsage usage2 = mock(SnmpCredentialRepository.CredentialRsuUsage.class);
+        when(usage2.getNickname()).thenReturn("foreign");
+        when(usage2.getIpv4Address()).thenReturn(InetAddress.getByName("10.0.0.2"));
+
+        when(mockSnmpCredentialRepository.findRsuUsageInOrganization(mockOrganization))
+                .thenReturn(List.of(usage1, usage2));
+        when(mockSnmpCredentialRepository.findOwnedOrUsedByOrganization(mockOrganization))
+                .thenReturn(List.of(usedNotOwned, ownedUnused));
+
+        // Act
+        List<CredentialSummaryDTO> result = snmpCredentialManagementService.listForOrganization(organizationName);
+
+        // Assert
+        assertEquals(List.of(
+                new CredentialSummaryDTO("foreign", "foreignUser", "otherOrganization",
+                        List.of("10.0.0.1", "10.0.0.2")),
+                new CredentialSummaryDTO("owned", "ownedUser", organizationName, List.of())), result);
+    }
+
+    @Test
+    void testListForOrganization_Failure_OrganizationNotFound() {
+        // Arrange
+        when(mockOrganizationRepository.findByName("missing")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class,
+                () -> snmpCredentialManagementService.listForOrganization("missing"));
     }
 }

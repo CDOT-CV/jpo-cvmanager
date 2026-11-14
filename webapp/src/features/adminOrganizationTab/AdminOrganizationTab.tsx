@@ -3,6 +3,7 @@ import AdminAddOrganization from '../adminAddOrganization/AdminAddOrganization'
 import AdminOrganizationTabRsu from '../adminOrganizationTabRsu/AdminOrganizationTabRsu'
 import AdminOrganizationTabIntersection from '../adminOrganizationTabIntersection/AdminOrganizationTabIntersection'
 import AdminOrganizationTabUser from '../adminOrganizationTabUser/AdminOrganizationTabUser'
+import AdminOrganizationTabCredential from '../adminOrganizationTabCredential/AdminOrganizationTabCredential'
 import AdminEditOrganization from '../adminEditOrganization/AdminEditOrganization'
 import AdminOrganizationDeleteMenu from '../../components/AdminOrganizationDeleteMenu'
 import Grid2 from '@mui/material/Grid2'
@@ -224,6 +225,7 @@ const AdminOrganizationTab = () => {
                     tableData={rsuTableData}
                     key="rsu"
                   />
+                  <AdminOrganizationTabCredential selectedOrg={selectedOrgName} key="credential" />
                 </ConditionalRenderRsu>
                 <ConditionalRenderIntersection>
                   <AdminOrganizationTabIntersection

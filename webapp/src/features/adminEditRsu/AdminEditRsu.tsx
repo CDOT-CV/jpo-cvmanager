@@ -26,6 +26,9 @@ import toast from 'react-hot-toast'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { useGetRsuAllowedSelectionsQuery, useGetRsuQuery, usePatchRsuMutation } from '../api/rsuApiSlice'
+import { CredentialSummary, useListCredentialsQuery } from '../api/credentialApiSlice'
+import { useSelector } from 'react-redux'
+import { selectIsSuperUser, selectOrganizationName } from '../../generalSlices/userSlice'
 
 export type AdminEditRsuFormType = {
   orig_ip: string
@@ -48,6 +51,23 @@ export type AdminEditRsuFormType = {
   snmp_monitoring: boolean
 }
 
+/**
+ * Read-only details of the credential picked in a credential group select. Credentials are managed
+ * by their owning organization in the Organizations tab, so only that organization gets the link.
+ */
+const CredentialNote = ({ credential, canManage }: { credential?: CredentialSummary; canManage: boolean }) =>
+  credential ? (
+    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+      Username: {credential.username} · Owned by {credential.ownerOrganization}
+      {canManage && (
+        <>
+          {' · '}
+          <Link to="/dashboard/admin/organizations">Manage credentials</Link>
+        </>
+      )}
+    </Typography>
+  ) : null
+
 const AdminEditRsu = () => {
   const navigate = useNavigate()
   const { rsuIp } = useParams<{ rsuIp: string }>()
@@ -55,6 +75,21 @@ const AdminEditRsu = () => {
   const { data: rsuInfo, isLoading: isLoadingRsu } = useGetRsuQuery(rsuIp!)
   const { data: rsuAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetRsuAllowedSelectionsQuery()
   const [patchRsu, { isLoading: isPatchingRsu }] = usePatchRsuMutation()
+
+  const organization = useSelector(selectOrganizationName)
+  const isSuperUser = useSelector(selectIsSuperUser) === true
+  // Credentials the current organization owns or uses. If the list cannot be loaded the notes are simply omitted.
+  const credentialQueryOptions = { skip: !organization, refetchOnMountOrArgChange: true }
+  const { data: sshCredentials } = useListCredentialsQuery(
+    { type: 'rsu', organization: organization ?? '' },
+    credentialQueryOptions
+  )
+  const { data: snmpCredentials } = useListCredentialsQuery(
+    { type: 'snmp', organization: organization ?? '' },
+    credentialQueryOptions
+  )
+  const canManageCredential = (credential?: CredentialSummary) =>
+    isSuperUser || (credential !== undefined && credential.ownerOrganization === organization)
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
@@ -563,6 +598,10 @@ const AdminEditRsu = () => {
                   {!watchedSshGroup && submitAttempt && (
                     <ErrorMessageText role="alert">Must select a SSH credential group</ErrorMessageText>
                   )}
+                  {(() => {
+                    const credential = sshCredentials?.find((c) => c.nickname === watchedSshGroup)
+                    return <CredentialNote credential={credential} canManage={canManageCredential(credential)} />
+                  })()}
                 </FormControl>
               </Form.Group>
 
@@ -592,6 +631,10 @@ const AdminEditRsu = () => {
                       {!watchedSnmpGroup && submitAttempt && (
                         <ErrorMessageText role="alert">Must select a SNMP credential group</ErrorMessageText>
                       )}
+                      {(() => {
+                        const credential = snmpCredentials?.find((c) => c.nickname === watchedSnmpGroup)
+                        return <CredentialNote credential={credential} canManage={canManageCredential(credential)} />
+                      })()}
                     </FormControl>
                   </Form.Group>
                 </Grid2>
