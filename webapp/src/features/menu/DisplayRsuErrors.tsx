@@ -7,8 +7,8 @@ import '../../components/css/SnmpwalkMenu.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import MaterialTable, { Action } from '@material-table/core'
 import { RootState } from '../../store'
-import { formatScmsExpiration, useGetScmsStatusQuery } from '../api/scmsApiSlice'
-import { RsuOnlineStatus, useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../api/rsuOnlineStatusApiSlice'
+import { useGetScmsStatusQuery } from '../api/scmsApiSlice'
+import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../api/rsuOnlineStatusApiSlice'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
 
 import GpsFixedSharp from '@mui/icons-material/GpsFixedSharp'
@@ -16,7 +16,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
 import AdminTable from '../../components/AdminTable'
 import { setMapViewState } from '../../pages/mapSlice'
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Stack, Typography, useTheme } from '@mui/material'
+import { Alert, Accordion, AccordionDetails, AccordionSummary, Box, Button, Stack, Typography, useTheme } from '@mui/material'
 import { RsuInfo } from '../../models/RsuApi'
 import { useReactToPrint } from 'react-to-print'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
@@ -25,15 +25,27 @@ import toast from 'react-hot-toast'
 import { useSendRsuErrorSummaryEmailMutation } from '../api/emailApiSlice'
 import { selectEmail } from '../../generalSlices/userSlice'
 
+import {
+  getOnlineStatus,
+  getScmsStatus,
+  getStatusLabel,
+  getStatusColor,
+  getScmsExpirationDisplay,
+  getLastOnlineDisplay,
+  hasConfirmedRsuError,
+  OnlineStatus,
+  ScmsStatus,
+} from '../../utils/rsu-status'
+
 const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo }) => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const rsuData = useSelector(selectRsuData)
   const organization = useSelector(selectOrganizationName)
-  const { data: rsuOnlineStatus = {} } = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
-  const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
+  const onlineStatusQuery = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
+  const scmsStatusQuery = useGetScmsStatusQuery(organization, { skip: !organization })
   const [selectedRSU, setSelectedRSU] = useState<RsuInfo | undefined>(initialSelectedRsu)
   const selectedRsuIp = selectedRSU?.properties.ipv4_address ?? ''
-  const { data: selectedRsuLastOnline } = useGetRsuLastOnlineQuery(selectedRsuIp, {
+  const lastOnlineQuery = useGetRsuLastOnlineQuery(selectedRsuIp, {
     skip: !selectedRsuIp,
   })
   const contentRef = useRef(null)
@@ -47,80 +59,26 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
 
   type RsuErrorRowType = {
     rsu: string
-    online_status: string
+    online_status: OnlineStatus
     lat: number
     lon: number
-    scms_status: boolean | null
+    scms_status: ScmsStatus
   }
 
-  const getRSUOnlineStatus = (rsuIpv4: string) => {
-    return rsuIpv4 in rsuOnlineStatus &&
-      Object.prototype.hasOwnProperty.call(rsuOnlineStatus[rsuIpv4], 'current_status')
-      ? rsuOnlineStatus[rsuIpv4].current_status
-      : 'Offline'
+  const getRSUOnlineStatus = (ip: string) => getOnlineStatus(ip, onlineStatusQuery)
+  const getRSUSCMSStatus = (ip: string) => getScmsStatus(ip, scmsStatusQuery)
+  const getRSUSCMSExpirationDisplay = (ip: string) => getScmsExpirationDisplay(ip, scmsStatusQuery)
+  const getRSULastOnline = () => getLastOnlineDisplay(lastOnlineQuery)
+
+  const getRSUSCMSDisplay = (ip: string) => {
+    const status = getRSUSCMSStatus(ip)
+    const expiration = getRSUSCMSExpirationDisplay(ip)
+    const expirationDate = scmsStatusQuery.currentData?.[ip]?.expiration
+    const expired = status === 'unhealthy' && expirationDate && new Date(expirationDate).getTime() < Date.now()
+    return `SCMS ${getStatusLabel(status)}${expired ? ' (RSU SCMS certificate expired)' : ''} (Certificate expiration: ${expiration})`
   }
 
-  const getRSULastOnline = (rsuIpv4: string): string => {
-    if (rsuIpv4 !== selectedRsuIp || !selectedRsuLastOnline?.last_online) return 'No Data'
-    return new Date(selectedRsuLastOnline.last_online).toLocaleString()
-  }
-
-  const getRSUSCMSStatus = (rsuIpv4: string): boolean | null => {
-    return Object.prototype.hasOwnProperty.call(issScmsStatusData, rsuIpv4) && issScmsStatusData[rsuIpv4]
-      ? issScmsStatusData[rsuIpv4].health
-      : null
-  }
-
-  const NEVER_DOWNLOADED = 'Never downloaded certificates'
-
-  // Raw ISO-8601 expiration string from the API, or NEVER_DOWNLOADED sentinel if unavailable.
-  const getRSUSCMSExpirationRaw = (rsuIpv4: string) => {
-    return Object.prototype.hasOwnProperty.call(issScmsStatusData, rsuIpv4) &&
-      issScmsStatusData[rsuIpv4] !== null &&
-      Object.prototype.hasOwnProperty.call(issScmsStatusData[rsuIpv4], 'expiration')
-      ? issScmsStatusData[rsuIpv4].expiration
-      : NEVER_DOWNLOADED
-  }
-
-  // Human-friendly expiration rendered in the viewer's local timezone, or the NEVER_DOWNLOADED sentinel.
-  const getRSUSCMSExpirationDisplay = (rsuIpv4: string) => {
-    const raw = getRSUSCMSExpirationRaw(rsuIpv4)
-    return raw === NEVER_DOWNLOADED ? raw : formatScmsExpiration(raw)
-  }
-
-  const getRSUSCMSDisplay = (rsuIpv4: string) => {
-    if (getRSUSCMSStatus(rsuIpv4) !== true) {
-      // eslint-disable-next-line no-var
-      var rsu_scms_status = 'SCMS Unhealthy'
-      const rsu_scms_expiration = getRSUSCMSExpirationRaw(rsuIpv4)
-      switch (rsu_scms_expiration) {
-        case NEVER_DOWNLOADED:
-          rsu_scms_status += ' (RSU Never downloaded certificates)'
-          break
-        default:
-          try {
-            const expiration_date = new Date(rsu_scms_expiration)
-            const now = new Date()
-            const diff = expiration_date.getTime() - now.getTime()
-            if (diff < 0) {
-              rsu_scms_status += ' (RSU SCMS certificate expired)'
-            }
-          } catch (e) {
-            console.error(`Error parsing SCMS expiration date: ${rsu_scms_expiration}`, e)
-          }
-          break
-      }
-    } else {
-      rsu_scms_status = 'SCMS Healthy (Expires ' + getRSUSCMSExpirationDisplay(rsuIpv4) + ')'
-    }
-    return rsu_scms_status
-  }
-
-  const sendRsuErrorSummaryEmail = async (
-    rsu: string,
-    online_status: RsuOnlineStatus | string,
-    scms_status: string
-  ) => {
+  const sendRsuErrorSummaryEmail = async (rsu: string, online_status: string, scms_status: string) => {
     const messageTable = `
         <table>
             <tr>
@@ -198,7 +156,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
     justifyContent: 'center',
     margin: 'auto',
     TextAlign: 'center',
-    FlexDirection: 'column',
+    flexDirection: 'column' as const,
     width: '100%',
     height: '100%',
     backgroundColor: theme.palette.custom.mapLegendBackground,
@@ -207,6 +165,18 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
 
   return (
     <div style={containerStyle}>
+      <div>
+        {onlineStatusQuery.isError && (
+          <Alert severity="warning" action={<Button disabled={onlineStatusQuery.isFetching} onClick={() => onlineStatusQuery.refetch()}>Retry</Button>}>
+            Online status unavailable.
+          </Alert>
+        )}
+        {scmsStatusQuery.isError && (
+          <Alert severity="warning" action={<Button disabled={scmsStatusQuery.isFetching} onClick={() => scmsStatusQuery.refetch()}>Retry</Button>}>
+            SCMS status unavailable.
+          </Alert>
+        )}
+      </div>
       {selectedRSU !== undefined ? (
         <Stack direction="column" spacing={2} sx={{ pl: 1, pr: 1, width: '100%' }}>
           <SideBarHeader
@@ -224,11 +194,11 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                 <div>
                   <Typography fontSize="small" sx={{ color: theme.palette.text.secondary }}>
                     <b>RSU Online Status: </b>
-                    {getRSUOnlineStatus(selectedRSU.properties.ipv4_address)}
+                    {getStatusLabel(getRSUOnlineStatus(selectedRSU.properties.ipv4_address))}
                   </Typography>
                   <Typography fontSize="small" sx={{ color: theme.palette.text.secondary }}>
                     <b>RSU Last Online: </b>
-                    {getRSULastOnline(selectedRSU.properties.ipv4_address)}
+                    {getRSULastOnline()}
                   </Typography>
                 </div>
               </AccordionDetails>
@@ -241,7 +211,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                 <div>
                   <Typography fontSize="small" sx={{ color: theme.palette.text.secondary }}>
                     <b>SCMS Status: </b>
-                    {getRSUSCMSStatus(selectedRSU.properties.ipv4_address) === true ? 'Healthy' : 'Unhealthy'}
+                    {getStatusLabel(getRSUSCMSStatus(selectedRSU.properties.ipv4_address))}
                   </Typography>
                   <Typography fontSize="small" sx={{ color: theme.palette.text.secondary }}>
                     <b>SCMS Expiration: </b>
@@ -257,10 +227,8 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
               style={{ margin: '1rem' }}
               onClick={() => {
                 const lastOnlineStatus =
-                  getRSUOnlineStatus(selectedRSU.properties.ipv4_address) +
-                  (getRSULastOnline(selectedRSU.properties.ipv4_address) === 'No Data'
-                    ? ' (Never Online)'
-                    : ' (Last Online ' + getRSULastOnline(selectedRSU.properties.ipv4_address) + ')')
+                  getStatusLabel(getRSUOnlineStatus(selectedRSU.properties.ipv4_address)) +
+                  ' (Last Online: ' + getRSULastOnline() + ')'
 
                 return sendRsuErrorSummaryEmail(
                   selectedRSU.properties.ipv4_address,
@@ -318,13 +286,10 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                 render: (rowData) => (
                   <Box
                     style={{
-                      color: theme.palette.text.primary,
-                      backgroundColor: rowData.online_status.toLowerCase().includes('online')
-                        ? theme.palette.success.dark
-                        : rowData.online_status.toLowerCase().includes('unstable')
-                          ? theme.palette.warning.main
-                          : theme.palette.error.dark,
-                      width: '4rem',
+                      color: theme.palette.getContrastText(getStatusColor(rowData.online_status, theme)),
+                      backgroundColor: getStatusColor(rowData.online_status, theme),
+                      minWidth: '4rem',
+                      padding: '0 8px',
                       height: '1.5rem',
                       display: 'flex',
                       justifyContent: 'center',
@@ -332,7 +297,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                       borderRadius: '1rem',
                     }}
                   >
-                    <Typography fontSize="medium">{rowData.online_status}</Typography>
+                    <Typography fontSize="medium">{getStatusLabel(rowData.online_status)}</Typography>
                   </Box>
                 ),
               },
@@ -344,10 +309,10 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                     <Typography
                       fontSize="medium"
                       sx={{
-                        color: rowData.scms_status === true ? theme.palette.success.light : theme.palette.error.light,
+                        color: getStatusColor(rowData.scms_status, theme, 'light'),
                       }}
                     >
-                      {rowData.scms_status === true ? 'Healthy' : 'Unhealthy'}
+                      {getStatusLabel(rowData.scms_status)}
                     </Typography>
                     <Typography fontSize="small" sx={{ color: theme.palette.text.primary }}>
                       {rowData.cert_expiration}
@@ -399,19 +364,12 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                   render: (rowData) => (
                     <Typography
                       fontSize="medium"
-                      sx={
-                        rowData.online_status.toLowerCase().includes('online')
-                          ? {
-                              color: theme.palette.success.dark,
-                              fontWeight: 'bold',
-                            }
-                          : {
-                              color: theme.palette.error.dark,
-                              fontWeight: 'bold',
-                            }
-                      }
+                      sx={{
+                        color: getStatusColor(rowData.online_status, theme),
+                        fontWeight: 'bold',
+                      }}
                     >
-                      {rowData.online_status}
+                      {getStatusLabel(rowData.online_status)}
                     </Typography>
                   ),
                 },
@@ -423,11 +381,11 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                       <Typography
                         fontSize="medium"
                         sx={{
-                          color: rowData.scms_status === true ? theme.palette.success.dark : theme.palette.error.dark,
+                          color: getStatusColor(rowData.scms_status, theme),
                           fontWeight: 'bold',
                         }}
                       >
-                        {rowData.scms_status === true ? 'Healthy' : 'Unhealthy'}
+                        {getStatusLabel(rowData.scms_status)}
                       </Typography>
                       <Typography fontSize="small" sx={{ color: 'black' }}>
                         {rowData.cert_expiration}
@@ -473,7 +431,10 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
           <h1 style={{ textAlign: 'center', marginBottom: '10px', color: 'black' }}>RSU Error Summary</h1>
           <br />
           <p style={{ color: 'black' }}>
-            Below is the generated RSU Error summary report for all RSUs at {new Date().toISOString()} UTC:
+            {`Below is the generated RSU Error summary report at ${new Date().toISOString()} UTC. ` +
+              'Only confirmed offline, unstable, or SCMS unhealthy devices are included. ' +
+              'Loading, unknown, and unavailable statuses alone do not qualify as device errors; ' +
+              'see the full report for all devices.'}
           </p>
           <div style={{ marginTop: '25px' }}>
             <MaterialTable
@@ -494,19 +455,12 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                   render: (rowData) => (
                     <Typography
                       fontSize="medium"
-                      sx={
-                        rowData.online_status.toLowerCase().includes('online')
-                          ? {
-                              color: theme.palette.success.dark,
-                              fontWeight: 'bold',
-                            }
-                          : {
-                              color: theme.palette.error.dark,
-                              fontWeight: 'bold',
-                            }
-                      }
+                      sx={{
+                        color: getStatusColor(rowData.online_status, theme),
+                        fontWeight: 'bold',
+                      }}
                     >
-                      {rowData.online_status}
+                      {getStatusLabel(rowData.online_status)}
                     </Typography>
                   ),
                 },
@@ -518,11 +472,11 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                       <Typography
                         fontSize="medium"
                         sx={{
-                          color: rowData.scms_status === true ? theme.palette.success.dark : theme.palette.error.dark,
+                          color: getStatusColor(rowData.scms_status, theme),
                           fontWeight: 'bold',
                         }}
                       >
-                        {rowData.scms_status === true ? 'Healthy' : 'Unhealthy'}
+                        {getStatusLabel(rowData.scms_status)}
                       </Typography>
                       <Typography fontSize="small" sx={{ color: 'black' }}>
                         {rowData.cert_expiration}
@@ -539,7 +493,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
               actions={[]}
               data={
                 rsuTableData !== undefined
-                  ? rsuTableData.filter((row) => row.online_status.includes('Offline') || row.scms_status !== true)
+                  ? rsuTableData.filter((row) => hasConfirmedRsuError(row.online_status, row.scms_status))
                   : []
               }
               title=""
