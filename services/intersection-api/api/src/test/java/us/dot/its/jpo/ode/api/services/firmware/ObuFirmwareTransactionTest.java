@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -95,6 +95,7 @@ class ObuFirmwareTransactionTest {
 
     @Test
     void deletionWaitsForAConcurrentPublishAndThenRefuses() throws Exception {
+        String objectId = ObjectIds.encode("gcp", "bucket", image.getObjectName());
         var published = new CountDownLatch(1);
         var commit = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(2)) {
@@ -104,19 +105,26 @@ class ObuFirmwareTransactionTest {
                 published.countDown();
                 await(commit);
             }));
-            assertThat(published.await(20, TimeUnit.SECONDS)).isTrue();
-
-            var deleting = executor.submit(() -> deletion.delete(ObjectIds.encode("gcp", "bucket", image.getObjectName()), "17"));
-            Thread.sleep(500);
-            assertThat(deleting.isDone()).as("deletion waits for the publication's row lock").isFalse();
-
-            commit.countDown();
+            try {
+                assertThat(published.await(20, TimeUnit.SECONDS)).isTrue();
+                var blocked = executor.submit(() -> new TransactionTemplate(transactions).executeWithoutResult(status -> {
+                    // A database lock timeout proves the deletion was blocked by the
+                    // publication's row lock, rather than relying on thread timing
+                    jdbc.execute("set local lock_timeout = '1s'");
+                    deletion.delete(objectId, "17");
+                }));
+                assertThatThrownBy(() -> blocked.get(20, TimeUnit.SECONDS))
+                        .hasCauseInstanceOf(PessimisticLockingFailureException.class);
+            } finally {
+                commit.countDown();
+            }
             publishing.get(20, TimeUnit.SECONDS);
-            assertThatThrownBy(() -> deleting.get(20, TimeUnit.SECONDS))
-                    .isInstanceOf(ExecutionException.class)
-                    .hasCauseInstanceOf(ObuFirmwareConflictException.class)
-                    .hasMessageContaining(ObuFirmwareDeletionService.UNPUBLISH_FIRST_MESSAGE);
         }
+
+        // Once the publication commits, deletion sees the firmware is published
+        assertThatThrownBy(() -> deletion.delete(objectId, "17"))
+                .isInstanceOf(ObuFirmwareConflictException.class)
+                .hasMessage(ObuFirmwareDeletionService.UNPUBLISH_FIRST_MESSAGE);
         verify(provider, never()).deleteObject(any(), any());
         assertThat(images.findById(image.getId())).get().returns(true, ObuFirmwareImage::getPublished);
     }
