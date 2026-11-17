@@ -25,4 +25,10 @@ public interface RsuOnlineStatusProjection {
      *         True if the ping succeeded, false otherwise.
      */
     Boolean getResult();
+
+    /**
+     * @return True when any ping record exists for the RSU, including records
+     *         outside the status window and unsuccessful pings.
+     */
+    Boolean getHasPingHistory();
 }

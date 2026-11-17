@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.InetAddress;
@@ -37,13 +38,14 @@ class RsuOnlineStatusServiceTest {
     }
 
     @Test
-    void getOnlineStatuses_calculatesOnlineUnstableAndOffline() throws Exception {
+    void getOnlineStatuses_distinguishesUnknownFromOfflineAndPreservesOnlineAndUnstable() throws Exception {
         when(rsuRepository.findOnlineStatusPingsByOrganization(eq("TestOrg"), any())).thenReturn(List.of(
                 ping("10.0.0.1", NOW.minusSeconds(60), true),
                 ping("10.0.0.2", NOW.minusSeconds(30), false),
                 ping("10.0.0.2", NOW.minusSeconds(90), true),
                 ping("10.0.0.3", NOW.minusSeconds(45), false),
-                ping("10.0.0.4", null, null)));
+                ping("10.0.0.4", null, null, true),
+                ping("10.0.0.5", null, null)));
 
         var statuses = service.getOnlineStatuses("TestOrg");
 
@@ -51,7 +53,10 @@ class RsuOnlineStatusServiceTest {
         assertEquals("unstable", statuses.get("10.0.0.2").getCurrentStatus());
         assertEquals("offline", statuses.get("10.0.0.3").getCurrentStatus());
         assertEquals("offline", statuses.get("10.0.0.4").getCurrentStatus());
-        assertEquals(List.of("10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4"), List.copyOf(statuses.keySet()));
+        assertEquals("unknown", statuses.get("10.0.0.5").getCurrentStatus());
+        assertEquals(List.of("10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4", "10.0.0.5"),
+                List.copyOf(statuses.keySet()));
+        verify(rsuRepository).findOnlineStatusPingsByOrganization("TestOrg", NOW.minusSeconds(1200));
     }
 
     @Test
@@ -89,6 +94,11 @@ class RsuOnlineStatusServiceTest {
     }
 
     private static RsuOnlineStatusProjection ping(String ip, Instant timestamp, Boolean result) throws Exception {
+        return ping(ip, timestamp, result, timestamp != null);
+    }
+
+    private static RsuOnlineStatusProjection ping(String ip, Instant timestamp, Boolean result, boolean hasPingHistory)
+            throws Exception {
         InetAddress address = RsuManagementService.toIpv4Address(ip);
         return new RsuOnlineStatusProjection() {
             @Override
@@ -104,6 +114,11 @@ class RsuOnlineStatusServiceTest {
             @Override
             public Boolean getResult() {
                 return result;
+            }
+
+            @Override
+            public Boolean getHasPingHistory() {
+                return hasPingHistory;
             }
         };
     }

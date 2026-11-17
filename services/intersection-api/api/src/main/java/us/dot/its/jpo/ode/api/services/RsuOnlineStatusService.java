@@ -53,15 +53,20 @@ public class RsuOnlineStatusService {
                 .toList();
 
         boolean hasPing = !timestampedPings.isEmpty();
+        boolean hasPingHistory = hasPing || group.stream()
+                .anyMatch(ping -> Boolean.TRUE.equals(ping.getHasPingHistory()));
         boolean firstPingSuccessful = hasPing && Boolean.TRUE.equals(timestampedPings.getFirst().getResult());
         boolean hasSuccessfulPing = timestampedPings.stream()
                 .anyMatch(ping -> Boolean.TRUE.equals(ping.getResult()));
 
-        return new OnlineStatusDto(statusFor(hasPing, firstPingSuccessful, hasSuccessfulPing));
+        return new OnlineStatusDto(statusFor(hasPingHistory, firstPingSuccessful, hasSuccessfulPing));
     }
 
-    private static String statusFor(boolean hasPing, boolean firstPingSuccessful, boolean hasSuccessfulPing) {
-        if (!hasPing || !hasSuccessfulPing) {
+    private static String statusFor(boolean hasPingHistory, boolean firstPingSuccessful, boolean hasSuccessfulPing) {
+        if (!hasPingHistory) {
+            return "unknown";
+        }
+        if (!hasSuccessfulPing) {
             return "offline";
         }
         return firstPingSuccessful ? "online" : "unstable";
