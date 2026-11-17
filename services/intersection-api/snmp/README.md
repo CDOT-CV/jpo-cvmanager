@@ -64,7 +64,7 @@ try (var client = new Snmp4jClient();
 - Verifies only the changed row after the write. Schedules always use UTC.
 - Use `createWithSnapshot` or `deleteWithSnapshot` to also read both forwarding tables.
   Pass a [`SnapshotAction`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218ForwardingTasks.java) when the application needs to save that snapshot. This can be used for synchronizing the results with PostgreSQL.
-- Each create adds a row. Delete with `forwardingTasks.delete(device, MessageType.MAP, "198.51.100.3")`.
+- Creation returns `changed=false` when an active equivalent row already exists. Delete with `forwardingTasks.delete(device, MessageType.MAP, "198.51.100.3")`.
   This matches the preset port as well as PSID and destination. Pass an explicit port for a custom-port row.
 - Use the table/index overload of `deleteWithSnapshot` to remove an existing row,
   checking its destination and raw port. Other fields may be incomplete or malformed.

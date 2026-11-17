@@ -390,8 +390,8 @@ Create requests accept 1-100 unique RSU IPv4 addresses:
 
 - Supported types: `BSM`, `SPAT`, `MAP`, `SSM`, `SRM`, and `TIM`. Each selects a fixed
   table and UDP port. `include_security` controls IEEE 1609.2 security headers.
-- Creation adds a new row. Preset deletion accepts the same body without
-  `include_security` and removes the highest-index match for message type,
+- Creation adds a row, or returns `changed=false` if an active equivalent row already exists.
+- Preset deletion accepts the same body without `include_security` and removes the highest-index match for message type,
   destination, and preset port. No match is a successful no-op.
 - Selected-row deletion accepts `destination_ip` and `destination_port`, which
   must match the stored row. It can remove malformed or manually created rows,

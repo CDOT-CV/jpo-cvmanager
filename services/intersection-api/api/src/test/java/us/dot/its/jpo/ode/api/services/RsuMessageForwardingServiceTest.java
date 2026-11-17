@@ -81,6 +81,22 @@ class RsuMessageForwardingServiceTest {
         }
     }
 
+    @Test void duplicateCreateReturnsUnchangedAndStillSynchronizesDatabase() {
+        var client = new MemoryClient();
+        try (var executor = executor(client)) {
+            var service = service(executor);
+            assertEquals(true, service.create(request()).get(device.target().address()).changed());
+            var duplicate = service.create(request()).get(device.target().address());
+
+            assertEquals(false, duplicate.changed());
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED, duplicate.execution().status());
+            assertEquals(SnmpTaskResult.WriteState.NOT_SUBMITTED, duplicate.writeState());
+            assertEquals(DatabaseSync.UPDATED, duplicate.databaseSync());
+            assertEquals(1, client.writes.get());
+            verify(snapshots, times(2)).replace(eq(7), eq(device.target().address()), argThat(rows -> rows.size() == 1));
+        }
+    }
+
     @ParameterizedTest
     @CsvSource({"BSM,46800", "SPAT,44910", "MAP,44920", "SSM,44900", "SRM,44930", "TIM,47900"})
     void preservesCvManagerPortsAndDoesNotBulkDeleteManualPorts(MessageType message, int expectedPort) {

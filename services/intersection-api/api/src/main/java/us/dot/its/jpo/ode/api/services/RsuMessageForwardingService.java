@@ -50,8 +50,8 @@ public class RsuMessageForwardingService {
     private final Ntcip1218ForwardingTasks forwardingTasks;
 
     /**
-     * Creates a new row using CV Manager's message-type port presets;
-     * this is not an upsert.
+     * Creates a row using CV Manager's message-type port presets, or returns unchanged
+     * if an active equivalent row already exists. Existing rows are never updated.
      */
     public Map<String, MessageForwardingResult> create(CreateMessageForwardingRequest request) {
         validateRequest(request);
