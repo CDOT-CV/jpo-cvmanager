@@ -53,9 +53,11 @@ public final class ObjectIds {
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Invalid firmware object ID");
         }
-        String objectName = identity[identity.length - 1];
-        if (identity.length != parts || objectName.isBlank() || objectName.endsWith("/")
-                || objectName.chars().anyMatch(Character::isISOControl)) {
+        if (identity.length != parts) {
+            throw new IllegalArgumentException("Invalid firmware object ID");
+        }
+        String objectName = identity[parts - 1];
+        if (objectName.isBlank() || objectName.endsWith("/") || objectName.chars().anyMatch(Character::isISOControl)) {
             throw new IllegalArgumentException("Invalid firmware object ID");
         }
         return identity;
