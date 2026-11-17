@@ -11,7 +11,7 @@ import {
 const ip = '10.0.0.1'
 
 describe('RSU status interpretation', () => {
-  it.each(['online', 'offline', 'unstable'] as const)('preserves confirmed %s status', (status) => {
+  it.each(['online', 'offline', 'unstable', 'unknown'] as const)('preserves API %s status', (status) => {
     expect(getOnlineStatus(ip, { currentData: { [ip]: { current_status: status } } })).toBe(status)
   })
 

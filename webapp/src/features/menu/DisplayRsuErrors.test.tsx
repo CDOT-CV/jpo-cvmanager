@@ -250,8 +250,9 @@ describe('DisplayRsuErrors health-state regressions', () => {
     [{ isLoading: true, isFetching: true }, 'Loading'],
     [{ isError: true }, 'Unavailable'],
     [{ currentData: {} }, 'Unknown'],
+    [{ currentData: { [TEST_IP]: { current_status: 'unknown' } } }, 'Unknown'],
     [{ isUninitialized: true }, 'Unknown'],
-  ])('does not report missing online data as Offline (%j)', (query, label) => {
+  ])('does not report unconfirmed online data as Offline (%j)', (query, label) => {
     mockUseGetRsuOnlineStatusesQuery.mockReturnValue(query as any)
     renderComponent()
     expect(screen.getAllByText(label).length).toBeGreaterThan(0)
@@ -294,6 +295,7 @@ describe('DisplayRsuErrors health-state regressions', () => {
       [ips[1]]: { current_status: 'unstable' },
       [ips[2]]: { current_status: 'online' },
       [ips[3]]: { current_status: 'online' },
+      [ips[4]]: { current_status: 'unknown' },
     } } as any)
     mockUseGetScmsStatusQuery.mockReturnValue({ currentData: {
       [ips[0]]: { health: true, expiration: VALID_EXPIRATION_ISO },

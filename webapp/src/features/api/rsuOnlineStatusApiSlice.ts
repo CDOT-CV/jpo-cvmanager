@@ -3,7 +3,7 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 
-export type RsuOnlineStatus = 'online' | 'offline' | 'unstable'
+export type RsuOnlineStatus = 'online' | 'offline' | 'unstable' | 'unknown'
 
 export type RsuOnlineStatusMap = {
   [ip: string]: {

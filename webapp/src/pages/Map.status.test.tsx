@@ -89,6 +89,7 @@ describe('main map device health', () => {
     [{ isLoading: true }, 'Loading', '#B0B0B0'],
     [{ isError: true }, 'Unavailable', '#B0B0B0'],
     [{ currentData: {} }, 'Unknown', '#B0B0B0'],
+    [{ currentData: { [ip]: { current_status: 'unknown' } } }, 'Unknown', '#B0B0B0'],
     [{ currentData: { [ip]: { current_status: 'offline' } } }, 'Offline', '#E94F37'],
     [{ currentData: { [ip]: { current_status: 'unstable' } } }, 'Unstable', '#D1A711'],
     [{ currentData: { [ip]: { current_status: 'online' } } }, 'Online', '#A1D363'],
