@@ -51,6 +51,18 @@ export const getStatusColor = (status: RsuHealthStatus, theme: Theme, shade: 'li
   return theme.palette.grey[600]
 }
 
+export const getStatusTextColor = (
+  status: RsuHealthStatus,
+  theme: Theme,
+  context: 'screen' | 'print' = 'screen'
+): string => {
+  if (status === 'loading' || status === 'unknown' || status === 'unavailable') {
+    // Reports have white backgrounds even when the application uses a dark theme.
+    return context === 'print' ? theme.palette.grey[700] : theme.palette.text.secondary
+  }
+  return getStatusColor(status, theme, context === 'print' ? 'dark' : 'light')
+}
+
 export const getStatusMarkerColor = (status: RsuHealthStatus): string => {
   if (status === 'online' || status === 'healthy') return '#A1D363'
   if (status === 'unstable') return '#D1A711'

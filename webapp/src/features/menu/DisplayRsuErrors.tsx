@@ -30,6 +30,7 @@ import {
   getScmsStatus,
   getStatusLabel,
   getStatusColor,
+  getStatusTextColor,
   getScmsExpirationDisplay,
   getLastOnlineDisplay,
   hasConfirmedRsuError,
@@ -309,7 +310,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                     <Typography
                       fontSize="medium"
                       sx={{
-                        color: getStatusColor(rowData.scms_status, theme, 'light'),
+                        color: getStatusTextColor(rowData.scms_status, theme),
                       }}
                     >
                       {getStatusLabel(rowData.scms_status)}
@@ -365,7 +366,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                     <Typography
                       fontSize="medium"
                       sx={{
-                        color: getStatusColor(rowData.online_status, theme),
+                        color: getStatusTextColor(rowData.online_status, theme, 'print'),
                         fontWeight: 'bold',
                       }}
                     >
@@ -381,7 +382,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                       <Typography
                         fontSize="medium"
                         sx={{
-                          color: getStatusColor(rowData.scms_status, theme),
+                          color: getStatusTextColor(rowData.scms_status, theme, 'print'),
                           fontWeight: 'bold',
                         }}
                       >
@@ -456,7 +457,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                     <Typography
                       fontSize="medium"
                       sx={{
-                        color: getStatusColor(rowData.online_status, theme),
+                        color: getStatusTextColor(rowData.online_status, theme, 'print'),
                         fontWeight: 'bold',
                       }}
                     >
@@ -472,7 +473,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                       <Typography
                         fontSize="medium"
                         sx={{
-                          color: getStatusColor(rowData.scms_status, theme),
+                          color: getStatusTextColor(rowData.scms_status, theme, 'print'),
                           fontWeight: 'bold',
                         }}
                       >

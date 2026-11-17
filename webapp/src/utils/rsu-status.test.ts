@@ -1,14 +1,32 @@
 import { describe, expect, it } from 'vitest'
+import { getContrastRatio } from '@mui/material/styles'
+import { THEMES } from '../styles'
 import {
   getLastOnlineDisplay,
   getOnlineStatus,
   getScmsExpirationDisplay,
   getScmsStatus,
   getStatusMarkerColor,
+  getStatusColor,
+  getStatusTextColor,
   hasConfirmedRsuError,
 } from './rsu-status'
 
 const ip = '10.0.0.1'
+
+describe.each(Object.entries(THEMES))('neutral status contrast in the %s theme', (_name, theme) => {
+  it.each(['loading', 'unknown', 'unavailable'] as const)('keeps %s text readable on panels, popups, and reports', (status) => {
+    const textColor = getStatusTextColor(status, theme)
+    for (const background of [theme.palette.background.paper, theme.palette.background.default]) {
+      expect(getContrastRatio(textColor, background)).toBeGreaterThanOrEqual(4.5)
+    }
+    expect(getContrastRatio(getStatusTextColor(status, theme, 'print'), '#ffffff')).toBeGreaterThanOrEqual(4.5)
+
+    const badgeColor = getStatusColor(status, theme)
+    expect(getContrastRatio(theme.palette.getContrastText(badgeColor), badgeColor)).toBeGreaterThanOrEqual(4.5)
+    expect(getStatusMarkerColor(status)).toBe('#B0B0B0')
+  })
+})
 
 describe('RSU status interpretation', () => {
   it.each(['online', 'offline', 'unstable', 'unknown'] as const)('preserves API %s status', (status) => {

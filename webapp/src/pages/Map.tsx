@@ -150,6 +150,7 @@ import {
   getScmsStatus,
   getStatusLabel,
   getStatusColor,
+  getStatusTextColor,
   getStatusMarkerColor,
   getScmsExpirationDisplay,
   getLastOnlineDisplay,
@@ -1618,7 +1619,7 @@ function MapPage() {
                   <Grid2 size={6} justifyContent="flex-start">
                     <Grid2 container>
                       <Grid2 size={12} justifyContent="flex-start">
-                        <Typography sx={{ color: getStatusColor(selectedScmsStatus, theme, 'light') }}>
+                        <Typography sx={{ color: getStatusTextColor(selectedScmsStatus, theme) }}>
                           {getStatusLabel(selectedScmsStatus)}
                         </Typography>
                       </Grid2>
