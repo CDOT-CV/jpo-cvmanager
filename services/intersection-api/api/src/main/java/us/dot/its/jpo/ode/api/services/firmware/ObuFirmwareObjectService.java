@@ -7,7 +7,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -116,17 +118,19 @@ public class ObuFirmwareObjectService {
                     .toList());
         }
 
+        return new Listing(page.provider(), true, activeBucketItems(page, catalog));
+    }
+
+    /** Merges the catalog, the latest uploads, and the stored files of the active bucket. */
+    private List<Item> activeBucketItems(StorageObjectPage page, List<ObuFirmwareImage> catalog) {
         var items = new ArrayList<Item>();
         var cloudImages = new HashMap<String, ObuFirmwareImage>();
         for (var image : catalog) {
-            if (image.isLocal()) {
-                items.add(catalogItem(image, LOCAL));
-            } else if (page.provider().equals(image.getStorageProvider())
-                    && page.container().equals(image.getStorageContainer())) {
+            if (isInActiveBucket(image, page)) {
                 cloudImages.put(image.getObjectName(), image);
             } else {
-                // Stored with a provider or bucket that is no longer active
-                items.add(catalogItem(image, UNKNOWN));
+                // Local files, and entries stored with a provider or bucket that is no longer active
+                items.add(catalogItem(image, image.isLocal() ? LOCAL : UNKNOWN));
             }
         }
         var latestUploads = uploads.findListingUploads(page.provider(), page.container()).stream()
@@ -135,37 +139,61 @@ public class ObuFirmwareObjectService {
         var listed = new HashSet<String>();
         for (var object : page.objects()) {
             String name = object.objectName();
-            if (name.endsWith("/") || !ObuFirmwareStorageLayout.isObuObjectName(name)) {
-                continue;
-            }
-            listed.add(name);
             var image = cloudImages.get(name);
             var upload = latestUploads.get(name);
-            if (image == null && upload == null && !parsers.isUploadFolder(name)) {
-                // Not written by CV Manager, such as a folder the OBU OTA server serves directly
-                continue;
+            if (isManagedFile(name, image, upload)) {
+                listed.add(name);
+                items.add(item(page.provider(), page.container(), name, object, image, upload,
+                        storedFileState(object, image, upload)));
             }
-            items.add(item(page.provider(), page.container(), name, object, image, upload,
-                    storedFileState(object, image, upload)));
         }
+        items.addAll(missingItems(page, cloudImages, latestUploads, listed));
+        return items;
+    }
 
-        // Only a complete, successful listing establishes that a file is absent.
-        // Uploads still able to write their file are in progress, not missing.
-        Instant now = Instant.now();
+    private static boolean isInActiveBucket(ObuFirmwareImage image, StorageObjectPage page) {
+        return !image.isLocal() && page.provider().equals(image.getStorageProvider())
+                && page.container().equals(image.getStorageContainer());
+    }
+
+    /**
+     * Whether a stored object is OBU firmware CV Manager manages. Folder markers, and
+     * files not written by CV Manager such as a folder the OBU OTA server serves
+     * directly, are left out.
+     */
+    private boolean isManagedFile(String name, ObuFirmwareImage image, ObuFirmwareUpload upload) {
+        if (name.endsWith("/") || !ObuFirmwareStorageLayout.isObuObjectName(name)) {
+            return false;
+        }
+        return image != null || upload != null || parsers.isUploadFolder(name);
+    }
+
+    /**
+     * Catalog entries and finished uploads whose file is absent. Only a complete,
+     * successful listing establishes that a file is absent, and uploads still able to
+     * write their file are in progress, not missing.
+     */
+    private List<Item> missingItems(StorageObjectPage page, Map<String, ObuFirmwareImage> cloudImages,
+            Map<String, ObuFirmwareUpload> latestUploads, Set<String> listed) {
+        var items = new ArrayList<Item>();
         for (var image : cloudImages.values()) {
             if (!listed.contains(image.getObjectName())) {
                 items.add(item(page.provider(), page.container(), image.getObjectName(), null, image,
                         latestUploads.get(image.getObjectName()), MISSING));
             }
         }
+        Instant now = Instant.now();
         for (var upload : latestUploads.values()) {
             String name = upload.getObjectName();
-            if (!listed.contains(name) && !cloudImages.containsKey(name)
-                    && (upload.getStatus() == FirmwareUploadStatus.VERIFIED || !upload.getExpiresAt().isAfter(now))) {
+            if (!listed.contains(name) && !cloudImages.containsKey(name) && isFinished(upload, now)) {
                 items.add(item(page.provider(), page.container(), name, null, null, upload, MISSING));
             }
         }
-        return new Listing(page.provider(), true, items);
+        return items;
+    }
+
+    private static boolean isFinished(ObuFirmwareUpload upload, Instant now) {
+        return upload.getStatus() == FirmwareUploadStatus.VERIFIED || !upload.getExpiresAt().isAfter(now);
     }
 
     private String storedFileState(StorageObject object, ObuFirmwareImage image, ObuFirmwareUpload upload) {
