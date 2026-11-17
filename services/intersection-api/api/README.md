@@ -485,6 +485,10 @@ and can be retried.
 - `DELETE /objects/{objectId}/records` removes the records of a `MISSING` file, or
   the catalog entry of a `LOCAL` file. The file in the OTA server's local folder
   must be removed there.
+- Object IDs include the bucket. After the configured bucket changes, entries from
+  the previous bucket are listed as `UNKNOWN`; records cleanup removes them, but
+  their files must be deleted from that bucket directly, and deleting them through
+  this API returns `409`.
 - Files beneath `ota/` outside the upload folders that have no records return
   `400`, so files another service keeps there cannot be deleted here.
 - Published firmware must be unpublished first. Deletion is also refused while an

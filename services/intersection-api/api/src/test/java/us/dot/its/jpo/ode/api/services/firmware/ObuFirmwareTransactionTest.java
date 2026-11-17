@@ -106,7 +106,7 @@ class ObuFirmwareTransactionTest {
             }));
             assertThat(published.await(20, TimeUnit.SECONDS)).isTrue();
 
-            var deleting = executor.submit(() -> deletion.delete(ObjectIds.encode("gcp", image.getObjectName()), "17"));
+            var deleting = executor.submit(() -> deletion.delete(ObjectIds.encode("gcp", "bucket", image.getObjectName()), "17"));
             Thread.sleep(500);
             assertThat(deleting.isDone()).as("deletion waits for the publication's row lock").isFalse();
 
@@ -125,7 +125,7 @@ class ObuFirmwareTransactionTest {
     void aStorageFailureKeepsTheCatalogEntry() {
         doThrow(new ObjectStorageUnavailableException("retry")).when(provider).deleteObject(location, "17");
 
-        assertThatThrownBy(() -> deletion.delete(ObjectIds.encode("gcp", image.getObjectName()), "17"))
+        assertThatThrownBy(() -> deletion.delete(ObjectIds.encode("gcp", "bucket", image.getObjectName()), "17"))
                 .isInstanceOf(ObjectStorageUnavailableException.class);
 
         assertThat(images.findById(image.getId())).isPresent();

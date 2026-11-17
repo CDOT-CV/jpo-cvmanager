@@ -47,7 +47,7 @@ public class ObuFirmwareDeletionService {
     }
 
     private void deleteRecordsAndObject(String objectId, String providerObjectVersion) {
-        var identity = ObjectIds.decode(objectId);
+        var identity = ObjectIds.decodeContained(objectId);
         String objectName = identity.objectName();
         if (!ObuFirmwareStorageLayout.isObuObjectName(objectName)) {
             throw new IllegalArgumentException("Only OBU firmware beneath ota/ can be deleted through this API");
@@ -62,6 +62,10 @@ public class ObuFirmwareDeletionService {
             throw new ObuFirmwareConflictException("The storage provider changed. Refresh the OBU firmware list.");
         }
         var location = service.getLocation(objectName);
+        if (!location.container().equals(identity.container())) {
+            deleteRecordsInInactiveContainer(identity, providerObjectVersion);
+            return;
+        }
 
         // Lock uploads before images, matching completion's lock order. An issued
         // upload URL can still write the file after verification or failure.
@@ -99,6 +103,27 @@ public class ObuFirmwareDeletionService {
         if (providerObjectVersion != null) {
             service.deleteObject(location, providerObjectVersion);
         }
+    }
+
+    /**
+     * Catalog entries can remain from a previously configured bucket. The API cannot
+     * inspect that bucket, so only their records can be removed; the file stays.
+     */
+    private void deleteRecordsInInactiveContainer(ObjectIds.ContainedIdentity identity,
+            String providerObjectVersion) {
+        if (providerObjectVersion != null) {
+            throw new ObuFirmwareConflictException("This firmware is stored in bucket '" + identity.container()
+                    + "', which is no longer the configured bucket. Use records cleanup to remove its entry.");
+        }
+        var records = uploads.findDestinationForUpdate(identity.provider(), identity.container(),
+                identity.objectName());
+        var registered = images.findDestinationForUpdate(identity.provider(), identity.container(),
+                identity.objectName());
+        requireUnpublished(registered);
+        images.deleteAll(registered);
+        images.flush();
+        uploads.deleteAll(records);
+        uploads.flush();
     }
 
     private void deleteLocalRecords(String objectName, String providerObjectVersion) {

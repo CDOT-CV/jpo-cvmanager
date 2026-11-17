@@ -112,8 +112,7 @@ public class ObuFirmwareObjectService {
             // Deployments that serve only local firmware still need the catalog
             log.warn("Listing OBU firmware catalog entries only because storage is unavailable: {}", ex.getMessage());
             return new Listing(null, false, catalog.stream()
-                    .map(image -> item(image.getStorageProvider(), image.getObjectName(), null, image, null,
-                            image.isLocal() ? LOCAL : UNKNOWN))
+                    .map(image -> catalogItem(image, image.isLocal() ? LOCAL : UNKNOWN))
                     .toList());
         }
 
@@ -121,13 +120,13 @@ public class ObuFirmwareObjectService {
         var cloudImages = new HashMap<String, ObuFirmwareImage>();
         for (var image : catalog) {
             if (image.isLocal()) {
-                items.add(item(image.getStorageProvider(), image.getObjectName(), null, image, null, LOCAL));
+                items.add(catalogItem(image, LOCAL));
             } else if (page.provider().equals(image.getStorageProvider())
                     && page.container().equals(image.getStorageContainer())) {
                 cloudImages.put(image.getObjectName(), image);
             } else {
                 // Stored with a provider or bucket that is no longer active
-                items.add(item(image.getStorageProvider(), image.getObjectName(), null, image, null, UNKNOWN));
+                items.add(catalogItem(image, UNKNOWN));
             }
         }
         var latestUploads = uploads.findListingUploads(page.provider(), page.container()).stream()
@@ -146,7 +145,8 @@ public class ObuFirmwareObjectService {
                 // Not written by CV Manager, such as a folder the OBU OTA server serves directly
                 continue;
             }
-            items.add(item(page.provider(), name, object, image, upload, storedFileState(object, image, upload)));
+            items.add(item(page.provider(), page.container(), name, object, image, upload,
+                    storedFileState(object, image, upload)));
         }
 
         // Only a complete, successful listing establishes that a file is absent.
@@ -154,7 +154,7 @@ public class ObuFirmwareObjectService {
         Instant now = Instant.now();
         for (var image : cloudImages.values()) {
             if (!listed.contains(image.getObjectName())) {
-                items.add(item(page.provider(), image.getObjectName(), null, image,
+                items.add(item(page.provider(), page.container(), image.getObjectName(), null, image,
                         latestUploads.get(image.getObjectName()), MISSING));
             }
         }
@@ -162,7 +162,7 @@ public class ObuFirmwareObjectService {
             String name = upload.getObjectName();
             if (!listed.contains(name) && !cloudImages.containsKey(name)
                     && (upload.getStatus() == FirmwareUploadStatus.VERIFIED || !upload.getExpiresAt().isAfter(now))) {
-                items.add(item(page.provider(), name, null, null, upload, MISSING));
+                items.add(item(page.provider(), page.container(), name, null, null, upload, MISSING));
             }
         }
         return new Listing(page.provider(), true, items);
@@ -176,35 +176,67 @@ public class ObuFirmwareObjectService {
         return upload == null ? UNTRACKED : UNVERIFIED;
     }
 
-    private Item item(String provider, String objectName, StorageObject object, ObuFirmwareImage image,
-            ObuFirmwareUpload upload, String verificationStatus) {
+    /** A catalog entry whose file is not in the active listing, identified by its recorded location. */
+    private Item catalogItem(ObuFirmwareImage image, String verificationStatus) {
+        return item(image.getStorageProvider(), image.getStorageContainer(), image.getObjectName(), null, image,
+                null, verificationStatus);
+    }
+
+    private Item item(String provider, String container, String objectName, StorageObject object,
+            ObuFirmwareImage image, ObuFirmwareUpload upload, String verificationStatus) {
         // Object names are ota/<manufacturer>/<file name>. Upload manufacturers are
         // read from the path so the lazy association is never loaded here.
         String[] path = objectName.split("/");
         String fileName = image != null ? image.getFileName() : path[path.length - 1];
-        String manufacturer = image != null ? image.getManufacturer().getName()
-                : path.length >= 3 ? path[1] : null;
-        ObuFirmwareFileMetadata metadata = image != null ? image.getMetadata()
-                : upload != null ? upload.getMetadata()
-                : parsers.find(manufacturer).flatMap(parser -> parser.parse(fileName)).orElse(null);
-        Long contentLength = object != null ? Long.valueOf(object.contentLength())
-                : image != null ? image.getContentLength()
-                : upload != null ? upload.getExpectedSize() : null;
+        String manufacturer = manufacturerName(image, path);
+        ObuFirmwareFileMetadata metadata = metadata(image, upload, manufacturer, fileName);
         boolean published = image != null && Boolean.TRUE.equals(image.getPublished());
 
-        return new Item(ObjectIds.encode(provider, objectName), objectName, provider,
+        // The container keeps entries from a previously configured bucket distinct
+        // from a file with the same name in the active bucket
+        return new Item(ObjectIds.encode(provider, container, objectName), objectName, provider,
                 object == null ? null : object.providerObjectVersion(), manufacturer, fileName,
                 metadata == null ? null : metadata.getDeviceType(),
                 metadata == null ? null : metadata.getVariant(),
                 metadata == null ? null : metadata.getReleaseVersion(),
                 metadata == null ? null : metadata.getWritableSystemPartition(),
                 metadata == null ? null : metadata.getSecureBoot(),
-                contentLength, object == null ? null : object.updatedAt(),
+                contentLength(object, image, upload), object == null ? null : object.updatedAt(),
                 image == null ? null : image.getRegisteredAt(),
                 upload == null ? null : upload.getId(), upload == null ? null : upload.getStatus().name(),
                 image == null ? null : image.getId(), published,
                 image == null ? null : image.getPublishedAt(), image == null ? null : image.getPublishedBy(),
                 verificationStatus);
+    }
+
+    private static String manufacturerName(ObuFirmwareImage image, String[] path) {
+        if (image != null) {
+            return image.getManufacturer().getName();
+        }
+        return path.length >= 3 ? path[1] : null;
+    }
+
+    /** The catalog's metadata, else the upload's, else what the file name encodes. */
+    private ObuFirmwareFileMetadata metadata(ObuFirmwareImage image, ObuFirmwareUpload upload, String manufacturer,
+            String fileName) {
+        if (image != null) {
+            return image.getMetadata();
+        }
+        if (upload != null) {
+            return upload.getMetadata();
+        }
+        return parsers.find(manufacturer).flatMap(parser -> parser.parse(fileName)).orElse(null);
+    }
+
+    /** The stored size, else the size recorded in the catalog, else the size the upload promised. */
+    private static Long contentLength(StorageObject object, ObuFirmwareImage image, ObuFirmwareUpload upload) {
+        if (object != null) {
+            return object.contentLength();
+        }
+        if (image != null) {
+            return image.getContentLength();
+        }
+        return upload == null ? null : upload.getExpectedSize();
     }
 
     private Comparator<Item> itemComparator(String sort) {

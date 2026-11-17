@@ -109,7 +109,8 @@ class ObuFirmwareObjectServiceTest {
                 .returns(true, Item::published)
                 .returns("admin", Item::publishedBy)
                 .returns("17", Item::providerObjectVersion)
-                .returns(ObjectIds.encode("gcp", "ota/Commsignia/ob4-generic-ro-y20.1.tar.sig"), Item::objectId);
+                .returns(ObjectIds.encode("gcp", "bucket", "ota/Commsignia/ob4-generic-ro-y20.1.tar.sig"),
+                        Item::objectId);
         assertThat(byFile.get("ob4-generic-ro-y20.2.tar.sig").verificationStatus()).isEqualTo("CHANGED");
         assertThat(byFile.get("ob4-generic-ro-y20.3.tar.sig"))
                 .returns("MISSING", Item::verificationStatus)
@@ -117,8 +118,13 @@ class ObuFirmwareObjectServiceTest {
                 .returns(1024L, Item::contentLength);
         assertThat(byFile.get("ob4-generic-rw-y20.4.tar.sig"))
                 .returns("LOCAL", Item::verificationStatus)
-                .returns(ObjectIds.encode("local", "ota/Commsignia/ob4-generic-rw-y20.4.tar.sig"), Item::objectId);
-        assertThat(byFile.get("ob4-generic-ro-y20.5.tar.sig").verificationStatus()).isEqualTo("UNKNOWN");
+                .returns(ObjectIds.encode("local", "local", "ota/Commsignia/ob4-generic-rw-y20.4.tar.sig"),
+                        Item::objectId);
+        // Entries from a previous bucket keep their own identity, so cleanup removes them
+        assertThat(byFile.get("ob4-generic-ro-y20.5.tar.sig"))
+                .returns("UNKNOWN", Item::verificationStatus)
+                .returns(ObjectIds.encode("gcp", "old-bucket", "ota/Commsignia/ob4-generic-ro-y20.5.tar.sig"),
+                        Item::objectId);
         assertThat(byFile.get("ob4-generic-ro-y20.6.tar.sig"))
                 .returns("UNVERIFIED", Item::verificationStatus)
                 .returns(unverified.getId(), Item::uploadId)

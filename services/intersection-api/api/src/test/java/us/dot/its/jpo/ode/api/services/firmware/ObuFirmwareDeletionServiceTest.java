@@ -29,7 +29,7 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 class ObuFirmwareDeletionServiceTest {
     private static final String NAME = "ota/Commsignia/ob4-generic-ro-y20.48.2.tar.sig";
-    private static final String OBJECT_ID = ObjectIds.encode("gcp", NAME);
+    private static final String OBJECT_ID = ObjectIds.encode("gcp", "bucket", NAME);
     private static final ObjectStorageLocation LOCATION = new ObjectStorageLocation("gcp", "bucket", NAME);
 
     private final ObjectStorageServiceRegistry registry = mock(ObjectStorageServiceRegistry.class);
@@ -120,7 +120,7 @@ class ObuFirmwareDeletionServiceTest {
 
     @Test
     void removesLocalCatalogEntriesWithoutStorage() {
-        String localId = ObjectIds.encode("local", NAME);
+        String localId = ObjectIds.encode("local", "local", NAME);
         var local = image(false);
         when(images.findDestinationForUpdate("local", "local", NAME)).thenReturn(List.of(local));
 
@@ -145,9 +145,9 @@ class ObuFirmwareDeletionServiceTest {
             when(uploads.findDestinationForUpdate("gcp", "bucket", name)).thenReturn(List.of());
             when(images.findDestinationForUpdate("gcp", "bucket", name)).thenReturn(List.of());
 
-            assertThatThrownBy(() -> service.delete(ObjectIds.encode("gcp", name), "17"))
+            assertThatThrownBy(() -> service.delete(ObjectIds.encode("gcp", "bucket", name), "17"))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("not managed by CV Manager");
-            assertThatThrownBy(() -> service.cleanupMissingObject(ObjectIds.encode("gcp", name)))
+            assertThatThrownBy(() -> service.cleanupMissingObject(ObjectIds.encode("gcp", "bucket", name)))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("not managed by CV Manager");
         }
         verify(storage, never()).deleteObject(any(), any());
@@ -164,7 +164,7 @@ class ObuFirmwareDeletionServiceTest {
         when(uploads.findDestinationForUpdate("gcp", "bucket", name)).thenReturn(List.of());
         when(images.findDestinationForUpdate("gcp", "bucket", name)).thenReturn(List.of(image));
 
-        service.delete(ObjectIds.encode("gcp", name), "17");
+        service.delete(ObjectIds.encode("gcp", "bucket", name), "17");
 
         verify(images).deleteAll(List.of(image));
         verify(storage).deleteObject(location, "17");
@@ -172,13 +172,49 @@ class ObuFirmwareDeletionServiceTest {
 
     @Test
     void rejectsObjectsOutsideTheObuFirmwareRootAndChangedProviders() {
-        assertThatThrownBy(() -> service.delete(ObjectIds.encode("gcp", "Commsignia/ITS-RS4-M/v1/a.tar.sig"), "1"))
+        assertThatThrownBy(() -> service.delete(ObjectIds.encode("gcp", "bucket", "Commsignia/ITS-RS4-M/v1/a.tar.sig"), "1"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("ota/");
         assertThatThrownBy(() -> service.delete("not base64!", "1")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> service.delete(OBJECT_ID, " ")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> service.delete(ObjectIds.encode("aws", NAME), "1"))
+        assertThatThrownBy(() -> service.delete(ObjectIds.encode("gcp", NAME), "1"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Invalid firmware object ID");
+        assertThatThrownBy(() -> service.delete(ObjectIds.encode("aws", "bucket", NAME), "1"))
                 .isInstanceOf(ObuFirmwareConflictException.class).hasMessageContaining("provider changed");
         verifyNoInteractions(uploads, images);
+    }
+
+    @Test
+    void cleansUpRecordsFromAPreviouslyConfiguredBucket() {
+        // The same file name in the active bucket must not be touched
+        String oldBucketId = ObjectIds.encode("gcp", "old-bucket", NAME);
+        var upload = upload(Instant.now().minusSeconds(60));
+        var image = image(false);
+        when(uploads.findDestinationForUpdate("gcp", "old-bucket", NAME)).thenReturn(List.of(upload));
+        when(images.findDestinationForUpdate("gcp", "old-bucket", NAME)).thenReturn(List.of(image));
+
+        service.cleanupMissingObject(oldBucketId);
+
+        verify(images).deleteAll(List.of(image));
+        verify(uploads).deleteAll(List.of(upload));
+        verify(images, never()).findDestinationForUpdate("gcp", "bucket", NAME);
+        verify(storage, never()).objectExists(any());
+        verify(storage, never()).deleteObject(any(), any());
+    }
+
+    @Test
+    void refusesToDeleteFilesInAPreviouslyConfiguredBucket() {
+        String oldBucketId = ObjectIds.encode("gcp", "old-bucket", NAME);
+
+        assertThatThrownBy(() -> service.delete(oldBucketId, "17"))
+                .isInstanceOf(ObuFirmwareConflictException.class)
+                .hasMessageContaining("old-bucket").hasMessageContaining("records cleanup");
+
+        when(images.findDestinationForUpdate("gcp", "old-bucket", NAME)).thenReturn(List.of(image(true)));
+        assertThatThrownBy(() -> service.cleanupMissingObject(oldBucketId))
+                .isInstanceOf(ObuFirmwareConflictException.class)
+                .hasMessage(ObuFirmwareDeletionService.UNPUBLISH_FIRST_MESSAGE);
+        verify(images, never()).deleteAll(any());
+        verify(storage, never()).deleteObject(any(), any());
     }
 
     @Test
