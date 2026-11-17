@@ -446,10 +446,14 @@ still manage their catalog.
 
 `PUT /images/{obuFirmwareId}/publication` with `{"published": true}` or
 `{"published": false}` sets whether the OBU OTA server should offer the firmware
-to OBUs. Both directions are idempotent. Publishing a cloud file first checks that
-storage still holds the exact version that was verified, and returns `409` if the
-file is missing or changed. Local files cannot be inspected by the API and are
-published as recorded.
+to OBUs. Both directions are idempotent. Publishing applies the same checks as
+uploads: it returns `409` for RSU firmware, an unsupported OBU build, or a
+manufacturer without a naming convention, so catalog entries registered before
+these checks or registered locally cannot be offered to OBUs. They can still be
+unpublished and deleted. Publishing a cloud file also checks that storage still
+holds the exact version that was verified, and returns `409` if the file is missing
+or changed. Local files cannot be inspected by the API and are published as
+recorded.
 
 Because an OBU installs the newest firmware that matches its build, **only one
 release per build is published**. Publishing a release unpublishes the release of

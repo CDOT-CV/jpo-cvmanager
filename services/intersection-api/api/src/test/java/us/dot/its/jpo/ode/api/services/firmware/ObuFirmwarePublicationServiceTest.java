@@ -41,13 +41,15 @@ class ObuFirmwarePublicationServiceTest {
     private final ObuFirmwareImageRepository images = mock(ObuFirmwareImageRepository.class);
     private final ObjectStorageServiceRegistry registry = mock(ObjectStorageServiceRegistry.class);
     private final ObjectStorageService storage = mock(ObjectStorageService.class);
-    private final ObuFirmwarePublicationService service = new ObuFirmwarePublicationService(images, registry);
+    private final ObuFirmwarePublicationService service = new ObuFirmwarePublicationService(images, registry,
+            new ObuFirmwareParserRegistry(List.of(new CommsigniaObuFirmwareFileNameParser())));
     private final Manufacturer vendor = manufacturer(1);
     private final List<ObuFirmwareImage> vendorImages = new ArrayList<>();
     private ObuFirmwareImage image;
 
     @BeforeEach
     void setUp() {
+        vendor.setName("Commsignia");
         image = image(42, "new.tar.sig", vendor, false, true);
         vendorImages.add(image);
         when(images.findManufacturerIdById(42)).thenReturn(Optional.of(1));
@@ -104,6 +106,38 @@ class ObuFirmwarePublicationServiceTest {
         assertThat(ObuFirmwarePublicationService.sameBuild(image, rsuBuild)).isFalse();
         assertThat(ObuFirmwarePublicationService.sameBuild(image, otherVariant)).isFalse();
         assertThat(ObuFirmwarePublicationService.sameBuild(image, image(23, "x.tar.sig", vendor, false, true))).isTrue();
+    }
+
+    @Test
+    void appliesTheUploadChecksBeforePublishing() {
+        // Catalog entries registered before the upload checks, or locally, can hold
+        // firmware an upload would now reject
+        image.getMetadata().setDeviceType(ObuFirmwareDeviceType.RSU);
+        assertThatThrownBy(() -> service.setPublished(42, true, "admin"))
+                .isInstanceOf(ObuFirmwareConflictException.class).hasMessageContaining("Only OBU firmware");
+
+        image.getMetadata().setDeviceType(ObuFirmwareDeviceType.OBU);
+        image.getMetadata().setSecureBoot(false);
+        assertThatThrownBy(() -> service.setPublished(42, true, "admin"))
+                .isInstanceOf(ObuFirmwareConflictException.class).hasMessageContaining("must use secure boot");
+
+        image.getMetadata().setSecureBoot(true);
+        vendor.setName("Kapsch");
+        assertThatThrownBy(() -> service.setPublished(42, true, "admin"))
+                .isInstanceOf(ObuFirmwareConflictException.class).hasMessageContaining("Kapsch");
+
+        assertThat(image.getPublished()).isFalse();
+        verify(images, never()).saveAndFlush(any());
+        verifyNoInteractions(registry);
+    }
+
+    @Test
+    void stillUnpublishesFirmwareTheUploadChecksWouldReject() {
+        published(image);
+        image.getMetadata().setDeviceType(ObuFirmwareDeviceType.RSU);
+
+        assertThat(service.setPublished(42, false, "admin").published()).isFalse();
+        assertThat(image.getPublished()).isFalse();
     }
 
     @Test

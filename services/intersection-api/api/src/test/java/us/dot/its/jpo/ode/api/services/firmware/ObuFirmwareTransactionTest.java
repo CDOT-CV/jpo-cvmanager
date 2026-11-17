@@ -3,6 +3,7 @@ package us.dot.its.jpo.ode.api.services.firmware;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -28,6 +29,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -60,6 +62,9 @@ class ObuFirmwareTransactionTest {
     @Autowired private PlatformTransactionManager transactions;
     @Autowired private JdbcTemplate jdbc;
     @MockitoBean private ObjectStorageServiceRegistry storage;
+    // Test manufacturers have unique names, so accept their builds here and test the
+    // publication rules in ObuFirmwarePublicationServiceTest
+    @MockitoSpyBean private ObuFirmwareParserRegistry parsers;
 
     private final ObjectStorageService provider = mock(ObjectStorageService.class);
     private Manufacturer manufacturer;
@@ -73,6 +78,7 @@ class ObuFirmwareTransactionTest {
         manufacturer.setName("ObuTransaction-" + UUID.randomUUID());
         manufacturer = manufacturers.save(manufacturer);
 
+        doReturn(Optional.empty()).when(parsers).unsupportedFirmware(any(), any());
         when(storage.getActiveService()).thenReturn(provider);
         when(storage.getService("gcp")).thenReturn(provider);
         when(provider.providerName()).thenReturn("gcp");

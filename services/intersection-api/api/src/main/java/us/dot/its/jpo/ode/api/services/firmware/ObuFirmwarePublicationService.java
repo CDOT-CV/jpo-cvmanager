@@ -28,6 +28,7 @@ import us.dot.its.jpo.ode.api.repositories.ObuFirmwareImageRepository;
 public class ObuFirmwarePublicationService {
     private final ObuFirmwareImageRepository images;
     private final ObjectStorageServiceRegistry storage;
+    private final ObuFirmwareParserRegistry parsers;
 
     /**
      * Sets the publish state. Both directions are idempotent. Publishing a cloud
@@ -49,6 +50,11 @@ public class ObuFirmwarePublicationService {
                 .filter(candidate -> candidate.getId().equals(obuFirmwareId))
                 .findFirst()
                 .orElseThrow(() -> notFound(obuFirmwareId));
+        // Entries registered before the upload checks, or locally, follow the same
+        // rule as uploads. Unpublishing and deleting them stay allowed.
+        parsers.unsupportedFirmware(image.getManufacturer().getName(), image.getMetadata()).ifPresent(reason -> {
+            throw new ObuFirmwareConflictException(reason);
+        });
         if (Boolean.TRUE.equals(image.getPublished())) {
             return publication(image, List.of());
         }

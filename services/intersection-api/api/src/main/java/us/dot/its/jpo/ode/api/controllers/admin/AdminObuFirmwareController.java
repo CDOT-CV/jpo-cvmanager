@@ -85,7 +85,7 @@ public class AdminObuFirmwareController {
             @ApiResponse(responseCode = "400", description = "Invalid request body"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role"),
             @ApiResponse(responseCode = "404", description = "Firmware catalog entry was not found"),
-            @ApiResponse(responseCode = "409", description = "The firmware file is missing or changed in storage"),
+            @ApiResponse(responseCode = "409", description = "The firmware is not a supported OBU build, or its file is missing or changed in storage"),
             @ApiResponse(responseCode = "503", description = "Object storage is not available")
     })
     @PutMapping(value = "/images/{obuFirmwareId}/publication", consumes = "application/json",
