@@ -368,7 +368,7 @@ class RsuManagementServiceTest {
         when(rsuRepository.findAllRsuModels()).thenReturn(rsuModels);
         when(rsuCredentialRepository.findAllNicknames()).thenReturn(sshCredentials);
         when(snmpCredentialRepository.findAllNicknames()).thenReturn(snmpCredentials);
-        when(snmpProtocolRepository.findSupportedNicknames()).thenReturn(snmpVersions);
+        when(snmpProtocolRepository.findNtcip1218Nicknames()).thenReturn(snmpVersions);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(Arrays.asList(testOrg, testOrg2));
 
         ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(authToken);
@@ -398,7 +398,7 @@ class RsuManagementServiceTest {
         verify(rsuRepository).findAllRsuModels();
         verify(rsuCredentialRepository).findAllNicknames();
         verify(snmpCredentialRepository).findAllNicknames();
-        verify(snmpProtocolRepository).findSupportedNicknames();
+        verify(snmpProtocolRepository).findNtcip1218Nicknames();
     }
 
     @Test
@@ -408,7 +408,7 @@ class RsuManagementServiceTest {
         when(rsuRepository.findAllRsuModels()).thenReturn(List.of());
         when(rsuCredentialRepository.findAllNicknames()).thenReturn(List.of());
         when(snmpCredentialRepository.findAllNicknames()).thenReturn(List.of());
-        when(snmpProtocolRepository.findSupportedNicknames()).thenReturn(List.of());
+        when(snmpProtocolRepository.findNtcip1218Nicknames()).thenReturn(List.of());
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
 
         ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(authToken);
