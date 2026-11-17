@@ -124,10 +124,12 @@ public class GlobalExceptionHandler {
             return;
         }
 
-        MediaType contentType = accepted.isEmpty() || accepts(accepted, MediaType.APPLICATION_PROBLEM_JSON)
-                ? MediaType.APPLICATION_PROBLEM_JSON
-                : (accepts(accepted, MediaType.APPLICATION_JSON) ? MediaType.APPLICATION_JSON : null);
-        if (contentType == null) {
+        MediaType contentType;
+        if (accepted.isEmpty() || accepts(accepted, MediaType.APPLICATION_PROBLEM_JSON)) {
+            contentType = MediaType.APPLICATION_PROBLEM_JSON;
+        } else if (accepts(accepted, MediaType.APPLICATION_JSON)) {
+            contentType = MediaType.APPLICATION_JSON;
+        } else {
             return;
         }
         Map<String, Object> problem = new HashMap<>();
