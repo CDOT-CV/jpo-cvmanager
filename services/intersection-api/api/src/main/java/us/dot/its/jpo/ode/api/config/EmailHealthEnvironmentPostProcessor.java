@@ -17,9 +17,13 @@ public class EmailHealthEnvironmentPostProcessor implements EnvironmentPostProce
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         String emailBroker = environment.getProperty("email.broker", "SMTP");
         boolean emailEnabled = environment.getProperty("enable.email", Boolean.class, true);
-        boolean smtpEnabled = "SMTP".equalsIgnoreCase(emailBroker.trim()) && emailEnabled;
-        boolean postmarkEnabled = "POSTMARK".equalsIgnoreCase(emailBroker.trim()) && emailEnabled;
-        boolean sendGridEnabled = "SENDGRID".equalsIgnoreCase(emailBroker.trim()) && emailEnabled;
+        boolean healthEnabledByDefault = environment.getProperty("management.health.defaults.enabled", Boolean.class, true);
+        boolean smtpEnabled = "SMTP".equalsIgnoreCase(emailBroker.trim()) && emailEnabled
+                && environment.getProperty("management.health.mail.enabled", Boolean.class, healthEnabledByDefault);
+        boolean postmarkEnabled = "POSTMARK".equalsIgnoreCase(emailBroker.trim()) && emailEnabled
+                && environment.getProperty("management.health.postmark.enabled", Boolean.class, healthEnabledByDefault);
+        boolean sendGridEnabled = "SENDGRID".equalsIgnoreCase(emailBroker.trim()) && emailEnabled
+                && environment.getProperty("management.health.sendgrid.enabled", Boolean.class, healthEnabledByDefault);
 
         environment.getPropertySources().addFirst(new MapPropertySource(
                 PROPERTY_SOURCE_NAME,

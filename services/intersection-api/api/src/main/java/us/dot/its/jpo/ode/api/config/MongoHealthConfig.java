@@ -20,6 +20,7 @@ public class MongoHealthConfig {
     private static final long MONGO_HEALTH_CHECK_TIMEOUT_SECONDS = 5;
 
     @Bean
+    @org.springframework.boot.health.autoconfigure.contributor.ConditionalOnEnabledHealthIndicator("mongo")
     HealthIndicator mongoHealthIndicator(MongoDatabaseFactory mongoDatabaseFactory) {
         return () -> {
             try {
