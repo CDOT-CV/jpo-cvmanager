@@ -8,7 +8,6 @@ beforeEach(() => {
   EnvironmentVars.rsuCountsEndpoint = 'VITE_ENV/rsucounts'
   EnvironmentVars.rsuCommandEndpoint = 'VITE_ENV/rsu-command'
   EnvironmentVars.wzdxEndpoint = 'VITE_ENV/wzdx-feed'
-  EnvironmentVars.adminAddOrg = 'VITE_ENV/admin-new-org'
   EnvironmentVars.adminOrg = 'VITE_ENV/admin-org'
 })
 

@@ -66,10 +66,7 @@ class EnvironmentVars {
   static wzdxEndpoint = `${this.getBaseApiUrl()}/wzdx-feed`
   static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
   static rsuMsgFwdFetchEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-fetch`
-  static adminAddOrg = `${this.getBaseApiUrl()}/admin-new-org`
   static adminOrg = `${this.getBaseApiUrl()}/admin-org`
-  static adminOrgTimDeposit = `${this.getBaseApiUrl()}/admin-org-tim-deposit`
-  static adminOrgSnmpMonitoring = `${this.getBaseApiUrl()}/admin-org-snmp-monitoring`
   static readonly timeSyncEndpoint = `${this.CVIZ_API_SERVER_URL}/timesync/utc-millis`
 }
 
