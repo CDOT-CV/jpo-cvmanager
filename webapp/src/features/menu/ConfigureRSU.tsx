@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react'
 import SnmpwalkMenu from '../../components/SnmpwalkMenu'
 import SnmpsetMenu from '../../components/SnmpsetMenu'
+import MapMenuInfo from '../../components/MapMenuInfo'
 import RsuRebootMenu from '../../components/RsuRebootMenu'
 import RsuFirmwareMenu from '../../components/RsuFirmwareMenu'
-import Accordion from '@mui/material/Accordion'
+import Accordion, { AccordionProps } from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import { shallowEqual, useDispatch, useSelector } from 'react-redux'
-import { Box, CircularProgress, useTheme, Paper, Grid2, IconButton, Divider } from '@mui/material'
+import { Alert, Box, CircularProgress, useTheme, Paper, Grid2, IconButton, Divider, Chip, Stack } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
 import { selectSelectedRsu, selectRsu, forwardingUnavailableReason, legacyForwardingIps } from '../../generalSlices/rsuSlice'
@@ -19,7 +20,6 @@ import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import CloseIcon from '@mui/icons-material/Close'
 import RoomOutlined from '@mui/icons-material/RoomOutlined'
 import { headerTabHeight } from '../../styles'
-import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { getRsuCountsErrorMessage, useGetRsuCountsByIpQuery } from '../api/rsuCountsApiSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 import { buildRsuCountTableRows } from './rsuCountTable'
@@ -28,6 +28,32 @@ import { RsuMessageCountsTable } from './RsuMessageCountsTable'
 const ConfigMenu = ({ children }) => {
   return <Box>{children}</Box>
 }
+
+const messageCountsHelp = "Counts show messages received from this RSU through message forwarding during the selected time range."
+const forwardingHelp = "Message forwarding sends the RSU's V2X messages to another system. Choose a destination IPv4 address and message type, the corresponding forwarding table and UDP port will be automatically handled. Security Header includes IEEE 1609.2 security headers."
+const singleFirmwareHelp = 'Check whether a firmware upgrade is available for this RSU. An upgrade can take 5 to 60 minutes and continues if you close CV Manager.'
+const batchFirmwareHelp = 'Check for available firmware upgrades for the selected RSUs. Devices already up to date are skipped and offline devices are scheduled for upgrade when they reconnect. Upgrades can take 5 to 60 minutes and continue if you close CV Manager.'
+const rebootHelp = 'Rebooting takes the RSU offline and interrupts message forwarding. This feature supports Commsignia RSUs. An accepted request does not confirm that the device has restarted.'
+
+// Help is a sibling of the accordion, so it cannot trigger its toggle button.
+const RsuMenuAccordion = ({ id, title, help, children, ...props }: AccordionProps & { id: string; title: string; help?: string }) => (
+  <Box sx={{ position: 'relative' }}>
+    <Accordion {...props} id={id} disableGutters elevation={0} sx={{ '&::before': { display: 'none' } }}>
+      <AccordionSummary id={`${id}-header`} aria-controls={`${id}-content`}
+        sx={{ '& .MuiAccordionSummary-content': { mr: help ? 4 : 1 } }} expandIcon={<ExpandMoreIcon />}>
+        <Typography>{title}</Typography>
+      </AccordionSummary>
+      <AccordionDetails>{children}</AccordionDetails>
+    </Accordion>
+    {help && (
+      <Box sx={{ position: 'absolute', top: 10, right: 42 }}>
+        <MapMenuInfo title={title.endsWith('Forwarding') ? 'About message forwarding' : `About ${title.toLowerCase()}`}>
+          {help}
+        </MapMenuInfo>
+      </Box>
+    )}
+  </Box>
+)
 
 const ConfigureRSU = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
@@ -127,102 +153,83 @@ const ConfigureRSU = () => {
             '& > .MuiAccordion-root::before': { display: 'none' },
           }}
         >
-          <Accordion
-            expanded={expanded === 'selected-rsu-message-counts'}
-            onChange={handleChange('selected-rsu-message-counts')}
-            elevation={0}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel1bh-content" id="panel1bh-header">
-              <Typography>Message Counts</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              {queryDurationExceeded ? (
-                <Typography role="alert">
-                  Query duration exceeds the maximum of {EnvironmentVars.MAX_QUERY_DURATION_DAYS} days. Please select a
-                  shorter time range.
-                </Typography>
-              ) : isFetching ? (
-                <Box display="flex" justifyContent="center" py={2}>
-                  <CircularProgress size={24} />
-                </Box>
-              ) : isError ? (
-                <Typography role="alert">{getRsuCountsErrorMessage(error)}</Typography>
-              ) : (
-                <RsuMessageCountsTable rows={countTableRows} />
-              )}
-            </AccordionDetails>
-          </Accordion>
+          <RsuMenuAccordion id="selected-rsu-message-counts" title="Message Counts" help={messageCountsHelp}
+            expanded={expanded === 'selected-rsu-message-counts'} onChange={handleChange('selected-rsu-message-counts')}>
+            {queryDurationExceeded ? (
+              <Typography role="alert">
+                Query duration exceeds the maximum of {EnvironmentVars.MAX_QUERY_DURATION_DAYS} days. Please select a
+                shorter time range.
+              </Typography>
+            ) : isFetching ? (
+              <Box display="flex" justifyContent="center" py={2}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : isError ? (
+              <Typography role="alert">{getRsuCountsErrorMessage(error)}</Typography>
+            ) : (
+              <RsuMessageCountsTable rows={countTableRows} />
+            )}
+          </RsuMenuAccordion>
           <Divider />
-          <Accordion
-            expanded={expanded === 'selected-rsu-current-config'}
-            onChange={handleChange('selected-rsu-current-config')}
-            elevation={0}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel1bh-content" id="panel1bh-header">
-              <Typography>View Forwarding</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <ConfigMenu>
-                <SnmpwalkMenu />
-              </ConfigMenu>
-            </AccordionDetails>
-          </Accordion>
+          <RsuMenuAccordion id="selected-rsu-current-config" title="View Forwarding" help={forwardingHelp}
+            expanded={expanded === 'selected-rsu-current-config'} onChange={handleChange('selected-rsu-current-config')}>
+            <ConfigMenu>
+              <SnmpwalkMenu />
+            </ConfigMenu>
+          </RsuMenuAccordion>
           {!forwardingReason && <Divider sx={{ borderColor: 'divider' }} />}
           {!forwardingReason && (
-            <Accordion
-              elevation={0}
-              expanded={expanded === 'selected-rsu-add-msg-forwarding'}
-              onChange={handleChange('selected-rsu-add-msg-forwarding')}
-            >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2bh-content" id="panel2bh-header">
-                <Typography>Configure Forwarding</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <ConfigMenu>
-                  <SnmpsetMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} />
-                </ConfigMenu>
-              </AccordionDetails>
-            </Accordion>
+            <RsuMenuAccordion id="selected-rsu-add-msg-forwarding" title="Configure Forwarding"
+              expanded={expanded === 'selected-rsu-add-msg-forwarding'} onChange={handleChange('selected-rsu-add-msg-forwarding')}>
+              <ConfigMenu>
+                <SnmpsetMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} />
+              </ConfigMenu>
+            </RsuMenuAccordion>
           )}
           <Divider />
-          <Accordion
-            elevation={0}
-            expanded={expanded === 'selected-rsu-firmware'}
-            onChange={handleChange('selected-rsu-firmware')}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel3bh-content" id="panel3bh-header">
-              <Typography>Firmware</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <ConfigMenu>
-                <RsuFirmwareMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} />
-              </ConfigMenu>
-            </AccordionDetails>
-          </Accordion>
+          <RsuMenuAccordion id="selected-rsu-firmware" title="Firmware" help={singleFirmwareHelp}
+            expanded={expanded === 'selected-rsu-firmware'} onChange={handleChange('selected-rsu-firmware')}>
+            <ConfigMenu>
+              <RsuFirmwareMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} />
+            </ConfigMenu>
+          </RsuMenuAccordion>
           {selectedRsu.properties.manufacturer_name?.toLowerCase() === 'commsignia' && (
             <>
               <Divider />
-              <Accordion
-                elevation={0}
-                expanded={expanded === 'selected-rsu-reboot'}
-                onChange={handleChange('selected-rsu-reboot')}
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel3bh-content" id="panel3bh-header">
-                  <Typography>Reboot</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <ConfigMenu>
-                    <RsuRebootMenu />
-                  </ConfigMenu>
-                </AccordionDetails>
-              </Accordion>
+              <RsuMenuAccordion id="selected-rsu-reboot" title="Reboot" help={rebootHelp}
+                expanded={expanded === 'selected-rsu-reboot'} onChange={handleChange('selected-rsu-reboot')}>
+                <ConfigMenu>
+                  <RsuRebootMenu />
+                </ConfigMenu>
+              </RsuMenuAccordion>
             </>
           )}
         </Box>
       )}
       {selectedConfigList.length > 0 && !selectedRsu && (
-        <Box sx={{ pl: 1, pr: 1 }}>
-          <SideBarHeader onClick={() => dispatch(clearConfig())} title={'RSUs: ' + selectedConfigList.join(', ')} />
+        <Box>
+          <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <RoomOutlined fontSize="medium" color="info" sx={{ flexShrink: 0 }} />
+              <Typography fontSize="large" className="museo-slab" sx={{ flex: 1, minWidth: 0 }}>
+                {selectedConfigList.length} {selectedConfigList.length === 1 ? 'RSU' : 'RSUs'} selected
+              </Typography>
+              <IconButton size="small" aria-label="Clear selected RSUs" onClick={() => dispatch(clearConfig())}
+                sx={{ flexShrink: 0 }}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+            <Box component="ul" aria-label="Selected RSUs" sx={{
+              display: 'flex', flexWrap: 'wrap', gap: 0.5, listStyle: 'none', p: 0, mt: 1, mb: 0,
+              maxHeight: 88, overflowY: 'auto',
+            }}>
+              {selectedConfigList.map((ip) => (
+                <Box component="li" key={ip}>
+                  <Chip label={ip} size="small" variant="outlined" sx={{ fontWeight: 400, fontSize: '0.75rem' }} />
+                </Box>
+              ))}
+            </Box>
+          </Box>
           <Box
             sx={{
               maxHeight: `calc(100vh - ${headerTabHeight + 185}px)`,
@@ -233,38 +240,22 @@ const ConfigureRSU = () => {
             }}
           >
             {forwardingReason ? (
-              <Typography sx={{ p: 2 }}>{forwardingReason}</Typography>
+              <Alert severity="warning" sx={{ m: 2, alignItems: 'center' }}>{forwardingReason}</Alert>
             ) : (
-              <Accordion
-                elevation={0}
-                expanded={expanded === 'multiple-rsu-add-msg-forwarding'}
-                onChange={handleChange('multiple-rsu-add-msg-forwarding')}
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2bh-content" id="panel2bh-header">
-                  <Typography>Configure Forwarding</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <ConfigMenu>
-                    <SnmpsetMenu type="multi_rsu" rsuIpList={forwardingIps} skippedIps={skippedIps} />
-                  </ConfigMenu>
-                </AccordionDetails>
-              </Accordion>
+              <RsuMenuAccordion id="multiple-rsu-add-msg-forwarding" title="Configure Forwarding" help={forwardingHelp}
+                expanded={expanded === 'multiple-rsu-add-msg-forwarding'} onChange={handleChange('multiple-rsu-add-msg-forwarding')}>
+                <ConfigMenu>
+                  <SnmpsetMenu type="multi_rsu" rsuIpList={forwardingIps} skippedIps={skippedIps} />
+                </ConfigMenu>
+              </RsuMenuAccordion>
             )}
             <Divider />
-            <Accordion
-              elevation={0}
-              expanded={expanded === 'multiple-rsu-firmware'}
-              onChange={handleChange('multiple-rsu-firmware')}
-            >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel3bh-content" id="panel3bh-header">
-                <Typography>Firmware</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <ConfigMenu>
-                  <RsuFirmwareMenu type="multi_rsu" rsuIpList={selectedConfigList} />
-                </ConfigMenu>
-              </AccordionDetails>
-            </Accordion>
+            <RsuMenuAccordion id="multiple-rsu-firmware" title="Firmware" help={batchFirmwareHelp}
+              expanded={expanded === 'multiple-rsu-firmware'} onChange={handleChange('multiple-rsu-firmware')}>
+              <ConfigMenu>
+                <RsuFirmwareMenu type="multi_rsu" rsuIpList={selectedConfigList} />
+              </ConfigMenu>
+            </RsuMenuAccordion>
           </Box>
         </Box>
       )}

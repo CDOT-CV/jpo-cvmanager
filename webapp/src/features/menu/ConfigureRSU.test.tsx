@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import ConfigureRSU from './ConfigureRSU'
 import SnmpsetMenu from '../../components/SnmpsetMenu'
 import { Provider } from 'react-redux'
@@ -85,7 +85,7 @@ it('should take a snapshot', () => {
 
 it.each(['Commsignia', 'COMMSIGNIA', 'Kapsch', 'Yunex', undefined])(
   'shows the reboot option only for Commsignia (%s)',
-  (manufacturer) => {
+  async (manufacturer) => {
     mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
     render(
       <ThemeProvider theme={testTheme}>
@@ -108,14 +108,16 @@ it.each(['Commsignia', 'COMMSIGNIA', 'Kapsch', 'Yunex', undefined])(
 
     if (manufacturer?.toLowerCase() === 'commsignia') {
       expect(screen.getByRole('button', { name: 'Reboot' })).toBeInTheDocument()
+      await checkCommandHelp('Reboot', 'takes the RSU offline')
     } else {
       expect(screen.queryByRole('button', { name: 'Reboot' })).not.toBeInTheDocument()
     }
     expect(screen.getByRole('button', { name: 'Firmware' })).toBeInTheDocument()
+    await checkCommandHelp('Firmware', 'available for this RSU')
   }
 )
 
-it('shows counts for all configured message types, not just the selected type', () => {
+it('shows counts for all configured message types, not just the selected type', async () => {
   mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
   render(
     <ThemeProvider theme={testTheme}>
@@ -133,6 +135,7 @@ it('shows counts for all configured message types, not just the selected type', 
     </ThemeProvider>
   )
 
+  await checkCommandHelp('Message Counts', 'messages received from this RSU through message forwarding')
   expect(screen.getByText('Message Counts')).toBeInTheDocument()
   expect(screen.getByText('BSM')).toBeInTheDocument()
   expect(screen.getByText('MAP')).toBeInTheDocument()
@@ -143,7 +146,7 @@ it('shows counts for all configured message types, not just the selected type', 
   expect(screen.queryByText('BSM Input')).not.toBeInTheDocument()
 })
 
-it.each(['41', '1218'])('shows forwarding controls only for NTCIP 1218 without a duplicate notice (%s)', (protocol) => {
+it.each(['41', '1218'])('shows forwarding controls only for NTCIP 1218 without a duplicate notice (%s)', async (protocol) => {
   mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
   render(
     <ThemeProvider theme={testTheme}>
@@ -171,6 +174,8 @@ it.each(['41', '1218'])('shows forwarding controls only for NTCIP 1218 without a
   } else {
     expect(screen.queryByRole('button', { name: 'Configure Forwarding' })).not.toBeInTheDocument()
   }
+  await checkCommandHelp('View Forwarding', 'V2X messages')
+  expect(screen.getAllByRole('button', { name: 'About message forwarding' })).toHaveLength(1)
   // SnmpwalkMenu owns the restriction notice; the surrounding menu must not repeat it.
   expect(screen.queryByText(/Message forwarding changes and live refresh require/)).not.toBeInTheDocument()
 })
@@ -216,7 +221,7 @@ it.each([
   ['USER', 1, '41', false],
   ['OPERATOR', 2, '41', false],
   ['OPERATOR', 1, undefined, false],
-])('handles mixed selection for role %s, owner %s and protocol %s', (role, owner, protocol, allowed) => {
+])('handles mixed selection for role %s, owner %s and protocol %s', async (role, owner, protocol, allowed) => {
   mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
   vi.mocked(SnmpsetMenu).mockClear()
   const rsus = [
@@ -234,7 +239,28 @@ it.each([
     expect(vi.mocked(SnmpsetMenu).mock.calls[0][0]).toMatchObject({
       rsuIpList: ['192.0.2.10'], skippedIps: ['192.0.2.11'],
     })
+    await checkCommandHelp('Configure Forwarding', 'V2X messages')
+    await checkCommandHelp('Firmware', 'Devices already up to date are skipped')
+    expect(screen.getByText('2 RSUs selected')).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Selected RSUs' }).children).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selected RSUs' }))
+    expect(screen.queryByText('2 RSUs selected')).not.toBeInTheDocument()
   } else {
     expect(screen.queryByRole('button', { name: 'Configure Forwarding' })).not.toBeInTheDocument()
   }
 })
+
+async function checkCommandHelp(section: string, description: string) {
+  const label = section.endsWith('Forwarding') ? 'About message forwarding' : `About ${section.toLowerCase()}`
+  const toggle = screen.getByRole('button', { name: section })
+  const info = screen.getByRole('button', { name: label })
+  expect(toggle).not.toContainElement(info)
+  expect(info).toHaveAttribute('aria-expanded', 'false')
+  const expanded = toggle.getAttribute('aria-expanded')
+  fireEvent.click(info)
+  const help = await screen.findByRole('dialog', { name: label })
+  expect(help).toHaveTextContent(description)
+  expect(toggle).toHaveAttribute('aria-expanded', expanded)
+  fireEvent.keyDown(help, { key: 'Escape' })
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+}

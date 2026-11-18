@@ -64,9 +64,7 @@ const RsuRebootMenu = () => {
             Reboot requested. The RSU may be offline briefly.
           </Typography>
         </div>
-      ) : (
-        <Typography>Warning: This action could result in taking the RSU offline</Typography>
-      )}
+      ) : null}
       <Button
         className="museo-slab capital-case"
         variant="outlined"
@@ -74,7 +72,7 @@ const RsuRebootMenu = () => {
         color="info"
         startIcon={<RefreshIcon />}
         onClick={() => confirmAlert(options)}
-        sx={{ mt: '10px', mb: '10px' }}
+        sx={{ mb: '10px' }}
       >
         Reboot RSU
       </Button>
