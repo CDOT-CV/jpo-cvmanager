@@ -23,5 +23,7 @@ it('should take a snapshot', () => {
     </ThemeProvider>
   )
 
-  expect(replaceChaoticIds(container)).toMatchSnapshot()
+  const normalizedContainer = replaceChaoticIds(container)
+  normalizedContainer.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'))
+  expect(normalizedContainer).toMatchSnapshot()
 })

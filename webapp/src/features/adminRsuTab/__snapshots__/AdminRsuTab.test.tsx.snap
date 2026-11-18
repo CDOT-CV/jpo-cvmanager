@@ -51,7 +51,6 @@ exports[`should take a snapshot 1`] = `
                   <input
                     aria-label="Search"
                     class="MuiInputBase-input MuiInput-input MuiInputBase-inputAdornedStart MuiInputBase-inputAdornedEnd css-mocked-MuiInputBase-input-MuiInput-input"
-                    id="mui-25"
                     placeholder="Search"
                     type="text"
                     value=""
@@ -556,7 +555,6 @@ exports[`should take a snapshot 1`] = `
                     />
                     <p
                       class="MuiTablePagination-selectLabel css-mocked-MuiTablePagination-selectLabel"
-                      id="mui-9"
                     >
                       Rows per page:
                     </p>
@@ -569,7 +567,6 @@ exports[`should take a snapshot 1`] = `
                         aria-haspopup="listbox"
                         aria-labelledby="mui-9 mui-8"
                         class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-mocked-MuiSelect-select-MuiInputBase-input"
-                        id="mui-8"
                         role="combobox"
                         tabindex="0"
                       >

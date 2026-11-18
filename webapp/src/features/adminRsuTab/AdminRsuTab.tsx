@@ -38,6 +38,11 @@ const AdminRsuTab = () => {
 
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [selectedRsuIp, setSelectedRsuIp] = useState<string | null>(null)
+  const [rsuSelection, setRsuSelection] = useState<{
+    organizationId: number | undefined
+    rows: AdminEditRsuFormType[]
+  }>({ organizationId, rows: [] })
+  const selectedRsus = rsuSelection.organizationId === organizationId ? rsuSelection.rows : []
 
   // const tableData = useSelector(selectTableData)
   const [columns] = useState([
@@ -142,18 +147,16 @@ const AdminRsuTab = () => {
     {
       tooltip: 'Remove All Selected From Organization',
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
-      iconProps: {
-        itemType: 'rowAction',
-      },
+      disabled: selectedRsus.length === 0,
       position: 'toolbarOnSelect',
-      onClick: (event, rowData: AdminEditRsuFormType[]) => {
+      onClick: () => {
         const buttons = [
-          { label: 'Yes', onClick: () => multiDelete(rowData) },
+          { label: 'Yes', onClick: () => multiDelete(selectedRsus) },
           { label: 'No', onClick: () => {} },
         ]
         const alertOptions = Options(
           'Delete Selected RSUs',
-          'Are you sure you want to delete ' + rowData.length + ' RSUs?',
+          'Are you sure you want to delete ' + selectedRsus.length + ' RSUs?',
           buttons
         )
         confirmAlert(alertOptions)
@@ -193,6 +196,10 @@ const AdminRsuTab = () => {
     const loadingToast = toast.loading(`Deleting RSU ${row.ip}...`)
     try {
       await deleteRsuApi(row.ip).unwrap()
+      setRsuSelection((current) => ({
+        organizationId,
+        rows: current.rows.filter((rsu) => rsu.ip !== row.ip),
+      }))
       toast.success('RSU Deleted Successfully', { id: loadingToast })
     } catch (error) {
       toast.error('Failed to delete RSU due to error: ' + error, { id: loadingToast })
@@ -203,6 +210,7 @@ const AdminRsuTab = () => {
     const loadingToast = toast.loading(`Deleting ${rows.length} RSUs...`)
     try {
       await deleteMultipleRsusApi(rows.map((row) => row.ip)).unwrap()
+      setRsuSelection({ organizationId, rows: [] })
       toast.success('RSUs Deleted Successfully', { id: loadingToast })
     } catch (error) {
       toast.error('Failed to delete RSUs due to error: ' + error, { id: loadingToast })
@@ -223,6 +231,9 @@ const AdminRsuTab = () => {
                 handleQueryChange={handleQueryChange}
                 isLoading={isRefreshing}
                 tableRef={tableRef}
+                selectionKeyField="ip"
+                selectedRows={selectedRsus}
+                onSelectionChange={(rows) => setRsuSelection({ organizationId, rows })}
               />
               {statusDialogOpen && (
                 <RsuStatusDialog

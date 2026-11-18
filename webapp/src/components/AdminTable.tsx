@@ -33,6 +33,9 @@ interface AdminTableProps {
   handleQueryChange?: (query: Query<any>) => Promise<QueryResult<any>>
   isLoading?: boolean
   tableRef?: React.MutableRefObject<any>
+  selectionKeyField?: string
+  selectedRows?: any[]
+  onSelectionChange?: (selectedRows: any[]) => void
 }
 
 const useStyles = makeStyles({
@@ -57,6 +60,10 @@ const useStyles = makeStyles({
 })
 
 const getActionIcon = (title: string) => {
+  if (title.startsWith('Delete')) {
+    return <DeleteOutline color="primary" />
+  }
+
   switch (title) {
     case 'New':
       return <AddCircleOutline />
@@ -68,8 +75,6 @@ const getActionIcon = (title: string) => {
       return <AddCircleOutline />
     case 'Refresh':
       return <Refresh />
-    case 'Delete':
-      return <DeleteOutline color="primary" />
     case 'Edit':
       return <ModeEditOutline color="primary" />
     default:
@@ -113,6 +118,11 @@ export const buildAdminTableQueryParams = (
 const AdminTable = (props: AdminTableProps) => {
   const theme = useTheme()
   const classes = useStyles()
+  const currentPageRows = React.useRef<any[]>([])
+  const selectedRows = React.useRef(props.selectedRows ?? [])
+  React.useEffect(() => {
+    selectedRows.current = props.selectedRows ?? []
+  }, [props.selectedRows])
 
   // Function to check if a row is missing organizations
   const isMissingOrganizations = (rowData: any) => {
@@ -126,6 +136,44 @@ const AdminTable = (props: AdminTableProps) => {
 
   // Determine if server-side pagination is enabled
   const isServerSidePagination = props.handleQueryChange !== undefined
+  const handleServerQueryChange = async (query: Query<any>) => {
+    const result = await props.handleQueryChange!(query)
+    if (!props.selectionKeyField) {
+      return result
+    }
+
+    currentPageRows.current = result.data
+    const selectedKeys = new Set(selectedRows.current.map((row) => row[props.selectionKeyField!]))
+    return {
+      ...result,
+      data: result.data.map((row) => ({
+        ...row,
+        tableData: {
+          ...row.tableData,
+          checked: selectedKeys.has(row[props.selectionKeyField!]),
+        },
+      })),
+    }
+  }
+
+  const handleSelectionChange = (pageSelection: any[]) => {
+    if (!props.selectionKeyField) {
+      props.onSelectionChange?.(pageSelection)
+      return
+    }
+
+    const keyField = props.selectionKeyField
+    const currentPageKeys = new Set(currentPageRows.current.map((row) => row[keyField]))
+    const selectionByKey = new Map(
+      selectedRows.current
+        .filter((row) => !currentPageKeys.has(row[keyField]))
+        .map((row) => [row[keyField], row])
+    )
+    pageSelection.forEach((row) => selectionByKey.set(row[keyField], row))
+    const mergedSelection = Array.from(selectionByKey.values())
+    selectedRows.current = mergedSelection
+    props.onSelectionChange?.(mergedSelection)
+  }
 
   return (
     <Box
@@ -149,13 +197,15 @@ const AdminTable = (props: AdminTableProps) => {
           ...column,
         }))}
         // Use data function for server-side, data array for client-side
-        data={isServerSidePagination ? props.handleQueryChange! : (props.data ?? [])}
+        data={isServerSidePagination ? handleServerQueryChange : (props.data ?? [])}
         title={props.title}
         editable={props.editable}
         isLoading={props.isLoading}
         tableRef={props.tableRef}
+        onSelectionChange={props.onSelectionChange ? handleSelectionChange : undefined}
         options={{
           selection: props.selection === undefined ? true : props.selection,
+          ...(props.selectionKeyField ? { idSynonym: props.selectionKeyField } : {}),
           searchFieldAlignment: 'left',
           actionsColumnIndex: -1,
           tableLayout: props.tableLayout === undefined ? 'fixed' : props.tableLayout,
@@ -220,6 +270,7 @@ const AdminTable = (props: AdminTableProps) => {
                   variant={iconProps?.itemType}
                   color={iconProps?.color}
                   size="small"
+                  disabled={action?.disabled}
                   startIcon={getActionIcon(iconProps?.title)}
                   sx={{ padding: '4px 8px', margin: '0px 4px' }}
                   onClick={action?.onClick}
@@ -249,9 +300,16 @@ const AdminTable = (props: AdminTableProps) => {
             )
           },
           Toolbar: (toolbarProps) => {
+            const originalData = props.selectionKeyField
+              ? props.selectedRows?.map((row) => ({
+                  ...row,
+                  tableData: { ...row.tableData, checked: true },
+                })) ?? toolbarProps.originalData
+              : toolbarProps.originalData
+
             return (
               <div className={classes.toolbarWrapper}>
-                <MTableToolbar {...toolbarProps} />
+                <MTableToolbar {...toolbarProps} originalData={originalData} />
               </div>
             )
           },
