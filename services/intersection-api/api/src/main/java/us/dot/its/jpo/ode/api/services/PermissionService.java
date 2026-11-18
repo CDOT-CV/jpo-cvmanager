@@ -245,7 +245,7 @@ public class PermissionService {
      *
      * @see #findUnauthorizedRsus(List, String)
      */
-    // RSU ownership when that data model is available.
+    // TODO: Use direct RSU ownership when that data model is available.
     public boolean isRsuOwner(String rsuIP, String role) {
         InetAddress ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
 

@@ -44,6 +44,9 @@ public SnmpTask status(SnmpTarget target, List<SnmpOid> measurementOids) {
 
 [`Ntcip1218ForwardingTasks.create`](../src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218ForwardingTasks.java) and `delete` run one step:
 `configure-forwarding` locates/allocates a row, changes it, and verifies readback.
+Creation returns `changed=false` without a SET when an active equivalent row is within its schedule.
+The live-table check includes all non-schedule settings and runs under the same endpoint lock as creation.
+Inactive, expired, future-dated or differently configured rows remain unchanged.
 Preset deletes match PSID, destination and preset port. Explicit-port overloads
 of `delete` and `deleteWithSnapshot` match custom-port configurations.
 

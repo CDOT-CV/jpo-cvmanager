@@ -15,7 +15,7 @@ public interface SnmpProtocolRepository extends JpaRepository<SnmpProtocol, Inte
     List<String> findAllNicknames();
 
     @Query("SELECT sp.nickname FROM SnmpProtocol sp WHERE sp.protocolCode = '1218' ORDER BY sp.nickname ASC")
-    List<String> findSupportedNicknames();
+    List<String> findNtcip1218Nicknames();
 
     Optional<SnmpProtocol> findByNickname(String nickname);
 }
