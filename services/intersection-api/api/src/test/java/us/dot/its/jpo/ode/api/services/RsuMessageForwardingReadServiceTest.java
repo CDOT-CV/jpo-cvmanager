@@ -148,8 +148,9 @@ class RsuMessageForwardingReadServiceTest {
         var client = new RsuMessageForwardingServiceTest.MemoryClient();
         var device = device();
         var helper = new Ntcip1218Client(client, CLOCK);
+        // Distinct destinations keep both setup rows after duplicate detection.
         for (int index = 1; index <= 2; index++) {
-            helper.addForwarding(device, new ForwardingRequest(MessageType.MAP, "198.51.100.3", false));
+            helper.addForwarding(device, new ForwardingRequest(MessageType.MAP, "198.51.100." + (index + 2), false));
         }
         for (int index = 1; index <= 2; index++) client.data.remove(ForwardingTable.TRANSMIT.cell(6, index));
         when(contexts.load(anyList())).thenReturn(List.of(new RsuMessageForwardingContextService.DeviceContext(7, device)));
