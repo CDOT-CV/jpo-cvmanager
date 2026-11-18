@@ -174,13 +174,21 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       icon: () => (
         <Multiselect
           className="org-multiselect"
-          dataKey="id"
+          dataKey="email"
           textField="email"
           placeholder="Click to add users"
           data={availableUserList}
           value={selectedUserList}
           onChange={(value) =>
-            setSelectedUserList(value.map((user) => ({ ...user, role: (user as any).role || 'USER' })))
+            setSelectedUserList(
+              value.map((user) => ({
+                ...user,
+                role:
+                  selectedUserList.find((selected) => selected.email === user.email)?.role ||
+                  (user as Partial<AdminUserForOrg>).role ||
+                  'USER',
+              }))
+            )
           }
           style={{
             fontSize: '1rem',

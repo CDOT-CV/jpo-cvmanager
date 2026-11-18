@@ -15,6 +15,10 @@ const mocks = vi.hoisted(() => ({
   fetchUsers: vi.fn(),
   dispatch: vi.fn(),
   confirmAlert: vi.fn(),
+  availableUsers: [
+    { email: 'a@test.com', first_name: 'A', last_name: 'A', organizations: [] },
+    { email: 'b@test.com', first_name: 'B', last_name: 'B', organizations: [] },
+  ],
   loadingGlobal: { value: false },
   authEmail: { value: 'me@test.com' },
   toast: {
@@ -48,7 +52,7 @@ vi.mock('../../generalSlices/userSlice', async (importOriginal) => ({
 vi.mock('../api/organizationApiSlice', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/organizationApiSlice')>()),
   useGetAllUsersNotInOrganizationQuery: () => ({
-    currentData: [{ id: 'u1', email: 'a@test.com', first_name: 'A', last_name: 'A', role: '' }],
+    currentData: mocks.availableUsers,
   }),
   usePatchOrganizationMutation: () => [mocks.patch],
   useLazyGetUserOrganizationsQuery: () => [mocks.getUserOrgs],
@@ -140,6 +144,37 @@ describe('AdminOrganizationTabUser', () => {
     mocks.loadingGlobal.value = true
     renderComponent()
     expect(screen.queryByTestId('admin-table')).toBeNull()
+  })
+
+  it('matches selected users by email after assigning roles', () => {
+    renderComponent()
+    let multiselect = actions()[2].icon() as ReactElement<any>
+    expect(multiselect.props.dataKey).toBe('email')
+    selectUsers([mocks.availableUsers[0]])
+    expect(screen.getByText('New User: a@test.com')).toBeInTheDocument()
+    multiselect = actions()[2].icon() as ReactElement<any>
+    expect(multiselect.props.value[0]).toMatchObject({ email: 'a@test.com', role: 'USER' })
+    expect(multiselect.props.value[0][multiselect.props.dataKey]).toBe(
+      multiselect.props.data[0][multiselect.props.dataKey]
+    )
+    expect(multiselect.props.value[0][multiselect.props.dataKey]).not.toBe(
+      multiselect.props.data[1][multiselect.props.dataKey]
+    )
+    selectUsers([])
+    multiselect = actions()[2].icon() as ReactElement<any>
+    expect(multiselect.props.value).toEqual([])
+  })
+
+  it('retains the chosen role when the selected user is returned as an available option', () => {
+    renderComponent()
+    selectUsers([{ ...mocks.availableUsers[0], role: 'OPERATOR' }])
+    selectUsers(mocks.availableUsers)
+
+    const multiselect = actions()[2].icon() as ReactElement<any>
+    expect(multiselect.props.value.map((user: AdminUserForOrg) => [user.email, user.role])).toEqual([
+      ['a@test.com', 'OPERATOR'],
+      ['b@test.com', 'USER'],
+    ])
   })
 
   it('maps roles to lowercase and falls back to empty string', async () => {
