@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { confirmAlert } from 'react-confirm-alert'
 import { useSelector } from 'react-redux'
 import { Options } from '../../components/AdminDeletionOptions'
@@ -6,7 +6,11 @@ import AdminTable from '../../components/AdminTable'
 import { selectOrganizationId } from '../../generalSlices/userSlice'
 import AdminAddIntersection from '../adminAddIntersection/AdminAddIntersection'
 import AdminEditIntersection, { AdminEditIntersectionFormType } from '../adminEditIntersection/AdminEditIntersection'
-import { useDeleteIntersectionMutation, useGetIntersectionsQuery } from '../api/adminIntersectionApiSlice'
+import {
+  useDeleteIntersectionMutation,
+  useGetIntersectionsQuery,
+  useLazyGetIntersectionsQuery,
+} from '../api/adminIntersectionApiSlice'
 
 import { Action } from '@material-table/core'
 import DeleteOutline from '@mui/icons-material/DeleteOutline'
@@ -14,6 +18,7 @@ import ModeEditOutline from '@mui/icons-material/ModeEditOutline'
 import { useTheme } from '@mui/material'
 import toast from 'react-hot-toast'
 import { Route, Routes, useNavigate } from 'react-router-dom'
+import { useServerPagedAdminTable } from '../../hooks/useServerPagedAdminTable'
 import { NotFound } from '../../pages/404'
 
 const AdminIntersectionTab = () => {
@@ -21,27 +26,36 @@ const AdminIntersectionTab = () => {
   const theme = useTheme()
 
   const organizationId = useSelector(selectOrganizationId)
-  const { data, isFetching, refetch } = useGetIntersectionsQuery(organizationId ?? -1, {
-    skip: !organizationId,
-  })
   const [deleteIntersectionMutation] = useDeleteIntersectionMutation()
 
-  const columns = [
-    { title: 'Intersection ID', field: 'intersection_id', id: 0 },
-    { title: 'Intersection Name', field: 'intersection_name', id: 1 },
-    { title: 'Origin IP', field: 'origin_ip', id: 2 },
-    { title: 'Linked RSUs', field: 'rsus', id: 3 },
-  ]
+  const columns = useMemo(
+    () => [
+      { title: 'Intersection ID', field: 'intersection_id', id: 0 },
+      { title: 'Intersection Name', field: 'intersection_name', id: 1 },
+      { title: 'Origin IP', field: 'origin_ip', id: 2 },
+      { title: 'Linked RSUs', field: 'rsus', id: 3, sorting: false },
+    ],
+    []
+  )
 
-  const tableData = useMemo(
-    () =>
-      (data?.intersection_data ?? []).map((element) => ({
+  const mapRows = useCallback(
+    (rows) =>
+      rows.map((element) => ({
         ...element,
         intersection_id: element.intersection_id?.toString(),
         rsus: Array.isArray(element.rsus) ? (element.rsus as string[]).join(', ') : element.rsus,
       })),
-    [data]
+    []
   )
+  const { tableRef, isRefreshing, handleQueryChange, handleRefresh } = useServerPagedAdminTable({
+    organization: organizationId,
+    columns,
+    defaultSortField: 'intersection_id',
+    entityName: 'Intersections',
+    useQuery: useGetIntersectionsQuery,
+    useLazyQuery: useLazyGetIntersectionsQuery,
+    mapRows,
+  })
 
   const tableActions: Action<AdminEditIntersectionFormType>[] = [
     {
@@ -99,9 +113,7 @@ const AdminIntersectionTab = () => {
         color: 'info',
         itemType: 'outlined',
       },
-      onClick: () => {
-        refetch()
-      },
+      onClick: handleRefresh,
     },
     {
       icon: () => null,
@@ -158,16 +170,16 @@ const AdminIntersectionTab = () => {
         <Route
           path="/"
           element={
-            !isFetching && (
-              <div className="scroll-div-tab">
-                <AdminTable
-                  title={''}
-                  data={tableData}
-                  columns={columns?.map((column) => ({ ...column }))}
-                  actions={tableActions}
-                />
-              </div>
-            )
+            <div className="scroll-div-tab">
+              <AdminTable
+                title=""
+                columns={columns}
+                actions={tableActions}
+                handleQueryChange={handleQueryChange}
+                isLoading={isRefreshing}
+                tableRef={tableRef}
+              />
+            </div>
           }
         />
         <Route path="addIntersection" element={<AdminAddIntersection />} />

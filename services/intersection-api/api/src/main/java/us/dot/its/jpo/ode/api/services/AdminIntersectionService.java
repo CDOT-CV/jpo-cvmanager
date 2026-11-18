@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -213,15 +216,35 @@ public class AdminIntersectionService {
      * @return response containing intersection_data as a list of intersections for
      *         the organization
      */
-    public IntersectionListResponse getAllIntersections(Organization organization) {
-        List<Intersection> intersections = intersectionRepository.findAllByOrganization(organization);
+    public Page<IntersectionDto> getAllIntersections(Organization organization, Pageable pageable, String search) {
+        Page<Integer> intersectionPage = intersectionRepository.findPageIdsByOrganizationAndSearch(
+                organization, search == null ? "" : search.trim(), pageable);
+        List<Intersection> intersections = intersectionPage.isEmpty()
+                ? Collections.emptyList()
+                : orderIntersectionsByIds(intersectionPage.getContent());
+        List<IntersectionDto> intersectionData = intersections.isEmpty()
+                ? Collections.emptyList()
+                : getIntersectionDtos(intersections);
 
-        if (intersections.isEmpty()) {
+        if (intersectionPage.isEmpty()) {
             log.info("No intersections found for organization '{}'", organization);
-            return new IntersectionListResponse(Collections.emptyList());
         }
 
-        return getIntersectionListResponse(intersections);
+        return new PageImpl<>(intersectionData, pageable, intersectionPage.getTotalElements());
+    }
+
+    private List<Intersection> orderIntersectionsByIds(List<Integer> ids) {
+        Map<Integer, Intersection> intersectionsById = intersectionRepository.findAllWithOrgsByIds(ids).stream()
+                .collect(Collectors.toMap(Intersection::getId, intersection -> intersection));
+        return ids.stream()
+                .map(id -> {
+                    Intersection intersection = intersectionsById.get(id);
+                    if (intersection == null) {
+                        throw new EntityNotFoundException("Paged intersection with id " + id + " no longer exists");
+                    }
+                    return intersection;
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -243,10 +266,10 @@ public class AdminIntersectionService {
             return new IntersectionListResponse(Collections.emptyList());
         }
 
-        return getIntersectionListResponse(intersections);
+        return new IntersectionListResponse(getIntersectionDtos(intersections));
     }
 
-    private IntersectionListResponse getIntersectionListResponse(List<Intersection> intersections) {
+    private List<IntersectionDto> getIntersectionDtos(List<Intersection> intersections) {
         List<IntersectionDto> dtos = intersections.stream()
                 .map(intersectionMapper::toDto)
                 .collect(Collectors.toList());
@@ -264,7 +287,7 @@ public class AdminIntersectionService {
         }
 
         log.debug("Successfully fetched {} intersections.", dtos.size());
-        return new IntersectionListResponse(dtos);
+        return dtos;
     }
 
     /**

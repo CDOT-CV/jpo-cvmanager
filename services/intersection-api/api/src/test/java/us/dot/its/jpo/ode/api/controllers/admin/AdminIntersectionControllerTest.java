@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.controllers.admin;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -26,6 +27,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -114,6 +119,7 @@ class AdminIntersectionControllerTest {
     private CvManagerAuthToken authToken;
 
     private IntersectionListResponse sampleListResponse;
+    private Page<IntersectionDto> samplePage;
     private IntersectionDto sampleDto;
     private IntersectionPatch validPatch;
     private IntersectionCreate validCreate;
@@ -136,6 +142,7 @@ class AdminIntersectionControllerTest {
                 List.of("10.0.0.1"));
 
         sampleListResponse = new IntersectionListResponse(List.of(sampleDto));
+        samplePage = new PageImpl<>(List.of(sampleDto), PageRequest.of(0, 25), 1);
 
         validPatch = new IntersectionPatch(
                 12109, refPt,
@@ -196,16 +203,18 @@ class AdminIntersectionControllerTest {
         void superUser_returns200WithIntersectionList() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
             when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
-            when(adminIntersectionService.getAllIntersections(eq(sampleOrganization)))
-                    .thenReturn(sampleListResponse);
+            when(adminIntersectionService.getAllIntersections(eq(sampleOrganization), any(Pageable.class), anyString()))
+                    .thenReturn(samplePage);
 
             mockMvc.perform(get("/admin/intersections")
                     .header("Organization", 1))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.intersection_data").isArray())
-                    .andExpect(jsonPath("$.intersection_data[0].intersection_id").value(12109))
-                    .andExpect(jsonPath("$.intersection_data[0].intersection_name").value("Main St & 1st Ave"))
-                    .andExpect(jsonPath("$.intersection_data[0].organizations[0]").value(1));
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content[0].intersection_id").value(12109))
+                    .andExpect(jsonPath("$.content[0].intersection_name").value("Main St & 1st Ave"))
+                    .andExpect(jsonPath("$.content[0].organizations[0]").value(1))
+                    .andExpect(jsonPath("$.totalElements").value(1))
+                    .andExpect(jsonPath("$.number").value(0));
         }
 
         @Test
@@ -215,13 +224,13 @@ class AdminIntersectionControllerTest {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
             when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
-            when(adminIntersectionService.getAllIntersections(eq(sampleOrganization)))
-                    .thenReturn(sampleListResponse);
+            when(adminIntersectionService.getAllIntersections(eq(sampleOrganization), any(Pageable.class), anyString()))
+                    .thenReturn(samplePage);
 
             mockMvc.perform(get("/admin/intersections")
                     .header("Organization", 1))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.intersection_data[0].intersection_id").value(12109));
+                    .andExpect(jsonPath("$.content[0].intersection_id").value(12109));
         }
 
         @Test
@@ -230,14 +239,14 @@ class AdminIntersectionControllerTest {
         void organizationHeader_isForwardedToService() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
             when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
-            when(adminIntersectionService.getAllIntersections(eq(sampleOrganization)))
-                    .thenReturn(sampleListResponse);
+            when(adminIntersectionService.getAllIntersections(eq(sampleOrganization), any(Pageable.class), anyString()))
+                    .thenReturn(samplePage);
 
             mockMvc.perform(get("/admin/intersections")
                     .header("Organization", 1))
                     .andExpect(status().isOk());
 
-            verify(adminIntersectionService).getAllIntersections(eq(sampleOrganization));
+            verify(adminIntersectionService).getAllIntersections(eq(sampleOrganization), any(Pageable.class), eq(""));
         }
 
         @Test
@@ -245,14 +254,15 @@ class AdminIntersectionControllerTest {
         @DisplayName("returns 200 with empty list when no intersections are found for the organization")
         void noAccessibleIntersections_returns200WithEmptyList() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(adminIntersectionService.getAllIntersections(any()))
-                    .thenReturn(new IntersectionListResponse(List.of()));
+            when(adminIntersectionService.getAllIntersections(any(), any(Pageable.class), anyString()))
+                    .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 25), 0));
 
             mockMvc.perform(get("/admin/intersections")
                     .header("Organization", 1))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.intersection_data").isArray())
-                    .andExpect(jsonPath("$.intersection_data").isEmpty());
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content").isEmpty())
+                    .andExpect(jsonPath("$.totalElements").value(0));
         }
     }
 

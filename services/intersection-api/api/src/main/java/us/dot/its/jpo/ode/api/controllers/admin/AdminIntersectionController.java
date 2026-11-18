@@ -1,8 +1,14 @@
 package us.dot.its.jpo.ode.api.controllers.admin;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -64,6 +71,10 @@ public class AdminIntersectionController {
 
     private final AdminIntersectionService adminIntersectionService;
     private final PermissionService permissionService;
+    private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
+            "intersection_id", "intersectionNumber",
+            "intersection_name", "intersectionName",
+            "origin_ip", "originIp");
 
     /**
      * Returns all intersections for the specified organization.
@@ -81,10 +92,25 @@ public class AdminIntersectionController {
     })
     @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
-    public IntersectionListResponse getAllIntersections(
-            @Parameter(description = "Organization to scope results to", required = true) @RequestHeader(name = "Organization") Integer orgId) {
+    public Page<IntersectionDto> getAllIntersections(
+            @Parameter(description = "Organization to scope results to", required = true) @RequestHeader(name = "Organization") Integer orgId,
+            @Parameter(description = "Search intersections by ID, name, origin IP, or linked RSU IP") @RequestParam(defaultValue = "") String search,
+            @PageableDefault(size = 25, sort = "intersection_id") Pageable pageable) {
         Organization organization = permissionService.getOrganizationById(orgId);
-        return adminIntersectionService.getAllIntersections(organization);
+        return adminIntersectionService.getAllIntersections(organization, mapSortFields(pageable), search);
+    }
+
+    private Pageable mapSortFields(Pageable pageable) {
+        if (!pageable.getSort().isSorted()) {
+            return pageable;
+        }
+
+        Sort mappedSort = Sort.unsorted();
+        for (Sort.Order order : pageable.getSort()) {
+            String property = SORT_FIELD_MAPPING.getOrDefault(order.getProperty(), order.getProperty());
+            mappedSort = mappedSort.and(Sort.by(order.getDirection(), property));
+        }
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mappedSort);
     }
 
     /**
