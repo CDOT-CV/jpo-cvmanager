@@ -19,7 +19,7 @@ type StatusQuery<T> = {
 
 const getQueryStatus = <T>(query: StatusQuery<T>): UnconfirmedStatus | undefined => {
   if (query.isUninitialized) return 'unknown'
-  if (query.isError) return 'unavailable'
+  if (query.isError && query.currentData === undefined) return 'unavailable'
   // currentData prevents a previous organization's/device's cached result from being displayed.
   if (query.currentData === undefined) {
     return query.isLoading || query.isFetching ? 'loading' : 'unknown'
