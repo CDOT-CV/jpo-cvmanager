@@ -43,6 +43,8 @@ import us.dot.its.jpo.ode.api.services.RsuMessageForwardingContextService.Device
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "enable.api", havingValue = "true")
 public class RsuMessageForwardingService {
+    private static final String SYNC_DATABASE_STEP = "sync-database";
+
     private final RsuMessageForwardingContextService contextService;
     private final RsuMessageForwardingSnapshotService snapshotService;
     private final SnmpTaskExecutor executor;
@@ -146,7 +148,7 @@ public class RsuMessageForwardingService {
      * it is created.
      */
     private SnapshotAction synchronizeDb(DeviceContext context) {
-        return new SnapshotAction("sync-database", rows -> {
+        return new SnapshotAction(SYNC_DATABASE_STEP, rows -> {
             try {
                 snapshotService.replace(context.rsuId(), context.device().target().address(), rows);
             } catch (RuntimeException failure) {
@@ -208,7 +210,7 @@ public class RsuMessageForwardingService {
      */
     private MessageForwardingResult buildResponse(SnmpTaskResult result) {
         Boolean changed = Ntcip1218ForwardingTasks.changed(result);
-        var sync = result.steps().stream().filter(s -> s.name().equals("sync-database")).findFirst().orElseThrow();
+        var sync = result.steps().stream().filter(s -> s.name().equals(SYNC_DATABASE_STEP)).findFirst().orElseThrow();
         var databaseSync = switch (sync.status()) {
             case SUCCEEDED -> DatabaseSync.UPDATED;
             case NOT_STARTED -> DatabaseSync.NOT_UPDATED;
