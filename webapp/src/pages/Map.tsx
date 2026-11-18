@@ -60,6 +60,7 @@ import {
 import ClearIcon from '@mui/icons-material/Clear'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
+  Alert,
   Button,
   FormGroup,
   IconButton,
@@ -128,7 +129,7 @@ import { selectToken } from '../generalSlices/userSlice'
 
 import { MessageType } from '../models/MessageTypes'
 import { useGetRsuCountsQuery } from '../features/api/rsuCountsApiSlice'
-import { formatScmsExpiration, useGetScmsStatusQuery } from '../features/api/scmsApiSlice'
+import { useGetScmsStatusQuery } from '../features/api/scmsApiSlice'
 import { RSU_POINT_LAYER_ID, RsuMapLayer } from '../components/map-layers/RsuMapLayer'
 import {
   INTERSECTION_ICON_ID,
@@ -143,6 +144,17 @@ import {
 } from '../components/map-layers/WzdxMapLayer'
 import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../features/api/rsuOnlineStatusApiSlice'
 import { useGetGeoMsgDataMutation } from '../features/api/geoMsgApiSlice'
+
+import {
+  getOnlineStatus,
+  getScmsStatus,
+  getStatusLabel,
+  getStatusColor,
+  getStatusTextColor,
+  getStatusMarkerColor,
+  getScmsExpirationDisplay,
+  getLastOnlineDisplay,
+} from '../utils/rsu-status'
 
 const MILLISECONDS_PER_MINUTE = 60000
 const EMPTY_WZDX_FEATURES: WZDxFeature[] = []
@@ -227,19 +239,6 @@ const WzdxPopupTable = ({ feature }: { feature: WZDxFeature }) => {
   )
 }
 
-const getRsuDisplayColor = (displayType: string, onlineStatus: string, scmsStatus: boolean | null) => {
-  if (displayType === 'online') {
-    if (onlineStatus === 'online') return '#A1D363'
-    if (onlineStatus === 'unstable') return '#D1A711'
-    if (onlineStatus === 'offline') return '#E94F37'
-  } else if (displayType === 'scms') {
-    if (scmsStatus === true) return '#A1D363'
-    if (scmsStatus === false) return '#E94F37'
-  }
-
-  return '#B0B0B0'
-}
-
 const calculateTimeWindow = (baseDate: string | Date, offset: number, step: number) => {
   const start = new Date(new Date(baseDate).getTime() + MILLISECONDS_PER_MINUTE * offset * step)
   const end = new Date(start.getTime() + MILLISECONDS_PER_MINUTE * step)
@@ -283,10 +282,10 @@ function MapPage() {
   const organization = useSelector(selectOrganizationName)
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
-  const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
-  const { data: rsuOnlineStatus = {} } = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
+  const scmsStatusQuery = useGetScmsStatusQuery(organization, { skip: !organization })
+  const onlineStatusQuery = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
   const rsuIpv4 = useSelector(selectRsuIpv4)
-  const { data: selectedRsuLastOnline } = useGetRsuLastOnlineQuery(rsuIpv4 ?? '', {
+  const lastOnlineQuery = useGetRsuLastOnlineQuery(rsuIpv4 ?? '', {
     skip: !rsuIpv4,
   })
   const addConfigPoint = useSelector(selectAddConfigPoint)
@@ -682,6 +681,21 @@ function MapPage() {
     }
   }, [rsuData, rsuCounts])
 
+  const {
+    currentData: onlineData,
+    isLoading: onlineLoading,
+    isFetching: onlineFetching,
+    isError: onlineError,
+    isUninitialized: onlineUninitialized,
+  } = onlineStatusQuery
+  const {
+    currentData: scmsData,
+    isLoading: scmsLoading,
+    isFetching: scmsFetching,
+    isError: scmsError,
+    isUninitialized: scmsUninitialized,
+  } = scmsStatusQuery
+
   const rsuPointData = useMemo(
     () =>
       ({
@@ -690,13 +704,22 @@ function MapPage() {
           .filter((rsu) => selectedVendor === 'Select Vendor' || rsu.properties.manufacturer_name === selectedVendor)
           .map((rsu) => {
             const ip = rsu.properties.ipv4_address
-            const onlineStatus = Object.prototype.hasOwnProperty.call(rsuOnlineStatus, ip)
-              ? rsuOnlineStatus[ip].current_status
-              : 'offline'
-            const scmsStatus =
-              Object.prototype.hasOwnProperty.call(issScmsStatusData, ip) && issScmsStatusData[ip]
-                ? issScmsStatusData[ip].health
-                : null
+            const status =
+              displayType === 'online'
+                ? getOnlineStatus(ip, {
+                    currentData: onlineData,
+                    isLoading: onlineLoading,
+                    isFetching: onlineFetching,
+                    isError: onlineError,
+                    isUninitialized: onlineUninitialized,
+                  })
+                : getScmsStatus(ip, {
+                    currentData: scmsData,
+                    isLoading: scmsLoading,
+                    isFetching: scmsFetching,
+                    isError: scmsError,
+                    isUninitialized: scmsUninitialized,
+                  })
 
             return {
               type: 'Feature' as const,
@@ -704,12 +727,26 @@ function MapPage() {
               geometry: rsu.geometry,
               properties: {
                 ipv4_address: ip,
-                display_color: getRsuDisplayColor(displayType, onlineStatus, scmsStatus),
+                display_color: getStatusMarkerColor(status),
               },
             }
           }),
       }) as GeoJSON.FeatureCollection<GeoJSON.Point>,
-    [displayType, issScmsStatusData, rsuData, rsuOnlineStatus, selectedVendor]
+    [
+      displayType,
+      rsuData,
+      selectedVendor,
+      onlineData,
+      onlineLoading,
+      onlineFetching,
+      onlineError,
+      onlineUninitialized,
+      scmsData,
+      scmsLoading,
+      scmsFetching,
+      scmsError,
+      scmsUninitialized,
+    ]
   )
 
   const intersectionPointData = useMemo<GeoJSON.FeatureCollection<GeoJSON.Point>>(
@@ -783,16 +820,8 @@ function MapPage() {
     setSelectedWZDxMarker(null)
   }
 
-  const isOnline = () => {
-    return selectedRsuLastOnline?.last_online ? new Date(selectedRsuLastOnline.last_online).toLocaleString() : 'No Data'
-  }
-
-  const getStatus = () => {
-    return rsuIpv4 in rsuOnlineStatus &&
-      Object.prototype.hasOwnProperty.call(rsuOnlineStatus[rsuIpv4], 'current_status')
-      ? rsuOnlineStatus[rsuIpv4].current_status
-      : 'Offline'
-  }
+  const selectedOnlineStatus = getOnlineStatus(rsuIpv4, onlineStatusQuery)
+  const selectedScmsStatus = getScmsStatus(rsuIpv4, scmsStatusQuery)
 
   const handleScmsStatus = () => {
     setDisplayType('scms')
@@ -1053,6 +1082,18 @@ function MapPage() {
   return (
     <div className="container">
       <div className="menu-container map-control-container">
+        <ConditionalRenderRsu>
+          {onlineStatusQuery.isError && (
+            <Alert severity="warning" action={<Button disabled={onlineStatusQuery.isFetching} onClick={() => onlineStatusQuery.refetch()}>Retry</Button>}>
+              Online status unavailable.
+            </Alert>
+          )}
+          {scmsStatusQuery.isError && (
+            <Alert severity="warning" action={<Button disabled={scmsStatusQuery.isFetching} onClick={() => scmsStatusQuery.refetch()}>Retry</Button>}>
+              SCMS status unavailable.
+            </Alert>
+          )}
+        </ConditionalRenderRsu>
         <Accordion
           style={{ backgroundColor: theme.palette.background.paper }}
           disableGutters={true}
@@ -1516,51 +1557,40 @@ function MapPage() {
               maxWidth="350px"
               className="rsu-popup"
             >
-              <Box>
-                {/* Header Section */}
-                <Grid2
-                  container
-                  columnSpacing={0.5}
-                  rowSpacing={0}
+              <Box sx={{ width: 350, maxWidth: 'calc(100vw - 32px)' }}>
+                {/* Reserve the right edge for Mapbox's absolute-positioned close button. */}
+                <Box
                   sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1fr) auto',
+                    gap: '4px 8px',
                     color: theme.palette.text.secondary,
                     backgroundColor: theme.palette.background.paper,
-                    paddingY: '8px',
+                    padding: '8px 40px 8px 16px',
                   }}
                 >
-                  <Grid2 size={1} display="flex" justifyContent="flex-start" sx={{ ml: '16px' }}>
-                    <RoomOutlined color="info" fontSize="medium" />
-                  </Grid2>
-                  <Grid2 size={5}>
-                    <Typography fontSize="Medium" color={theme.palette.text.primary} className="museo-slab">
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '4px', minWidth: 0 }}>
+                    <RoomOutlined color="info" fontSize="medium" sx={{ flexShrink: 0 }} />
+                    <Typography fontSize="medium" color={theme.palette.text.primary} className="museo-slab">
                       {selectedRsu.properties.primary_route} Milepost {selectedRsu.properties.milepost}
                     </Typography>
-                  </Grid2>
-                  <Grid2 size={5} justifyContent="flex-start">
-                    <Box
-                      style={{
-                        color: theme.palette.text.primary,
-                        backgroundColor:
-                          getStatus().toLowerCase() === 'online'
-                            ? theme.palette.success.dark
-                            : getStatus().toLowerCase() === 'unstable'
-                              ? theme.palette.warning.main
-                              : theme.palette.error.dark,
-                        width: '4rem',
-                        height: '1.5rem',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        borderRadius: '1rem',
-                      }}
-                    >
-                      <Typography fontSize="medium">{getStatus()}</Typography>
-                    </Box>
-                  </Grid2>
-                  <Grid2 size={4} justifyContent="flex-start" sx={{ ml: '16px' }}>
-                    <Typography fontSize="small">{rsuIpv4}</Typography>
-                  </Grid2>
-                </Grid2>
+                  </Box>
+                  <Box
+                    sx={{
+                      color: theme.palette.getContrastText(getStatusColor(selectedOnlineStatus, theme)),
+                      backgroundColor: getStatusColor(selectedOnlineStatus, theme),
+                      padding: '0 8px',
+                      height: '1.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderRadius: '1rem',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <Typography fontSize="medium">{getStatusLabel(selectedOnlineStatus)}</Typography>
+                  </Box>
+                  <Typography fontSize="small" sx={{ gridColumn: '1 / -1' }}>{rsuIpv4}</Typography>
+                </Box>
 
                 {/* Body Section */}
                 <Grid2
@@ -1579,7 +1609,7 @@ function MapPage() {
                     </Typography>
                   </Grid2>
                   <Grid2 size={6} justifyContent="flex-start">
-                    <Typography fontSize="medium">{isOnline()}</Typography>
+                    <Typography fontSize="medium">{getLastOnlineDisplay(lastOnlineQuery)}</Typography>
                   </Grid2>
                   <Grid2 size={5} justifyContent="flex-start">
                     <Typography fontSize="medium" sx={{ ml: '16px' }}>
@@ -1587,32 +1617,18 @@ function MapPage() {
                     </Typography>
                   </Grid2>
                   <Grid2 size={6} justifyContent="flex-start">
-                    {rsuIpv4 in issScmsStatusData && issScmsStatusData[rsuIpv4] ? (
-                      <Grid2 container>
-                        <Grid2 size={12} justifyContent="flex-start">
-                          <Typography
-                            sx={{
-                              color: issScmsStatusData[rsuIpv4].health
-                                ? theme.palette.success.light
-                                : theme.palette.error.light,
-                            }}
-                          >
-                            {issScmsStatusData[rsuIpv4].health ? 'Healthy' : 'Unhealthy'}
-                          </Typography>
-                        </Grid2>
-                        <Grid2 size={12}>
-                          <Typography fontSize="small">
-                            {issScmsStatusData[rsuIpv4].expiration
-                              ? formatScmsExpiration(issScmsStatusData[rsuIpv4].expiration)
-                              : 'Never downloaded certificates'}
-                          </Typography>
-                        </Grid2>
+                    <Grid2 container>
+                      <Grid2 size={12} justifyContent="flex-start">
+                        <Typography sx={{ color: getStatusTextColor(selectedScmsStatus, theme) }}>
+                          {getStatusLabel(selectedScmsStatus)}
+                        </Typography>
                       </Grid2>
-                    ) : (
-                      <>
-                        <Typography fontSize="medium">RSU is not enrolled with ISS SCMS</Typography>
-                      </>
-                    )}
+                      <Grid2 size={12}>
+                        <Typography fontSize="small">
+                          {getScmsExpirationDisplay(rsuIpv4, scmsStatusQuery)}
+                        </Typography>
+                      </Grid2>
+                    </Grid2>
                   </Grid2>
                 </Grid2>
 

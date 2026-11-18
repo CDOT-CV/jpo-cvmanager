@@ -78,9 +78,11 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
     /**
      * Returns every RSU in an organization together with every ping in the status
      * window. The left join is deliberate: an RSU without a recent ping is still
-     * represented so the API can report it as offline.
+     * represented. The history check distinguishes stale telemetry from no records
+     * without loading all historical pings or issuing a query per RSU.
      */
-    @Query("SELECT r.ipv4Address AS ipv4Address, p.timestamp AS timestamp, p.result AS result " +
+    @Query("SELECT r.ipv4Address AS ipv4Address, p.timestamp AS timestamp, p.result AS result, " +
+            "EXISTS (SELECT 1 FROM Ping history WHERE history.rsu = r) AS hasPingHistory " +
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
             "JOIN ro.organization o " +

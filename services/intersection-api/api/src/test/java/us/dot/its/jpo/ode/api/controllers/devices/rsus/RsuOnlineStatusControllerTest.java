@@ -46,11 +46,13 @@ class RsuOnlineStatusControllerTest {
         when(permissionService.isSuperUser()).thenReturn(false);
         when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
         when(rsuOnlineStatusService.getOnlineStatuses("TestOrg"))
-                .thenReturn(Map.of("10.0.0.1", new OnlineStatusDto("online")));
+                .thenReturn(Map.of("10.0.0.1", new OnlineStatusDto("online"),
+                        "10.0.0.2", new OnlineStatusDto("unknown")));
 
         mockMvc.perform(get("/devices/rsus/online-status").header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.onlineStatusByIp['10.0.0.1'].current_status").value("online"));
+                .andExpect(jsonPath("$.onlineStatusByIp['10.0.0.1'].current_status").value("online"))
+                .andExpect(jsonPath("$.onlineStatusByIp['10.0.0.2'].current_status").value("unknown"));
     }
 
     @Test
