@@ -443,6 +443,32 @@ describe('async thunks', () => {
         expect(api.mock.calls.flatMap((call) => call[2].rsu_ips)).toEqual(selected)
       })
 
+      it('counts both changed and unchanged devices as successful in a mixed batch', async () => {
+        jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
+          status: 200,
+          message: '',
+          body: {
+            [ips[0]]: result(),
+            [ips[1]]: result({ writeState: 'NOT_SUBMITTED', changed: false }),
+          },
+        })
+        expect((await run(operation)).payload).toEqual({ changeSuccess: true, errorState: '' })
+      })
+
+      it('does not accept an unchanged device when database synchronization failed', async () => {
+        jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
+          status: 200,
+          message: '',
+          body: {
+            [ips[0]]: result({ writeState: 'NOT_SUBMITTED', changed: false, databaseSync: 'FAILED' }),
+          },
+        })
+        expect((await run(operation, [ips[0]])).payload).toEqual({
+          changeSuccess: false,
+          errorState: expect.stringContaining('0 of 1 RSUs completed successfully'),
+        })
+      })
+
       it('does not send an empty selection', async () => {
         const api = jest.spyOn(RsuMessageForwardingApi, operation)
         expect((await run(operation, [])).payload).toEqual({ changeSuccess: false, errorState: 'No RSUs selected' })
@@ -478,15 +504,15 @@ describe('async thunks', () => {
       })
     })
 
-    it('treats a confirmed delete no-op as success', async () => {
-      jest.spyOn(RsuMessageForwardingApi, 'delete').mockResolvedValue({
+    it.each(['create', 'delete'] as const)('treats a confirmed %s no-op as success', async (operation) => {
+      jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
         status: 200,
         message: '',
         body: {
           [ips[0]]: result({ writeState: 'NOT_SUBMITTED', changed: false }),
         },
       })
-      expect((await run('delete', [ips[0]])).payload).toEqual({ changeSuccess: true, errorState: '' })
+      expect((await run(operation, [ips[0]])).payload).toEqual({ changeSuccess: true, errorState: '' })
     })
 
     it.each(['UPDATED', 'NOT_UPDATED', 'FAILED'] as const)('preserves selected-row write evidence when database sync is %s', async (sync) => {

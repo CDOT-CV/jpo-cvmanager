@@ -94,7 +94,6 @@ export const getRsuMsgConfigsFromRsu = createAsyncThunk<
 // without replaying any request, and inspect every expected device result even after HTTP 200.
 async function executeForwardingRequests(
   ips: string[],
-  operation: 'create' | 'delete',
   send: (batch: string[]) => Promise<ApiMsgRespWithCodes<MessageForwardingResponse> | null>
 ) {
   const selected = [...new Set(ips)]
@@ -115,7 +114,7 @@ async function executeForwardingRequests(
         continue
       }
       const result = response.body?.[ip]
-      if (forwardingCompleted(result, operation)) continue
+      if (forwardingCompleted(result)) continue
       failures.push(`${ip}: ${forwardingFailureMessage(result)}`)
     }
   }
@@ -128,9 +127,9 @@ async function executeForwardingRequests(
   }
 }
 
-function forwardingCompleted(result: MessageForwardingResult | undefined, operation: 'create' | 'delete'): boolean {
+function forwardingCompleted(result: MessageForwardingResult | undefined): boolean {
   const confirmed = result?.writeState === 'VERIFIED' && result.changed === true
-  const noOp = operation === 'delete' && result?.writeState === 'NOT_SUBMITTED' && result.changed === false
+  const noOp = result?.writeState === 'NOT_SUBMITTED' && result.changed === false
   return result?.execution?.status === 'SUCCEEDED' && result.databaseSync === 'UPDATED' && (confirmed || noOp)
 }
 
@@ -160,7 +159,7 @@ export const submitSnmpSet = createAsyncThunk('config/submitSnmpSet', async (ipL
   const messageType = forwardingMessageType(selectSnmpMsgType(currentState))
   const destination = selectDestIp(currentState)
   const includeSecurity = selectIncludeSecurityHeader(currentState)
-  return executeForwardingRequests(ipList, 'create', (batch) =>
+  return executeForwardingRequests(ipList, (batch) =>
     RsuMessageForwardingApi.create(token, organization, {
       rsu_ips: batch,
       message_type: messageType,
@@ -177,7 +176,7 @@ export const deleteSnmpSet = createAsyncThunk(
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
     const messageType = forwardingMessageType(data.snmpMsgType)
-    return executeForwardingRequests(data.ipList, 'delete', (batch) =>
+    return executeForwardingRequests(data.ipList, (batch) =>
       RsuMessageForwardingApi.delete(token, organization, {
         rsu_ips: batch,
         message_type: messageType,
@@ -199,7 +198,7 @@ export const deleteSnmpRow = createAsyncThunk(
       { destination_ip: data.destIp, destination_port: data.port }
     )
     const result = response?.status === 200 ? response.body?.[data.rsuIp] : undefined
-    const changeSuccess = forwardingCompleted(result, 'delete')
+    const changeSuccess = forwardingCompleted(result)
     const errorState = result ? forwardingFailureMessage(result) :
       response?.message || 'Request did not complete; check RSU state before retrying.'
     // Keep device evidence so the view can distinguish a removed row from a failed cache update.
