@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import ForwardingResults, { ForwardingResultsProps } from './ForwardingResults'
 import { ThunkDispatch, AnyAction } from '@reduxjs/toolkit'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -31,8 +33,11 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import ControlPointOutlined from '@mui/icons-material/ControlPointOutlined'
-import DeleteOutline from '@mui/icons-material/DeleteOutline'
+
+import AddIcon from '@mui/icons-material/Add'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+
+const messageTypes = ['bsm', 'spat', 'map', 'srm', 'ssm', 'tim']
 
 export type SnmpsetMenuProps = {
   type: string
@@ -46,10 +51,49 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
   const destIp = useSelector(selectDestIp)
   const snmpMsgType = useSelector(selectSnmpMsgType)
   const includeSecurity = useSelector(selectIncludeSecurityHeader)
+  const validDestination = /^(0|[1-9]\d{0,2})(\.(0|[1-9]\d{0,2})){3}$/.test(destIp)
+    && destIp.split('.').every((octet) => Number(octet) <= 255)
+  const canSubmit = Boolean(rsuIpList?.length) && validDestination && messageTypes.includes(snmpMsgType)
+
+  const [report, setReport] = useState<Omit<ForwardingResultsProps, 'onDismiss'> | null>(null)
+  const [pending, setPending] = useState(false)
+  const [submissionError, setSubmissionError] = useState('')
+
+  const submit = async (operation: 'create' | 'delete') => {
+    if (!canSubmit || pending) return
+    setPending(true)
+    setReport(null)
+    setSubmissionError('')
+    // Capture the form values so changing the form does not relabel a completed request.
+    const messageType = snmpMsgType
+    const destination = destIp
+    try {
+      const action = operation === 'create'
+        ? await dispatch(submitSnmpSet(rsuIpList))
+        : await dispatch(deleteSnmpSet({ ipList: rsuIpList, snmpMsgType: messageType, destIp: destination }))
+      if (!submitSnmpSet.fulfilled.match(action) && !deleteSnmpSet.fulfilled.match(action)) {
+        const message = action.error.message || 'Request did not complete'
+        if (type === 'single_rsu') toast.error(message)
+        else setSubmissionError(message)
+        return
+      }
+      const { results, changeSuccess, errorState } = action.payload
+      if (type !== 'single_rsu') {
+        if (results.length) setReport({ operation, messageType, destination, results })
+        else setSubmissionError(errorState)
+        return
+      }
+      if (!changeSuccess) toast.error('Failed to add forwarding: ' + errorState)
+      else if (results[0]?.result?.changed === false) toast('This forwarding configuration already exists.')
+      else toast.success('Forwarding Changes Applied Successfully')
+    } finally {
+      setPending(false)
+    }
+  }
 
   return (
     <div>
-      <form id="snmpform">
+      <form id="snmpform" onSubmit={(event) => event.preventDefault()}>
         <Grid2 container spacing={1}>
           <Grid2 size={8}>
             <FormControl fullWidth margin="dense">
@@ -84,7 +128,7 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
                   dispatch(setMsgType(msgType))
                 }}
               >
-                {['bsm', 'spat', 'map', 'srm', 'ssm', 'tim'].map((msgType) => (
+                {messageTypes.map((msgType) => (
                   <MenuItem key={msgType} value={msgType}>
                     {msgType === 'spat' ? 'SPaT' : msgType.toUpperCase()}
                   </MenuItem>
@@ -105,69 +149,40 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
           label="Security Header"
         />
       </form>
-      <Stack spacing={2} direction="column">
+      <Stack spacing={1} direction="row" alignItems="center">
         <Button
           className="museo-slab capital-case"
-          variant="contained"
+          aria-label="Add Forwarding"
+          startIcon={<AddIcon />}
+          variant="outlined"
           size="medium"
-          startIcon={<ControlPointOutlined />}
-          onClick={() =>
-            dispatch(submitSnmpSet(rsuIpList)).then((data) => {
-              if (submitSnmpSet.fulfilled.match(data) && data.payload.changeSuccess) {
-                toast.success('Forwarding Changes Applied Successfully')
-              } else {
-                const message = submitSnmpSet.fulfilled.match(data) ? data.payload.errorState : data.error.message
-                toast.error('Failed to add forwarding: ' + (message || 'Request did not complete'))
-              }
-            })
-          }
-          sx={{
-            width: 'fit-content',
-          }}
+          color="info"
+          disabled={pending || !canSubmit}
+          onClick={() => submit('create')}
         >
-          Add Forwarding
+          Add
         </Button>
 
         {type !== 'single_rsu' && (
           <Button
             className="museo-slab capital-case"
-            variant="contained"
+            aria-label="Delete Forwarding"
+            startIcon={<DeleteOutlineIcon />}
+            variant="outlined"
+            color="info"
             size="medium"
-            startIcon={<DeleteOutline />}
-            sx={{
-              marginTop: '10px',
-              width: 'fit-content',
-            }}
-            onClick={() =>
-              dispatch(
-                deleteSnmpSet({
-                  ipList: rsuIpList,
-                  snmpMsgType: snmpMsgType,
-                  destIp: destIp,
-                })
-              ).then((data) => {
-                if (deleteSnmpSet.fulfilled.match(data) && data.payload.changeSuccess) {
-                  toast.success('Successfully deleted SNMP forwarding')
-                } else {
-                  const message = deleteSnmpSet.fulfilled.match(data) ? data.payload.errorState : data.error.message
-                  toast.error('Failed to delete SNMP forwarding: ' + (message || 'Request did not complete'))
-                }
-              })
-            }
+            disabled={pending || !canSubmit}
+            onClick={() => submit('delete')}
           >
-            Delete Forwarding
+            Delete
           </Button>
         )}
       </Stack>
+      {pending && <Typography variant="caption" component="div" role="status" sx={{ mt: 1 }}>Applying forwarding...</Typography>}
+      {Boolean(submissionError) && <Typography variant="body2" role="alert" sx={{ mt: 1 }}>{submissionError}</Typography>}
+      {report && <ForwardingResults {...report} onDismiss={() => setReport(null)} />}
 
-      {type !== 'single_rsu' ? (
-        <div style={{ marginTop: '16px' }}>
-          <Typography variant="body1">
-            By specifying a destination IP address along with a message type, you can add message forwarding to any of
-            the selected RSUs or delete message forwarding from any RSUs that already have that configuration.
-          </Typography>
-        </div>
-      ) : null}
+
     </div>
   )
 }

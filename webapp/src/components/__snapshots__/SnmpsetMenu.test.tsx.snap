@@ -146,8 +146,10 @@ exports[`should take a snapshot 1`] = `
       class="MuiStack-root css-mocked-MuiStack-root"
     >
       <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeMedium MuiButton-containedSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeMedium MuiButton-containedSizeMedium MuiButton-colorPrimary museo-slab capital-case css-mocked-MuiButtonBase-root-MuiButton-root"
-        tabindex="0"
+        aria-label="Add Forwarding"
+        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorInfo Mui-disabled MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorInfo museo-slab capital-case css-mocked-MuiButtonBase-root-MuiButton-root"
+        disabled=""
+        tabindex="-1"
         type="button"
       >
         <span
@@ -156,20 +158,22 @@ exports[`should take a snapshot 1`] = `
           <svg
             aria-hidden="true"
             class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root"
-            data-testid="ControlPointOutlinedIcon"
+            data-testid="AddIcon"
             focusable="false"
             viewBox="0 0 24 24"
           >
             <path
-              d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4zm-1-5C6.49 2 2 6.49 2 12s4.49 10 10 10 10-4.49 10-10S17.51 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"
+              d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
             />
           </svg>
         </span>
-        Add Forwarding
+        Add
       </button>
       <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeMedium MuiButton-containedSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeMedium MuiButton-containedSizeMedium MuiButton-colorPrimary museo-slab capital-case css-mocked-MuiButtonBase-root-MuiButton-root"
-        tabindex="0"
+        aria-label="Delete Forwarding"
+        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorInfo Mui-disabled MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorInfo museo-slab capital-case css-mocked-MuiButtonBase-root-MuiButton-root"
+        disabled=""
+        tabindex="-1"
         type="button"
       >
         <span
@@ -187,17 +191,8 @@ exports[`should take a snapshot 1`] = `
             />
           </svg>
         </span>
-        Delete Forwarding
+        Delete
       </button>
-    </div>
-    <div
-      style="margin-top: 16px;"
-    >
-      <p
-        class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-      >
-        By specifying a destination IP address along with a message type, you can add message forwarding to any of the selected RSUs or delete message forwarding from any RSUs that already have that configuration.
-      </p>
     </div>
   </div>
 </div>
