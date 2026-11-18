@@ -217,7 +217,8 @@ public class OrganizationController {
     })
     public ResponseEntity<Integer> createOrganization(
             @Parameter(description = "Organization details", required = true) @RequestBody @Valid NewOrganizationBody newOrganizationBody) {
-        Organization createdOrg = organizationManagementService.createOrganization(newOrganizationBody);
+        String userEmail = permissionService.getCvManagerAuthToken().getEmail();
+        Organization createdOrg = organizationManagementService.createOrganization(newOrganizationBody, userEmail);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdOrg.getId());
     }
 }

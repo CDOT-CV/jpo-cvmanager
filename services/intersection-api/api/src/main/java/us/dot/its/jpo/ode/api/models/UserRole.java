@@ -19,4 +19,8 @@ public enum UserRole {
         }
         return UserRole.valueOf(value.trim().toUpperCase());
     }
+
+    public String getName() {
+        return this.name().toLowerCase();
+    }
 }
