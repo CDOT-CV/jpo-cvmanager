@@ -56,9 +56,6 @@ test('supports cross-page selection and bulk delete for the intersection table',
   act(() => mocks.tableProps.current.onSelectionChange([selectedIntersection]))
 
   expect(mocks.tableProps.current.selectedRows).toEqual([selectedIntersection])
-  const bulkDeleteAction = mocks.tableProps.current.actions.find(
-    (action: any) => action.position === 'toolbarOnSelect'
-  )
-  expect(bulkDeleteAction.iconProps.title).toBe('Delete Selected (1)')
+  const bulkDeleteAction = mocks.tableProps.current.actions.find((action: any) => action.position === 'toolbarOnSelect')
   expect(bulkDeleteAction.disabled).toBe(false)
 })

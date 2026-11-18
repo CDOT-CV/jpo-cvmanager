@@ -96,11 +96,6 @@ const AdminIntersectionTab = () => {
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       disabled: selectedIntersections.length === 0,
       position: 'toolbarOnSelect',
-      iconProps: {
-        title: `Delete Selected (${selectedIntersections.length})`,
-        itemType: 'contained',
-        color: 'error',
-      },
       onClick: () => {
         const buttons = [
           { label: 'Yes', onClick: () => multiDelete(selectedIntersections) },

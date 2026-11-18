@@ -92,7 +92,6 @@ const AdminUserTab = () => {
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       disabled: selectedUsers.length === 0,
       position: 'toolbarOnSelect',
-      iconProps: { title: `Delete Selected (${selectedUsers.length})`, itemType: 'contained', color: 'error' },
       onClick: () => {
         const buttons = [
           {

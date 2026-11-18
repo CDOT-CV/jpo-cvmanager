@@ -52,9 +52,6 @@ test('supports cross-page selection and bulk delete for the user table', () => {
   act(() => mocks.tableProps.current.onSelectionChange([selectedUser]))
 
   expect(mocks.tableProps.current.selectedRows).toEqual([selectedUser])
-  const bulkDeleteAction = mocks.tableProps.current.actions.find(
-    (action: any) => action.position === 'toolbarOnSelect'
-  )
-  expect(bulkDeleteAction.iconProps.title).toBe('Delete Selected (1)')
+  const bulkDeleteAction = mocks.tableProps.current.actions.find((action: any) => action.position === 'toolbarOnSelect')
   expect(bulkDeleteAction.disabled).toBe(false)
 })

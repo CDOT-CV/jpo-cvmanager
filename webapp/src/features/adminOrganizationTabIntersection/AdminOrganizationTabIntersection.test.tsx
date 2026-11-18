@@ -147,6 +147,24 @@ describe('AdminOrganizationTabIntersection', () => {
     expect(actions()).toHaveLength(4)
     expect(mocks.tableProps.current.handleQueryChange).toBeTypeOf('function')
     expect(mocks.tableProps.current.tableRef).toBeTruthy()
+    expect(mocks.tableProps.current.selectionKeyField).toBe('intersection_id')
+    expect(mocks.tableProps.current.selectedRows).toEqual([])
+  })
+
+  it('keeps multi-select and bulk delete selections across server pages', async () => {
+    renderComponent()
+    const firstPageRows = [row('10')]
+    const allSelectedRows = [...firstPageRows, row('20')]
+
+    act(() => mocks.tableProps.current.onSelectionChange(firstPageRows))
+    act(() => mocks.tableProps.current.onSelectionChange(allSelectedRows))
+
+    expect(mocks.tableProps.current.selectedRows).toEqual(allSelectedRows)
+    expect(actions()[1].disabled).toBe(false)
+
+    const options = await confirmYes(1, [allSelectedRows[1]])
+    expect(options.message).toContain('delete 2 Intersection(s)')
+    expect(mocks.patch).toHaveBeenCalledWith({ id: 1, intersections_to_remove: [10, 20] })
   })
 
   it('fetches the requested server-side page', async () => {

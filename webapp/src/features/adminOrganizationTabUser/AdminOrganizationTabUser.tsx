@@ -53,6 +53,11 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   const [getUserOrganizations] = useLazyGetUserOrganizationsQuery()
 
   const [selectedUserList, setSelectedUserList] = useState<AdminUserForOrg[]>([])
+  const [userSelection, setUserSelection] = useState<{ organizationId: number; rows: AdminUserForOrg[] }>({
+    organizationId: selectedOrgId,
+    rows: [],
+  })
+  const selectedUsers = userSelection.organizationId === selectedOrgId ? userSelection.rows : []
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const authLoginData = useSelector(selectAuthLoginData)
   const userEmail = useSelector(selectEmail)
@@ -139,21 +144,14 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     {
       tooltip: 'Remove All Selected From Organization',
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
+      disabled: selectedUsers.length === 0,
       position: 'toolbarOnSelect',
-      iconProps: {
-        itemType: 'rowAction',
-      },
-      onClick: (event, rowData: AdminUserForOrg | AdminUserForOrg[]) => {
+      onClick: (_event, rowData: AdminUserForOrg | AdminUserForOrg[]) => {
+        const rows = selectedUsers.length > 0 ? selectedUsers : Array.isArray(rowData) ? rowData : [rowData]
         const buttons = [
           {
             label: 'Yes',
-            onClick: async () => {
-              if (Array.isArray(rowData)) {
-                await userMultiDelete(rowData)
-              } else {
-                await userOnDelete(rowData)
-              }
-            },
+            onClick: async () => userMultiDelete(rows),
           },
           {
             label: 'No',
@@ -162,11 +160,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
         ]
         const alertOptions = Options(
           'Delete Selected Users',
-          'Are you sure you want to delete ' +
-            (Array.isArray(rowData) ? rowData.length : 1) +
-            ' user(s) from ' +
-            selectedOrgName +
-            ' organization?',
+          'Are you sure you want to delete ' + rows.length + ' user(s) from ' + selectedOrgName + ' organization?',
           buttons
         )
         confirmAlert(alertOptions)
@@ -242,6 +236,10 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           id: selectedOrgId,
           users_to_remove: [row.email],
         }).unwrap()
+        setUserSelection((current) => ({
+          organizationId: selectedOrgId,
+          rows: current.rows.filter((user) => user.email !== row.email),
+        }))
         toast.success('User deleted successfully', { id: loadingToast })
         if (row.email === authLoginData?.data?.email) {
           dispatch(deleteOrgAssociationByOrgId(props.selectedOrgId))
@@ -290,6 +288,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
         id: selectedOrgId,
         users_to_remove: validEmails,
       }).unwrap()
+      setUserSelection({ organizationId: selectedOrgId, rows: [] })
       for (const user of rows) {
         if (user.email === authLoginData?.data?.email) {
           dispatch(deleteOrgAssociationByOrgId(props.selectedOrgId))
@@ -402,6 +401,9 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
                 columns={userColumns}
                 actions={userActions}
                 editable={userTableEditable}
+                selectionKeyField="email"
+                selectedRows={selectedUsers}
+                onSelectionChange={(rows) => setUserSelection({ organizationId: selectedOrgId, rows })}
               />
             </>
           )}

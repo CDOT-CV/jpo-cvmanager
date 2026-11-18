@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   tableProps: { current: null as any },
   patch: vi.fn(),
   getUserOrgs: vi.fn(),
+  fetchUsers: vi.fn(),
   dispatch: vi.fn(),
   confirmAlert: vi.fn(),
   loadingGlobal: { value: false },
@@ -30,7 +31,8 @@ vi.mock('react-redux', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-redux')>()),
   useDispatch: () => mocks.dispatch,
 }))
-vi.mock('../../components/AdminTable', () => ({
+vi.mock('../../components/AdminTable', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../components/AdminTable')>()),
   default: (props: any) => {
     mocks.tableProps.current = props
     return <div data-testid="admin-table" />
@@ -66,6 +68,7 @@ vi.mock('../api/userApiSlice', async (importOriginal) => ({
       ],
     },
   }),
+  useLazyGetUsersQuery: () => [mocks.fetchUsers],
   useGetUserAllowedSelectionsQuery: () => ({ currentData: { roles: ['user', 'operator', 'admin'] } }),
 }))
 
@@ -111,6 +114,20 @@ describe('AdminOrganizationTabUser', () => {
     mocks.authEmail.value = 'me@test.com'
     mocks.patch.mockReturnValue(ok())
     mocks.getUserOrgs.mockReturnValue(orgsResult(2))
+    mocks.fetchUsers.mockReturnValue(
+      ok({
+        content: [
+          {
+            email: 'me@test.com',
+            first_name: 'Me',
+            last_name: 'X',
+            organizations: [{ organization: 1, role: 'ADMIN' }],
+          },
+          { email: 'b@test.com', first_name: 'B', last_name: 'B', organizations: [] },
+        ],
+        totalElements: 2,
+      })
+    )
     vi.spyOn(window, 'alert').mockImplementation(() => {})
   })
 
@@ -125,14 +142,39 @@ describe('AdminOrganizationTabUser', () => {
     expect(screen.queryByTestId('admin-table')).toBeNull()
   })
 
-  it('maps roles to lowercase and falls back to empty string', () => {
+  it('maps roles to lowercase and falls back to empty string', async () => {
     renderComponent()
-    const data = mocks.tableProps.current.data
-    console.error('ERROR: data', data)
+    let result: any
+    await act(async () => {
+      result = await mocks.tableProps.current.handleQueryChange({
+        page: 0,
+        pageSize: 25,
+        search: '',
+        orderByCollection: [],
+      })
+    })
+    const data = result.data
     expect(data.map((d: any) => d.role)).toEqual(['admin', ''])
   })
 
   describe('delete confirmation dialogs', () => {
+    it('keeps multi-select and bulk delete selections across server pages', async () => {
+      renderComponent()
+      const firstPageRows = [row('b@test.com')]
+      const allSelectedRows = [...firstPageRows, row('c@test.com')]
+
+      expect(mocks.tableProps.current.selectionKeyField).toBe('email')
+      act(() => mocks.tableProps.current.onSelectionChange(firstPageRows))
+      act(() => mocks.tableProps.current.onSelectionChange(allSelectedRows))
+
+      expect(mocks.tableProps.current.selectedRows).toEqual(allSelectedRows)
+      expect(actions()[1].disabled).toBe(false)
+
+      const options = await confirmYes(1, [allSelectedRows[1]])
+      expect(options.message).toContain('delete 2 user(s)')
+      expect(mocks.patch).toHaveBeenCalledWith({ id: 1, users_to_remove: ['b@test.com', 'c@test.com'] })
+    })
+
     it('row delete action asks for a single user and calls userOnDelete on Yes', async () => {
       renderComponent()
       const options = await confirmYes(0, row('b@test.com'))
