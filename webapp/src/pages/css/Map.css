@@ -28,10 +28,6 @@
   font-family: 'museo-slab', Arial, Helvetica, sans-serif;
 }
 
-.form-group-row {
-  gap: 50px;
-}
-
 .mapboxgl-popup-close-button {
   font-size: 24px;
   top: 8px;
@@ -53,6 +49,8 @@
 }
 
 .menu-container {
+  width: 280px;
+  max-width: calc(100vw - 50px);
   z-index: 90;
   position: absolute;
   top: 144px;
@@ -72,8 +70,26 @@
   right: 25px;
 }
 
-.accordion-header {
-  font-size: 20px;
+/* Compact control text; keep captions and floating field labels at their theme sizes. */
+.menu-container .MuiTypography-root:not(.museo-slab),
+.menu-container .MuiButton-root {
+  font-family: inherit;
+}
+
+.menu-container .MuiTypography-body1,
+.menu-container .MuiTypography-body2,
+.menu-container .MuiInputBase-root,
+.menu-container .MuiButton-root {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.menu-container .MuiFormControlLabel-root {
+  min-height: 40px;
+}
+
+.menu-container .MuiButton-root {
+  text-transform: none;
 }
 
 #simple-board {

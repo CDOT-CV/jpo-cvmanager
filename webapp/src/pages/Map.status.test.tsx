@@ -8,6 +8,8 @@ import { setupStore } from '../store'
 import { testTheme } from '../styles'
 import RsuApi from '../apis/rsu-api'
 import { selectRsu } from '../generalSlices/rsuSlice'
+import { selectActiveLayers } from './mapSlice'
+import { updateConfigPoints } from '../generalSlices/configSlice'
 import { RsuInfo } from '../models/RsuApi'
 import { useGetScmsStatusQuery } from '../features/api/scmsApiSlice'
 import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../features/api/rsuOnlineStatusApiSlice'
@@ -60,7 +62,7 @@ const rsu: RsuInfo = {
 const renderMap = async () => {
   const store = setupStore({ user: { value: {
     authLoginData: { token: 'test-token' },
-    organization: { organization: 'test-org', role: 'admin' },
+    organization: { name: 'test-org', organization: 'test-org', role: 'admin' },
   } } })
   render(<ThemeProvider theme={testTheme}><Provider store={store}><MapPage /></Provider></ThemeProvider>)
   await waitFor(() => expect(store.getState().rsu.value.rsuData).toHaveLength(1))
@@ -124,9 +126,50 @@ describe('main map device health', () => {
     const refetch = vi.fn()
     vi.mocked(useGetRsuOnlineStatusesQuery).mockReturnValue({ isError: true, refetch } as any)
     await renderMap()
-    const alert = screen.getByText('Online status unavailable.').closest<HTMLElement>('[role="alert"]')!
+    fireEvent.click(screen.getByRole('button', { name: 'Show health data details' }))
+    const alert = screen.getByRole('alert', { name: 'Online health warning' })
     fireEvent.click(within(alert).getByText('Retry'))
     expect(refetch).toHaveBeenCalledOnce()
+  })
+
+  it('keeps health coloring and unrelated layers intact when switching modes or inspecting fetch details', async () => {
+    const refreshOnline = vi.fn()
+    const refreshScms = vi.fn()
+    vi.mocked(useGetRsuOnlineStatusesQuery).mockReturnValue({
+      currentData: { [ip]: { current_status: 'online' } }, refetch: refreshOnline,
+    } as any)
+    vi.mocked(useGetScmsStatusQuery).mockReturnValue({
+      currentData: { [ip]: { health: false, expiration: null } }, refetch: refreshScms,
+    } as any)
+    const store = await renderMap()
+    const healthControls = within(screen.getByRole('region', { name: 'RSU Health' }))
+    expect(healthControls.getByRole('radiogroup', { name: 'RSU status view' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Heatmap' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'RSU Viewer' }))
+    expect(screen.queryByTestId('rsu-source')).not.toBeInTheDocument()
+
+    expect(screen.queryByRole('region', { name: 'RSU Health' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'RSU Viewer' }))
+    fireEvent.click(within(screen.getByRole('region', { name: 'RSU Health' })).getByRole('radio', { name: 'SCMS Status' }))
+    expect(selectActiveLayers(store.getState())).toEqual(expect.arrayContaining(['rsu-layer', 'heatmap-layer']))
+    expect(markerColor()).toBe('#E94F37')
+    fireEvent.click(within(screen.getByRole('region', { name: 'RSU Health' })).getByRole('radio', { name: 'Online Status' }))
+    expect(markerColor()).toBe('#A1D363')
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'RSU Viewer' }))
+    expect(screen.queryByTestId('rsu-source')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'RSU Viewer' }))
+    fireEvent.click(within(screen.getByRole('region', { name: 'RSU Health' })).getByRole('radio', { name: 'Online Status' }))
+    expect(markerColor()).toBe('#A1D363')
+
+    const restoredControls = within(screen.getByRole('region', { name: 'RSU Health' }))
+    fireEvent.click(restoredControls.getByRole('button', { name: 'Show health data details' }))
+    expect(restoredControls.queryByRole('button', { name: 'Refresh health data' })).not.toBeInTheDocument()
+    expect(refreshOnline).not.toHaveBeenCalled()
+    expect(refreshScms).not.toHaveBeenCalled()
+    expect(restoredControls.getByRole('radio', { name: 'Online Status' })).toBeChecked()
+    expect(selectActiveLayers(store.getState())).toEqual(expect.arrayContaining(['rsu-layer', 'heatmap-layer']))
+    expect(markerColor()).toBe('#A1D363')
   })
 
   it('hides RSU status errors when RSU features are disabled', async () => {
@@ -134,7 +177,58 @@ describe('main map device health', () => {
     vi.mocked(useGetRsuOnlineStatusesQuery).mockReturnValue({ isError: true } as any)
     vi.mocked(useGetScmsStatusQuery).mockReturnValue({ isError: true } as any)
     await renderMap()
-    expect(screen.queryByText('Online status unavailable.')).not.toBeInTheDocument()
-    expect(screen.queryByText('SCMS status unavailable.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'RSU Health' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Show health data details' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('hides map controls and stops placement while preserving configuration and fleet access', async () => {
+    const store = await renderMap()
+    fireEvent.click(screen.getByRole('radio', { name: 'SCMS Status' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Add Points' }))
+    const coordinates = [[-105, 39], [-104, 39], [-104, 40], [-105, 39]]
+    act(() => {
+      store.dispatch(updateConfigPoints(coordinates))
+      store.dispatch(selectRsu(rsu))
+    })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'RSU Viewer' }))
+    expect(screen.queryByRole('region', { name: 'RSU Health' })).not.toBeInTheDocument()
+    expect(screen.queryByText('RSU Configuration')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('rsu-popup')).not.toBeInTheDocument()
+    expect(store.getState().config.value.configCoordinates).toEqual(coordinates)
+    expect(screen.getByRole('button', { name: 'Display RSU Status' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'RSU Viewer' }))
+    expect(screen.getByRole('checkbox', { name: 'Add Points' })).not.toBeChecked()
+    expect(screen.getByRole('radio', { name: 'SCMS Status' })).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Clear configuration points' })).toBeEnabled()
+  })
+
+  it('filters RSUs from the health controls without a separate filter section', async () => {
+    await renderMap()
+    const healthControls = within(screen.getByRole('region', { name: 'RSU Health' }))
+    expect(healthControls.getByText('Status View')).toBeInTheDocument()
+    expect(screen.queryByText('Filter RSUs')).not.toBeInTheDocument()
+    fireEvent.mouseDown(healthControls.getByRole('combobox', { name: 'Vendor' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Yunex' }))
+    expect(JSON.parse(screen.getByTestId('rsu-source').getAttribute('data-source')!).features).toHaveLength(0)
+    fireEvent.mouseDown(healthControls.getByRole('combobox', { name: 'Vendor' }))
+    fireEvent.click(screen.getByRole('option', { name: 'All Vendors' }))
+    expect(JSON.parse(screen.getByTestId('rsu-source').getAttribute('data-source')!).features).toHaveLength(1)
+    expect(healthControls.getByRole('radio', { name: 'Online Status' })).toBeChecked()
+  })
+
+  it('preserves polygon-selection and clear actions in the configuration controls', async () => {
+    const store = await renderMap()
+    const addPoints = screen.getByRole('checkbox', { name: 'Add Points' })
+    const clear = screen.getByRole('button', { name: 'Clear configuration points' })
+    expect(clear).toBeDisabled()
+    fireEvent.click(addPoints)
+    expect(addPoints).toBeChecked()
+    act(() => { store.dispatch(updateConfigPoints([[-105, 39], [-104, 39], [-104, 40], [-105, 39]])) })
+    expect(clear).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Configure RSUs' })).toBeEnabled()
+    fireEvent.click(clear)
+    expect(store.getState().config.value.configCoordinates).toEqual([])
+    expect(clear).toBeDisabled()
   })
 })

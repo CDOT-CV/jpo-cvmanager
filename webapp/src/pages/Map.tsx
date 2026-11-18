@@ -60,7 +60,6 @@ import {
 import ClearIcon from '@mui/icons-material/Clear'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
-  Alert,
   Button,
   FormGroup,
   IconButton,
@@ -129,7 +128,6 @@ import { selectToken } from '../generalSlices/userSlice'
 
 import { MessageType } from '../models/MessageTypes'
 import { useGetRsuCountsQuery } from '../features/api/rsuCountsApiSlice'
-import { useGetScmsStatusQuery } from '../features/api/scmsApiSlice'
 import { RSU_POINT_LAYER_ID, RsuMapLayer } from '../components/map-layers/RsuMapLayer'
 import {
   INTERSECTION_ICON_ID,
@@ -142,7 +140,8 @@ import {
   WZDX_POINT_LAYER_ID,
   WzdxMapLayer,
 } from '../components/map-layers/WzdxMapLayer'
-import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../features/api/rsuOnlineStatusApiSlice'
+import { useRsuHealth } from '../features/rsu-health/useRsuHealth'
+import { RsuHealthControls } from '../features/rsu-health/RsuHealthControls'
 import { useGetGeoMsgDataMutation } from '../features/api/geoMsgApiSlice'
 
 import {
@@ -282,12 +281,9 @@ function MapPage() {
   const organization = useSelector(selectOrganizationName)
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
-  const scmsStatusQuery = useGetScmsStatusQuery(organization, { skip: !organization })
-  const onlineStatusQuery = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
   const rsuIpv4 = useSelector(selectRsuIpv4)
-  const lastOnlineQuery = useGetRsuLastOnlineQuery(rsuIpv4 ?? '', {
-    skip: !rsuIpv4,
-  })
+  const health = useRsuHealth(organization, rsuIpv4 ?? '')
+  const { onlineStatusQuery, scmsStatusQuery, lastOnlineQuery } = health
   const addConfigPoint = useSelector(selectAddConfigPoint)
   const configCoordinates = useSelector(selectConfigCoordinates)
   const geoMsgType = useSelector(selectGeoMsgType)
@@ -823,21 +819,9 @@ function MapPage() {
   const selectedOnlineStatus = getOnlineStatus(rsuIpv4, onlineStatusQuery)
   const selectedScmsStatus = getScmsStatus(rsuIpv4, scmsStatusQuery)
 
-  const handleScmsStatus = () => {
-    setDisplayType('scms')
-  }
-
-  const handleOnlineStatus = () => {
-    setDisplayType('online')
-  }
-
-  const handleRsuDisplayTypeChange = (event: React.SyntheticEvent) => {
-    const target = event.target as HTMLInputElement
-    if (target.value === 'online') handleOnlineStatus()
-    else if (target.value === 'scms') handleScmsStatus()
-    if (!activeLayers.includes(MAP_LAYERS.RSU.id)) {
-      dispatch(toggleLayerActive(MAP_LAYERS.RSU.id))
-    }
+  const handleRsuDisplayTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value
+    if (value === 'online' || value === 'scms') setDisplayType(value)
   }
 
   const MAP_LAYERS: Record<string, MapLayer> = {
@@ -953,6 +937,7 @@ function MapPage() {
         case MAP_LAYERS.RSU.id:
           dispatch(selectRsu(null))
           dispatch(clearFirmware())
+          if (addConfigPoint) dispatch(toggleConfigPointSelect())
           break
         case MAP_LAYERS.WZDX.id:
           setSelectedWZDxMarker(null)
@@ -1081,19 +1066,7 @@ function MapPage() {
 
   return (
     <div className="container">
-      <div className="menu-container map-control-container">
-        <ConditionalRenderRsu>
-          {onlineStatusQuery.isError && (
-            <Alert severity="warning" action={<Button disabled={onlineStatusQuery.isFetching} onClick={() => onlineStatusQuery.refetch()}>Retry</Button>}>
-              Online status unavailable.
-            </Alert>
-          )}
-          {scmsStatusQuery.isError && (
-            <Alert severity="warning" action={<Button disabled={scmsStatusQuery.isFetching} onClick={() => scmsStatusQuery.refetch()}>Retry</Button>}>
-              SCMS status unavailable.
-            </Alert>
-          )}
-        </ConditionalRenderRsu>
+      <Box className="menu-container map-control-container" sx={{ fontFamily: theme.typography.fontFamily, bgcolor: 'background.paper' }}>
         <Accordion
           style={{ backgroundColor: theme.palette.background.paper }}
           disableGutters={true}
@@ -1106,7 +1079,7 @@ function MapPage() {
             aria-controls="panel1-content"
             id="panel1-header"
           >
-            <Typography className="accordion-header museo-slab" color={theme.palette.text.primary}>
+            <Typography component="span" className="museo-slab" variant="subtitle2" sx={{ fontSize: '1rem', fontWeight: 500, fontFamily: '"museo-slab", Arial, Helvetica, sans-serif' }} color={theme.palette.text.primary}>
               Map Layers
             </Typography>
           </AccordionSummary>
@@ -1115,141 +1088,125 @@ function MapPage() {
           </AccordionDetails>
         </Accordion>
         <ConditionalRenderRsu>
-          <Divider />
-          <Accordion
-            style={{ backgroundColor: theme.palette.background.paper }}
-            disableGutters={true}
-            sx={{ '&.accordion': { marginBottom: 0 } }}
-            defaultExpanded
-            elevation={0}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
-              aria-controls="panel3-content"
-              id="panel3-header"
-            >
-              <Typography className="accordion-header museo-slab" color={theme.palette.text.primary}>
-                Filter RSUs
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <FormControl fullWidth>
-                <InputLabel htmlFor="vendor">Vendor</InputLabel>
-                <Select
-                  id="vendor"
-                  label="Vendor"
-                  value={selectedVendor}
-                  defaultValue={selectedVendor}
-                  onChange={(event) => {
-                    const vendor = event.target.value as string
-                    setVendor(vendor)
-                  }}
-                >
-                  {vendorArray.map((vendor) => (
-                    <MenuItem key={vendor} value={vendor}>
-                      <Typography>{vendor}</Typography>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Typography sx={{ marginTop: '12px' }}>RSU Status</Typography>
-              <FormControl sx={{ ml: 2, mt: 1 }}>
-                <RadioGroup value={displayType} onChange={handleRsuDisplayTypeChange}>
-                  {[
-                    { key: 'online', label: <Typography>Online Status</Typography> },
-                    { key: 'scms', label: <Typography>SCMS Status</Typography> },
-                  ].map((val) => (
-                    <FormControlLabel
-                      value={val.key}
-                      key={val.key}
-                      sx={{ mt: -1 }}
-                      control={
-                        <Radio
-                          sx={{
-                            color: theme.palette.text.primary,
-                            '&.Mui-checked': {
-                              color: theme.palette.primary.main,
-                            },
-                          }}
-                        />
-                      }
-                      label={val.label}
-                    />
-                  ))}
-                </RadioGroup>
-              </FormControl>
-            </AccordionDetails>
-          </Accordion>
-        </ConditionalRenderRsu>
-
-        <ConditionalRenderRsu>
-          {isAdminOrAbove && (
+          {activeLayers.includes(MAP_LAYERS.RSU.id) && (
             <>
               <Divider />
-              <Accordion
-                style={{ backgroundColor: theme.palette.background.paper }}
-                disableGutters={true}
-                sx={{ '&.accordion': { marginBottom: 0 } }}
-                defaultExpanded
-                elevation={0}
-              >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
-                  aria-controls="panel3-content"
-                  id="panel3-header"
-                >
-                  <Typography className="accordion-header museo-slab" color={theme.palette.text.primary}>
-                    RSU Configuration
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <FormGroup row className="form-group-row">
-                    <FormControlLabel
-                      control={<Switch checked={addConfigPoint} />}
-                      label={<Typography>Add Points</Typography>}
-                      onChange={(e) => handleButtonToggle(e, 'config')}
-                      sx={{ ml: 1 }}
-                    />
-                    <Tooltip title="Clear Points">
-                      <div>
-                        {/* prevents warning of Tooltip not wanting to wrap a disabled button element */}
-                        <IconButton
-                          disabled={configCoordinates.length == 0}
-                          onClick={() => {
-                            dispatch(clearConfig())
-                          }}
-                          size="large"
-                        >
-                          <ClearIcon />
-                        </IconButton>
-                      </div>
-                    </Tooltip>
-                  </FormGroup>
-                  <FormGroup row sx={{ justifyContent: 'center', alignItems: 'center' }}>
-                    <Button
-                      variant="outlined"
-                      color="info"
-                      sx={{
-                        '&.Mui-disabled': {
-                          backgroundColor: alpha(theme.palette.primary.light, 0.5),
-                        },
-                        width: '100%',
-                      }}
-                      disabled={!(configCoordinates.length > 2)}
-                      onClick={() => {
-                        dispatch(geoRsuQuery(selectedVendor))
-                      }}
-                      className="museo-slab capital-case"
-                    >
-                      Configure RSUs
-                    </Button>
-                  </FormGroup>
-                </AccordionDetails>
-              </Accordion>
+              <RsuHealthControls health={health}>
+                <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
+                  <InputLabel id="rsu-vendor-label" htmlFor="vendor">Vendor</InputLabel>
+                  <Select
+                    id="vendor"
+                    labelId="rsu-vendor-label"
+                    label="Vendor"
+                    value={selectedVendor}
+                    onChange={(event) => {
+                      const vendor = event.target.value as string
+                      setVendor(vendor)
+                    }}
+                  >
+                    {vendorArray.map((vendor) => (
+                      <MenuItem key={vendor} value={vendor}>
+                        <Typography>{vendor === 'Select Vendor' ? 'All Vendors' : vendor}</Typography>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl component="fieldset" fullWidth>
+                  <Typography component="legend" variant="body2" color="text.secondary">Status View</Typography>
+                  <RadioGroup aria-label="RSU status view" value={displayType} onChange={handleRsuDisplayTypeChange}>
+                    {[
+                      { key: 'online', label: <Typography>Online Status</Typography> },
+                      { key: 'scms', label: <Typography>SCMS Status</Typography> },
+                    ].map((val) => (
+                      <FormControlLabel
+                        value={val.key}
+                        key={val.key}
+                        control={
+                          <Radio
+                            size="small"
+                            sx={{
+                              color: theme.palette.text.primary,
+                              '&.Mui-checked': {
+                                color: theme.palette.primary.main,
+                              },
+                            }}
+                          />
+                        }
+                        label={val.label}
+                      />
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+              </RsuHealthControls>
             </>
           )}
         </ConditionalRenderRsu>
-      </div>
+
+        <ConditionalRenderRsu>
+          {isAdminOrAbove && activeLayers.includes(MAP_LAYERS.RSU.id) && (
+            <Accordion
+              style={{ backgroundColor: theme.palette.background.paper }}
+              disableGutters={true}
+              sx={{ '&.accordion': { marginBottom: 0 } }}
+              defaultExpanded
+              elevation={0}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
+                aria-controls="rsu-config-content"
+                id="rsu-config-header"
+              >
+                <Typography component="span" className="museo-slab" variant="subtitle2" sx={{ fontSize: '1rem', fontWeight: 500, fontFamily: '"museo-slab", Arial, Helvetica, sans-serif' }} color={theme.palette.text.primary}>
+                  RSU Configuration
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <FormGroup row sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: 1, mb: 1 }}>
+                  <FormControlLabel
+                    control={<Switch checked={addConfigPoint} />}
+                    label={<Typography>Add Points</Typography>}
+                    onChange={(e) => handleButtonToggle(e, 'config')}
+                    sx={{ m: 0, minWidth: 0 }}
+                  />
+                  <Tooltip title="Clear Points">
+                    <div>
+                      {/* prevents warning of Tooltip not wanting to wrap a disabled button element */}
+                      <IconButton
+                        aria-label="Clear configuration points"
+                        disabled={configCoordinates.length == 0}
+                        onClick={() => {
+                          dispatch(clearConfig())
+                        }}
+                        size="large"
+                      >
+                        <ClearIcon />
+                      </IconButton>
+                    </div>
+                  </Tooltip>
+                </FormGroup>
+                <FormGroup row sx={{ justifyContent: 'center', alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    color="info"
+                    sx={{
+                      '&.Mui-disabled': {
+                        backgroundColor: alpha(theme.palette.primary.light, 0.5),
+                      },
+                      width: '100%',
+                    }}
+                    disabled={!(configCoordinates.length > 2)}
+                    onClick={() => {
+                      dispatch(geoRsuQuery(selectedVendor))
+                    }}
+                  >
+                    Configure RSUs
+                  </Button>
+                </FormGroup>
+              </AccordionDetails>
+            </Accordion>
+          )}
+        </ConditionalRenderRsu>
+      </Box>
       <ConditionalRenderRsu>
         <PrimaryButton
           sx={{

@@ -6,7 +6,7 @@ exports[`snapshot bsmCoordinates wzdx 1`] = `
     class="container"
   >
     <div
-      class="menu-container map-control-container"
+      class="menu-container map-control-container MuiBox-root css-13zcwd1"
     >
       <div
         class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 MuiAccordion-root MuiAccordion-rounded Mui-expanded css-mocked-MuiPaper-root-MuiAccordion-root"
@@ -26,11 +26,11 @@ exports[`snapshot bsmCoordinates wzdx 1`] = `
             <span
               class="MuiAccordionSummary-content Mui-expanded css-mocked-MuiAccordionSummary-content"
             >
-              <p
-                class="MuiTypography-root MuiTypography-body1 accordion-header museo-slab css-mocked-MuiTypography-root"
+              <span
+                class="MuiTypography-root MuiTypography-subtitle2 museo-slab css-mocked-MuiTypography-root"
               >
                 Map Layers
-              </p>
+              </span>
             </span>
             <span
               class="MuiAccordionSummary-expandIconWrapper Mui-expanded css-mocked-MuiAccordionSummary-expandIconWrapper"
@@ -317,240 +317,6 @@ exports[`snapshot bsmCoordinates wzdx 1`] = `
                           </p>
                         </label>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <hr
-        class="MuiDivider-root MuiDivider-fullWidth css-mocked-MuiDivider-root"
-      />
-      <div
-        class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 MuiAccordion-root MuiAccordion-rounded Mui-expanded css-mocked-MuiPaper-root-MuiAccordion-root"
-        style="--Paper-shadow: none; background-color: rgb(255, 255, 255);"
-      >
-        <h3
-          class="MuiAccordion-heading css-mocked-MuiAccordion-heading"
-        >
-          <button
-            aria-controls="panel3-content"
-            aria-expanded="true"
-            class="MuiButtonBase-root MuiAccordionSummary-root Mui-expanded css-mocked-MuiButtonBase-root-MuiAccordionSummary-root"
-            id="panel3-header"
-            tabindex="0"
-            type="button"
-          >
-            <span
-              class="MuiAccordionSummary-content Mui-expanded css-mocked-MuiAccordionSummary-content"
-            >
-              <p
-                class="MuiTypography-root MuiTypography-body1 accordion-header museo-slab css-mocked-MuiTypography-root"
-              >
-                Filter RSUs
-              </p>
-            </span>
-            <span
-              class="MuiAccordionSummary-expandIconWrapper Mui-expanded css-mocked-MuiAccordionSummary-expandIconWrapper"
-            >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root"
-                data-testid="ExpandMoreIcon"
-                focusable="false"
-                style="color: rgba(0, 0, 0, 0.87);"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z"
-                />
-              </svg>
-            </span>
-          </button>
-        </h3>
-        <div
-          class="MuiCollapse-root MuiCollapse-vertical MuiCollapse-entered css-mocked-MuiCollapse-root"
-          style="min-height: 0px;"
-        >
-          <div
-            class="MuiCollapse-wrapper MuiCollapse-vertical css-mocked-MuiCollapse-wrapper"
-          >
-            <div
-              class="MuiCollapse-wrapperInner MuiCollapse-vertical css-mocked-MuiCollapse-wrapperInner"
-            >
-              <div
-                aria-labelledby="panel3-header"
-                class="MuiAccordion-region"
-                id="panel3-content"
-                role="region"
-              >
-                <div
-                  class="MuiAccordionDetails-root css-mocked-MuiAccordionDetails-root"
-                >
-                  <div
-                    class="MuiFormControl-root MuiFormControl-fullWidth css-mocked-MuiFormControl-root"
-                  >
-                    <label
-                      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-mocked-MuiFormLabel-root-MuiInputLabel-root"
-                      data-shrink="true"
-                      for="vendor"
-                    >
-                      Vendor
-                    </label>
-                    <div
-                      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl MuiSelect-root css-mocked-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
-                    >
-                      <div
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        aria-labelledby="vendor"
-                        class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-mocked-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-                        id="vendor"
-                        role="combobox"
-                        tabindex="0"
-                      >
-                        <p
-                          class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                        >
-                          Select Vendor
-                        </p>
-                      </div>
-                      <input
-                        aria-hidden="true"
-                        class="MuiSelect-nativeInput css-mocked-MuiSelect-nativeInput"
-                        tabindex="-1"
-                        value="Select Vendor"
-                      />
-                      <svg
-                        aria-hidden="true"
-                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-mocked-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
-                        data-testid="ArrowDropDownIcon"
-                        focusable="false"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M7 10l5 5 5-5z"
-                        />
-                      </svg>
-                      <fieldset
-                        aria-hidden="true"
-                        class="MuiOutlinedInput-notchedOutline css-mocked-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
-                      >
-                        <legend
-                          class="css-mocked-MuiNotchedOutlined-root"
-                        >
-                          <span>
-                            Vendor
-                          </span>
-                        </legend>
-                      </fieldset>
-                    </div>
-                  </div>
-                  <p
-                    class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                  >
-                    RSU Status
-                  </p>
-                  <div
-                    class="MuiFormControl-root css-mocked-MuiFormControl-root"
-                  >
-                    <div
-                      class="MuiFormGroup-root MuiRadioGroup-root css-mocked-MuiFormGroup-root"
-                      role="radiogroup"
-                    >
-                      <label
-                        class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
-                      >
-                        <span
-                          class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary Mui-checked MuiRadio-root MuiRadio-colorPrimary css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
-                        >
-                          <input
-                            checked=""
-                            class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
-                            name="mui-2"
-                            type="radio"
-                            value="online"
-                          />
-                          <span
-                            class="css-mocked-MuiRadioButtonIcon-root"
-                          >
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
-                              data-testid="RadioButtonUncheckedIcon"
-                              focusable="false"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                              />
-                            </svg>
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
-                              data-testid="RadioButtonCheckedIcon"
-                              focusable="false"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
-                              />
-                            </svg>
-                          </span>
-                        </span>
-                        <p
-                          class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                        >
-                          Online Status
-                        </p>
-                      </label>
-                      <label
-                        class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
-                      >
-                        <span
-                          class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
-                        >
-                          <input
-                            class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
-                            name="mui-2"
-                            type="radio"
-                            value="scms"
-                          />
-                          <span
-                            class="css-mocked-MuiRadioButtonIcon-root"
-                          >
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
-                              data-testid="RadioButtonUncheckedIcon"
-                              focusable="false"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                              />
-                            </svg>
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
-                              data-testid="RadioButtonCheckedIcon"
-                              focusable="false"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
-                              />
-                            </svg>
-                          </span>
-                        </span>
-                        <p
-                          class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                        >
-                          SCMS Status
-                        </p>
-                      </label>
                     </div>
                   </div>
                 </div>
@@ -592,7 +358,7 @@ exports[`snapshot bsmData clicked 1`] = `
     class="container"
   >
     <div
-      class="menu-container map-control-container"
+      class="menu-container map-control-container MuiBox-root css-13zcwd1"
     >
       <div
         class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 MuiAccordion-root MuiAccordion-rounded Mui-expanded css-mocked-MuiPaper-root-MuiAccordion-root"
@@ -612,11 +378,11 @@ exports[`snapshot bsmData clicked 1`] = `
             <span
               class="MuiAccordionSummary-content Mui-expanded css-mocked-MuiAccordionSummary-content"
             >
-              <p
-                class="MuiTypography-root MuiTypography-body1 accordion-header museo-slab css-mocked-MuiTypography-root"
+              <span
+                class="MuiTypography-root MuiTypography-subtitle2 museo-slab css-mocked-MuiTypography-root"
               >
                 Map Layers
-              </p>
+              </span>
             </span>
             <span
               class="MuiAccordionSummary-expandIconWrapper Mui-expanded css-mocked-MuiAccordionSummary-expandIconWrapper"
@@ -914,237 +680,231 @@ exports[`snapshot bsmData clicked 1`] = `
       <hr
         class="MuiDivider-root MuiDivider-fullWidth css-mocked-MuiDivider-root"
       />
-      <div
-        class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 MuiAccordion-root MuiAccordion-rounded Mui-expanded css-mocked-MuiPaper-root-MuiAccordion-root"
-        style="--Paper-shadow: none; background-color: rgb(255, 255, 255);"
+      <section
+        aria-label="RSU Health"
+        class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 css-mocked-MuiPaper-root"
+        style="--Paper-shadow: none;"
       >
-        <h3
-          class="MuiAccordion-heading css-mocked-MuiAccordion-heading"
-        >
-          <button
-            aria-controls="panel3-content"
-            aria-expanded="true"
-            class="MuiButtonBase-root MuiAccordionSummary-root Mui-expanded css-mocked-MuiButtonBase-root-MuiAccordionSummary-root"
-            id="panel3-header"
-            tabindex="0"
-            type="button"
-          >
-            <span
-              class="MuiAccordionSummary-content Mui-expanded css-mocked-MuiAccordionSummary-content"
-            >
-              <p
-                class="MuiTypography-root MuiTypography-body1 accordion-header museo-slab css-mocked-MuiTypography-root"
-              >
-                Filter RSUs
-              </p>
-            </span>
-            <span
-              class="MuiAccordionSummary-expandIconWrapper Mui-expanded css-mocked-MuiAccordionSummary-expandIconWrapper"
-            >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root"
-                data-testid="ExpandMoreIcon"
-                focusable="false"
-                style="color: rgba(0, 0, 0, 0.87);"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z"
-                />
-              </svg>
-            </span>
-          </button>
-        </h3>
         <div
-          class="MuiCollapse-root MuiCollapse-vertical MuiCollapse-entered css-mocked-MuiCollapse-root"
-          style="min-height: 0px;"
+          class="MuiBox-root css-1kwprz4"
         >
           <div
-            class="MuiCollapse-wrapper MuiCollapse-vertical css-mocked-MuiCollapse-wrapper"
+            class="MuiBox-root css-1fjtzvx"
           >
+            <h3
+              class="MuiTypography-root MuiTypography-subtitle2 museo-slab css-mocked-MuiTypography-root"
+            >
+              RSU Health
+            </h3>
             <div
-              class="MuiCollapse-wrapperInner MuiCollapse-vertical css-mocked-MuiCollapse-wrapperInner"
+              class="MuiBox-root css-171onha"
             >
               <div
-                aria-labelledby="panel3-header"
-                class="MuiAccordion-region"
-                id="panel3-content"
-                role="region"
+                aria-live="polite"
+                class="MuiBox-root css-1u5x3l2"
+                role="status"
               >
-                <div
-                  class="MuiAccordionDetails-root css-mocked-MuiAccordionDetails-root"
+                <span
+                  class="MuiTypography-root MuiTypography-caption css-mocked-MuiTypography-root"
                 >
-                  <div
-                    class="MuiFormControl-root MuiFormControl-fullWidth css-mocked-MuiFormControl-root"
-                  >
-                    <label
-                      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-mocked-MuiFormLabel-root-MuiInputLabel-root"
-                      data-shrink="true"
-                      for="vendor"
-                    >
-                      Vendor
-                    </label>
-                    <div
-                      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl MuiSelect-root css-mocked-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
-                    >
-                      <div
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        aria-labelledby="vendor"
-                        class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-mocked-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-                        id="vendor"
-                        role="combobox"
-                        tabindex="0"
-                      >
-                        <p
-                          class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                        >
-                          Select Vendor
-                        </p>
-                      </div>
-                      <input
-                        aria-hidden="true"
-                        class="MuiSelect-nativeInput css-mocked-MuiSelect-nativeInput"
-                        tabindex="-1"
-                        value="Select Vendor"
-                      />
-                      <svg
-                        aria-hidden="true"
-                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-mocked-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
-                        data-testid="ArrowDropDownIcon"
-                        focusable="false"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M7 10l5 5 5-5z"
-                        />
-                      </svg>
-                      <fieldset
-                        aria-hidden="true"
-                        class="MuiOutlinedInput-notchedOutline css-mocked-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
-                      >
-                        <legend
-                          class="css-mocked-MuiNotchedOutlined-root"
-                        >
-                          <span>
-                            Vendor
-                          </span>
-                        </legend>
-                      </fieldset>
-                    </div>
-                  </div>
-                  <p
-                    class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                  >
-                    RSU Status
-                  </p>
-                  <div
-                    class="MuiFormControl-root css-mocked-MuiFormControl-root"
-                  >
-                    <div
-                      class="MuiFormGroup-root MuiRadioGroup-root css-mocked-MuiFormGroup-root"
-                      role="radiogroup"
-                    >
-                      <label
-                        class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
-                      >
-                        <span
-                          class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary Mui-checked MuiRadio-root MuiRadio-colorPrimary css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
-                        >
-                          <input
-                            checked=""
-                            class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
-                            name="mui-8"
-                            type="radio"
-                            value="online"
-                          />
-                          <span
-                            class="css-mocked-MuiRadioButtonIcon-root"
-                          >
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
-                              data-testid="RadioButtonUncheckedIcon"
-                              focusable="false"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                              />
-                            </svg>
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
-                              data-testid="RadioButtonCheckedIcon"
-                              focusable="false"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
-                              />
-                            </svg>
-                          </span>
-                        </span>
-                        <p
-                          class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                        >
-                          Online Status
-                        </p>
-                      </label>
-                      <label
-                        class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
-                      >
-                        <span
-                          class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
-                        >
-                          <input
-                            class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
-                            name="mui-8"
-                            type="radio"
-                            value="scms"
-                          />
-                          <span
-                            class="css-mocked-MuiRadioButtonIcon-root"
-                          >
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
-                              data-testid="RadioButtonUncheckedIcon"
-                              focusable="false"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                              />
-                            </svg>
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
-                              data-testid="RadioButtonCheckedIcon"
-                              focusable="false"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
-                              />
-                            </svg>
-                          </span>
-                        </span>
-                        <p
-                          class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                        >
-                          SCMS Status
-                        </p>
-                      </label>
-                    </div>
-                  </div>
-                </div>
+                  Waiting for data
+                </span>
               </div>
+              <button
+                aria-expanded="false"
+                aria-label="Show health data details"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-mocked-MuiButtonBase-root-MuiIconButton-root"
+                data-mui-internal-clone-element="true"
+                tabindex="0"
+                title="Fetch times show when data was received, not when the device was checked."
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root"
+                  data-testid="InfoOutlinedIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
-      </div>
+        <div
+          class="MuiBox-root css-1oeodld"
+        >
+          <div
+            class="MuiFormControl-root MuiFormControl-fullWidth css-mocked-MuiFormControl-root"
+          >
+            <label
+              class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeSmall MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeSmall MuiInputLabel-outlined css-mocked-MuiFormLabel-root-MuiInputLabel-root"
+              data-shrink="true"
+              for="vendor"
+              id="rsu-vendor-label"
+            >
+              Vendor
+            </label>
+            <div
+              class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-sizeSmall MuiSelect-root css-mocked-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
+            >
+              <div
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                aria-labelledby="rsu-vendor-label vendor"
+                class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputSizeSmall css-mocked-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+                id="vendor"
+                role="combobox"
+                tabindex="0"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
+                >
+                  All Vendors
+                </p>
+              </div>
+              <input
+                aria-hidden="true"
+                class="MuiSelect-nativeInput css-mocked-MuiSelect-nativeInput"
+                tabindex="-1"
+                value="Select Vendor"
+              />
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-mocked-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
+                data-testid="ArrowDropDownIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M7 10l5 5 5-5z"
+                />
+              </svg>
+              <fieldset
+                aria-hidden="true"
+                class="MuiOutlinedInput-notchedOutline css-mocked-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+              >
+                <legend
+                  class="css-mocked-MuiNotchedOutlined-root"
+                >
+                  <span>
+                    Vendor
+                  </span>
+                </legend>
+              </fieldset>
+            </div>
+          </div>
+          <fieldset
+            class="MuiFormControl-root MuiFormControl-fullWidth css-mocked-MuiFormControl-root"
+          >
+            <legend
+              class="MuiTypography-root MuiTypography-body2 css-mocked-MuiTypography-root"
+            >
+              Status View
+            </legend>
+            <div
+              aria-label="RSU status view"
+              class="MuiFormGroup-root MuiRadioGroup-root css-mocked-MuiFormGroup-root"
+              role="radiogroup"
+            >
+              <label
+                class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
+              >
+                <span
+                  class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-sizeSmall PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-sizeSmall Mui-checked MuiRadio-root MuiRadio-colorPrimary MuiRadio-sizeSmall css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
+                >
+                  <input
+                    checked=""
+                    class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
+                    name="mui-12"
+                    type="radio"
+                    value="online"
+                  />
+                  <span
+                    class="css-mocked-MuiRadioButtonIcon-root"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                      data-testid="RadioButtonUncheckedIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                      />
+                    </svg>
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                      data-testid="RadioButtonCheckedIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+                <p
+                  class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
+                >
+                  Online Status
+                </p>
+              </label>
+              <label
+                class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
+              >
+                <span
+                  class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-sizeSmall PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-sizeSmall MuiRadio-root MuiRadio-colorPrimary MuiRadio-sizeSmall css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
+                >
+                  <input
+                    class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
+                    name="mui-12"
+                    type="radio"
+                    value="scms"
+                  />
+                  <span
+                    class="css-mocked-MuiRadioButtonIcon-root"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                      data-testid="RadioButtonUncheckedIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                      />
+                    </svg>
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                      data-testid="RadioButtonCheckedIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+                <p
+                  class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
+                >
+                  SCMS Status
+                </p>
+              </label>
+            </div>
+          </fieldset>
+        </div>
+      </section>
     </div>
     <button
       class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeMedium MuiButton-containedSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeMedium MuiButton-containedSizeMedium MuiButton-colorPrimary museo-slab capital-case css-mocked-MuiButtonBase-root-MuiButton-root"
