@@ -4,6 +4,7 @@ import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import RsuMessageForwardingApi from '../apis/intersections/rsu-message-forwarding-api'
 import {
   ForwardingMessageType,
+  ForwardingDeviceOutcome,
   MessageForwardingResponse,
   MessageForwardingResult,
 } from '../models/RsuMessageForwarding'
@@ -97,8 +98,9 @@ async function executeForwardingRequests(
   send: (batch: string[]) => Promise<ApiMsgRespWithCodes<MessageForwardingResponse> | null>
 ) {
   const selected = [...new Set(ips)]
-  if (selected.length === 0) return { changeSuccess: false, errorState: 'No RSUs selected' }
+  if (selected.length === 0) return { changeSuccess: false, errorState: 'No RSUs selected', results: [] as ForwardingDeviceOutcome[] }
   const failures: string[] = []
+  const results: ForwardingDeviceOutcome[] = []
   for (let offset = 0; offset < selected.length; offset += 100) {
     const batch = selected.slice(offset, offset + 100)
     let response: ApiMsgRespWithCodes<MessageForwardingResponse> | null
@@ -109,17 +111,19 @@ async function executeForwardingRequests(
       response = null
     }
     for (const ip of batch) {
+      const result = response?.status === 200 ? response.body?.[ip] : undefined
+      results.push({ ip, result, status: response?.status, success: response?.status === 200 && forwardingCompleted(result) })
       if (response?.status !== 200) {
         failures.push(`${ip}: ${response?.message || 'Request did not complete; check RSU state before retrying.'}`)
         continue
       }
-      const result = response.body?.[ip]
       if (forwardingCompleted(result)) continue
       failures.push(`${ip}: ${forwardingFailureMessage(result)}`)
     }
   }
   return {
     changeSuccess: failures.length === 0,
+    results,
     errorState:
       failures.length === 0
         ? ''

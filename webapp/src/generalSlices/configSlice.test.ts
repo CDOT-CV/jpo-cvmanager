@@ -360,7 +360,7 @@ describe('async thunks', () => {
           body: Object.fromEntries(ips.map((ip) => [ip, result()])),
         })
         const legacy = jest.spyOn(RsuApi, 'postRsuData')
-        expect((await run(operation)).payload).toEqual({ changeSuccess: true, errorState: '' })
+        expect((await run(operation)).payload).toMatchObject({ changeSuccess: true, errorState: '' })
         expect(api).toHaveBeenCalledWith('token', 'Org 1', {
           rsu_ips: ips,
           message_type: 'MAP',
@@ -385,7 +385,7 @@ describe('async thunks', () => {
           },
         })
         const outcome = await run(operation)
-        expect(outcome.payload).toEqual({
+        expect(outcome.payload).toMatchObject({
           changeSuccess: false,
           errorState: expect.stringContaining('1 of 2 RSUs completed successfully'),
         })
@@ -404,7 +404,7 @@ describe('async thunks', () => {
           [result({ databaseSync: 'FAILED' }), 'Forwarding change verified, but the database update failed'],
         ] as const) {
           api.mockResolvedValue({ status: 200, message: '', body: { [ips[0]]: failure } })
-          expect((await run(operation, [ips[0]])).payload).toEqual({
+          expect((await run(operation, [ips[0]])).payload).toMatchObject({
             changeSuccess: false,
             errorState: expect.stringContaining(message),
           })
@@ -419,10 +419,10 @@ describe('async thunks', () => {
           { status: 403, body: null, message: 'Not permitted for this organization' },
         ]) {
           api.mockResolvedValue(response)
-          expect((await run(operation)).payload).toEqual({ changeSuccess: false, errorState: expect.any(String) })
+          expect((await run(operation)).payload).toMatchObject({ changeSuccess: false, errorState: expect.any(String) })
         }
         api.mockRejectedValue(new Error('network disconnected'))
-        expect((await run(operation)).payload).toEqual({
+        expect((await run(operation)).payload).toMatchObject({
           changeSuccess: false,
           errorState: expect.stringContaining('check RSU state before retrying'),
         })
@@ -435,7 +435,7 @@ describe('async thunks', () => {
           body: Object.fromEntries(body.rsu_ips.map((ip) => [ip, result()])),
         }))
         const selected = Array.from({ length: 201 }, (_, index) => `192.0.2.${index + 1}`)
-        expect((await run(operation, [...selected, selected[0]])).payload).toEqual({
+        expect((await run(operation, [...selected, selected[0]])).payload).toMatchObject({
           changeSuccess: true,
           errorState: '',
         })
@@ -452,7 +452,13 @@ describe('async thunks', () => {
             [ips[1]]: result({ writeState: 'NOT_SUBMITTED', changed: false }),
           },
         })
-        expect((await run(operation)).payload).toEqual({ changeSuccess: true, errorState: '' })
+        expect((await run(operation)).payload).toMatchObject({
+          changeSuccess: true, errorState: '',
+          results: [
+            { ip: ips[0], success: true, result: { changed: true } },
+            { ip: ips[1], success: true, result: { changed: false } },
+          ],
+        })
       })
 
       it('does not accept an unchanged device when database synchronization failed', async () => {
@@ -463,7 +469,7 @@ describe('async thunks', () => {
             [ips[0]]: result({ writeState: 'NOT_SUBMITTED', changed: false, databaseSync: 'FAILED' }),
           },
         })
-        expect((await run(operation, [ips[0]])).payload).toEqual({
+        expect((await run(operation, [ips[0]])).payload).toMatchObject({
           changeSuccess: false,
           errorState: expect.stringContaining('0 of 1 RSUs completed successfully'),
         })
@@ -471,7 +477,7 @@ describe('async thunks', () => {
 
       it('does not send an empty selection', async () => {
         const api = jest.spyOn(RsuMessageForwardingApi, operation)
-        expect((await run(operation, [])).payload).toEqual({ changeSuccess: false, errorState: 'No RSUs selected' })
+        expect((await run(operation, [])).payload).toMatchObject({ changeSuccess: false, errorState: 'No RSUs selected' })
         expect(api).not.toHaveBeenCalled()
       })
 
@@ -496,7 +502,7 @@ describe('async thunks', () => {
         const outcome = await pending
         expect(api).toHaveBeenCalledTimes(2)
         expect(api.mock.calls[1][2].rsu_ips).toEqual(selected.slice(100))
-        expect(outcome.payload).toEqual({
+        expect(outcome.payload).toMatchObject({
           changeSuccess: false,
           errorState: expect.stringContaining('1 of 101 RSUs completed successfully'),
         })
@@ -512,7 +518,7 @@ describe('async thunks', () => {
           [ips[0]]: result({ writeState: 'NOT_SUBMITTED', changed: false }),
         },
       })
-      expect((await run(operation, [ips[0]])).payload).toEqual({ changeSuccess: true, errorState: '' })
+      expect((await run(operation, [ips[0]])).payload).toMatchObject({ changeSuccess: true, errorState: '' })
     })
 
     it.each(['UPDATED', 'NOT_UPDATED', 'FAILED'] as const)('preserves selected-row write evidence when database sync is %s', async (sync) => {

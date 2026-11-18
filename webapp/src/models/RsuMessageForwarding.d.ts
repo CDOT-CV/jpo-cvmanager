@@ -32,6 +32,15 @@ export type MessageForwardingResult = {
 
 export type MessageForwardingResponse = Record<string, MessageForwardingResult>
 
+/** Per-device evidence retained for the webapp's compact batch results. */
+export type ForwardingDeviceOutcome = {
+  ip: string
+  success: boolean
+  skipped?: boolean
+  result?: MessageForwardingResult
+  status?: number
+}
+
 export type MessageForwardingConfiguration = {
   table: 'RECEIVE' | 'TRANSMIT' | 'DSRC'
   index: number
