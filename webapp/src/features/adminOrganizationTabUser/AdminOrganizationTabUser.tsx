@@ -3,7 +3,7 @@ import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import Typography from '@mui/material/Typography'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { confirmAlert } from 'react-confirm-alert'
 import { useDispatch, useSelector } from 'react-redux'
 import { DropdownList, Multiselect } from 'react-widgets'
@@ -32,7 +32,8 @@ import {
   useLazyGetUserOrganizationsQuery,
   usePatchOrganizationMutation,
 } from '../api/organizationApiSlice'
-import { useGetUserAllowedSelectionsQuery, useGetUsersQuery } from '../api/userApiSlice'
+import { useGetUserAllowedSelectionsQuery, useGetUsersQuery, useLazyGetUsersQuery } from '../api/userApiSlice'
+import { useServerPagedAdminTable } from '../../hooks/useServerPagedAdminTable'
 
 interface AdminOrganizationTabUserProps {
   selectedOrgId: number
@@ -47,7 +48,6 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   const { currentData: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgId, {
     skip: !selectedOrgId,
   })
-  const { currentData: userTableData } = useGetUsersQuery({ organization: selectedOrgId })
   const { currentData: allowedSelections } = useGetUserAllowedSelectionsQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getUserOrganizations] = useLazyGetUserOrganizationsQuery()
@@ -78,16 +78,27 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     },
   ])
 
-  const userData = useMemo(() => {
-    return userTableData?.content.map((user) => {
-      // TODO: After UserOrganization gets updated to use org id number, change this comparison to use selectedOrgId instead of selectedOrgName
-      const orgInfo = user.organizations.find((org) => org.organization === selectedOrgId)
-      return {
-        ...user,
-        role: orgInfo ? orgInfo.role.toLowerCase() : '',
-      }
-    })
-  }, [userTableData])
+  const mapUserRows = useCallback(
+    (rows: any[]) =>
+      rows.map((user) => {
+        const orgInfo = user.organizations.find((org) => org.organization === selectedOrgId)
+        return {
+          ...user,
+          role: orgInfo ? orgInfo.role.toLowerCase() : '',
+        }
+      }),
+    [selectedOrgId]
+  )
+
+  const { tableRef, isRefreshing, handleQueryChange } = useServerPagedAdminTable({
+    organization: selectedOrgId,
+    columns: userColumns,
+    defaultSortField: 'first_name',
+    entityName: 'Users',
+    useQuery: useGetUsersQuery,
+    useLazyQuery: useLazyGetUsersQuery,
+    mapRows: mapUserRows,
+  })
 
   const userActions: Action<AdminUserForOrg>[] = [
     {
@@ -385,7 +396,9 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
                 ))}
               <AdminTable
                 title=""
-                data={userData || []}
+                handleQueryChange={handleQueryChange}
+                isLoading={isRefreshing}
+                tableRef={tableRef}
                 columns={userColumns}
                 actions={userActions}
                 editable={userTableEditable}
