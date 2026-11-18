@@ -22,8 +22,9 @@ import {
   useLazyGetRsuOrganizationsQuery,
   usePatchOrganizationMutation,
 } from '../api/organizationApiSlice'
-import { useGetAllRsusQuery } from '../api/rsuApiSlice'
+import { useGetAllRsusQuery, useLazyGetAllRsusQuery } from '../api/rsuApiSlice'
 import '../css/multiselect.css'
+import { useServerPagedAdminTable } from '../../hooks/useServerPagedAdminTable'
 
 interface AdminOrganizationTabRsuProps {
   selectedOrgId: number
@@ -35,7 +36,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const theme = useTheme()
 
   const { currentData: availableRsuList } = useGetAllRsusNotInOrganizationQuery(selectedOrgId)
-  const { currentData: rsuTableData } = useGetAllRsusQuery({ organization: selectedOrgId })
+  const { currentData: rsuTableData } = useGetAllRsusQuery({ organization: selectedOrgId, size: 100 })
 
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getRsuOrganizations] = useLazyGetRsuOrganizationsQuery()
@@ -80,6 +81,15 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
       ),
     },
   ])
+
+  const { handleQueryChange, isRefreshing, tableRef } = useServerPagedAdminTable({
+    organization: selectedOrgId,
+    columns: rsuColumns,
+    defaultSortField: 'ip',
+    entityName: 'RSUs',
+    useQuery: useGetAllRsusQuery,
+    useLazyQuery: useLazyGetAllRsusQuery,
+  })
 
   const timDepositStatus = useMemo(() => {
     const rsuList = rsuTableData?.content ?? []
@@ -466,7 +476,14 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         <AccordionDetails sx={{ padding: '8px 0px' }}>
           {loadingGlobal === false && [
             <div key="adminTable">
-              <AdminTable title={''} data={rsuTableData?.content} columns={rsuColumns} actions={rsuActions} />
+              <AdminTable
+                title=""
+                columns={rsuColumns}
+                actions={rsuActions}
+                handleQueryChange={handleQueryChange}
+                isLoading={isRefreshing}
+                tableRef={tableRef}
+              />
             </div>,
           ]}
         </AccordionDetails>
