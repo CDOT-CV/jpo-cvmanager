@@ -64,7 +64,7 @@ describe('RSU status retry requests', () => {
     })
 
     render(<ThemeProvider theme={testTheme}><Provider store={store}><DisplayRsuErrors /></Provider></ThemeProvider>)
-    const alert = (await screen.findByText(`${name} status unavailable.`)).closest<HTMLElement>('[role="alert"]')!
+    const alert = (await screen.findByText(`${name} update failed`)).closest<HTMLElement>('[role="alert"]')!
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     const retry = within(alert).getByRole('button', { name: 'Retry' })
     act(() => {
@@ -73,7 +73,7 @@ describe('RSU status retry requests', () => {
     })
     await waitFor(() => expect(attempts).toBe(2))
     expect(fetchMock).toHaveBeenCalledTimes(3)
-    expect(screen.queryByText(`${name} status unavailable.`)).not.toBeInTheDocument()
+    expect(screen.queryByText(`${name} update failed`)).not.toBeInTheDocument()
     await act(async () => { finishRetry(JSON.stringify(response)) })
     await waitFor(() => expect(screen.queryByText('Loading')).not.toBeInTheDocument())
     expect(screen.getAllByText(name === 'Online' ? 'Online' : 'Healthy').length).toBeGreaterThan(0)
@@ -90,9 +90,9 @@ describe('RSU status retry requests', () => {
       throw new Error(`Unexpected request: ${request.url}`)
     })
     render(<ThemeProvider theme={testTheme}><Provider store={store}><DisplayRsuErrors /></Provider></ThemeProvider>)
-    const alert = (await screen.findByText('Online status unavailable.')).closest<HTMLElement>('[role="alert"]')!
+    const alert = (await screen.findByText('Online update failed')).closest<HTMLElement>('[role="alert"]')!
     fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }))
-    expect(await screen.findByText('Online status unavailable.')).toBeInTheDocument()
+    expect(await screen.findByText('Online update failed')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(screen.queryByText('Offline')).not.toBeInTheDocument()
   })

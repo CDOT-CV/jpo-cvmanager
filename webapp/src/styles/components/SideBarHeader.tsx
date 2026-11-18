@@ -1,21 +1,33 @@
 import { useTheme, Stack, IconButton, Typography } from '@mui/material'
+import type { ReactNode } from 'react'
 import CloseIcon from '@mui/icons-material/Close'
 
 type SideBarHeaderProps = {
   onClick: () => void
   title: string
+  children?: ReactNode
 }
 
 export const SideBarHeader = (props: SideBarHeaderProps) => {
   const theme = useTheme()
+  const closeButton = (
+    <IconButton onClick={props.onClick} sx={{ color: theme.palette.text.primary }}>
+      <CloseIcon />
+    </IconButton>
+  )
   return (
     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
       <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
         {props.title}
       </Typography>
-      <IconButton onClick={props.onClick} sx={{ color: theme.palette.text.primary }}>
-        <CloseIcon />
-      </IconButton>
+      {props.children ? (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
+          {props.children}
+          {closeButton}
+        </Stack>
+      ) : (
+        closeButton
+      )}
     </Stack>
   )
 }

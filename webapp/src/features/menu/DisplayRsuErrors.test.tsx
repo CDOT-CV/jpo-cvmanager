@@ -86,7 +86,7 @@ const rsuPreloadedState = {
   user: {
     value: {
       authLoginData: { token: 'test-token' },
-      organization: { organization: 'test-org', role: 'admin' },
+      organization: { name: 'test-org', organization: 'test-org', role: 'admin' },
     },
   },
 }
@@ -160,7 +160,7 @@ describe('DisplayRsuErrors table view (no RSU selected)', () => {
       user: {
         value: {
           authLoginData: { token: 'test-token' },
-          organization: { organization: '', role: 'admin' },
+          organization: { name: '', organization: '', role: 'admin' },
         },
       },
     }
@@ -265,8 +265,8 @@ describe('DisplayRsuErrors health-state regressions', () => {
     mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ isError: true, refetch: retryOnline } as any)
     mockUseGetScmsStatusQuery.mockReturnValue({ isError: true, refetch: retryScms } as any)
     renderComponent()
-    fireEvent.click(within(screen.getByText('Online status unavailable.').closest('[role="alert"]')!).getByText('Retry'))
-    fireEvent.click(within(screen.getByText('SCMS status unavailable.').closest('[role="alert"]')!).getByText('Retry'))
+    fireEvent.click(within(screen.getByText('Online update failed').closest('[role="alert"]')!).getByText('Retry'))
+    fireEvent.click(within(screen.getByText('SCMS update failed').closest('[role="alert"]')!).getByText('Retry'))
     expect(retryOnline).toHaveBeenCalledOnce()
     expect(retryScms).toHaveBeenCalledOnce()
     expect(screen.queryByText('Offline')).not.toBeInTheDocument()
@@ -286,6 +286,38 @@ describe('DisplayRsuErrors health-state regressions', () => {
     expect(message).toContain('RSU Unavailable (Last Online: Unavailable)')
     expect(message).toContain('SCMS Unknown (Certificate expiration: Unknown)')
     expect(message).not.toMatch(/Never Online|Never downloaded|Unhealthy|expired/)
+  })
+
+  it('warns when last-known status data exceeds the freshness window', () => {
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({
+      currentData: { [TEST_IP]: { current_status: 'online' } },
+      fulfilledTimeStamp: Date.now() - 180_000, refetch: vi.fn(),
+    } as any)
+    renderComponent()
+    expect(screen.getByRole('status')).toHaveTextContent('Showing stale data')
+    expect(screen.getAllByText('Online').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Offline')).not.toBeInTheDocument()
+  })
+
+  it('includes fetch times and refresh-failure warnings in printed and emailed summaries', async () => {
+    const fetchedAt = Date.now() - 180_000
+    const sendSummary = vi.fn<(contents: RsuErrorSummaryEmailContents) => { unwrap: () => Promise<void> }>()
+    sendSummary.mockReturnValue({ unwrap: () => Promise.resolve() })
+    vi.mocked(useSendRsuErrorSummaryEmailMutation).mockReturnValue([sendSummary] as any)
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({
+      currentData: { [TEST_IP]: { current_status: 'offline' } },
+      isError: true, fulfilledTimeStamp: fetchedAt, refetch: vi.fn(),
+    } as any)
+    renderComponent(rsuPreloadedState, testRsu)
+    for (const heading of ['RSU Summary', 'RSU Error Summary']) {
+      const report = within(screen.getByText(heading).parentElement!)
+      expect(report.getByText(/refresh failed; showing last known data/)).toHaveTextContent(new Date(fetchedAt).toLocaleString())
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Send Error Summary Email' }))
+    await waitFor(() => expect(sendSummary).toHaveBeenCalledOnce())
+    expect(sendSummary.mock.calls[0][0].message).toContain('refresh failed; showing last known data')
+    expect(sendSummary.mock.calls[0][0].message).toContain(new Date(fetchedAt).toLocaleString())
+    expect(sendSummary.mock.calls[0][0].message).toContain('RSU Offline')
   })
 
   it('prints lowercase offline, unstable, and unhealthy devices, excluding healthy and unknown-only devices', () => {
