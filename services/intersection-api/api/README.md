@@ -137,6 +137,85 @@ mvn clean verify
 
 Then open the following file in a browser: [index.html](./target/site/jacoco/index.html)
 
+## Health Checks
+
+The API uses Spring Boot Actuator. These endpoints are unauthenticated and honor the `BASE_ROUTE_PREFIX` context path:
+
+| Endpoint                     | Purpose                                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| `/actuator/health`           | Overall status and the status of each health component. |
+| `/actuator/health/liveness`  | Whether the application is running.                     |
+| `/actuator/health/readiness` | Whether the application is ready to accept traffic.     |
+
+Only the `health` endpoint is exposed. Component statuses are shown only when authenticated. Diagnostic details are hidden (see `management` in `application.yaml`). The Docker Compose service runs a healthcheck against the readiness endpoint using `curl`.
+
+### Unauthenticated
+
+The overall `status` aggregates the component statuses. The `groups` array identifies the configured liveness and readiness health groups.
+
+```json
+{ "groups": ["liveness", "readiness"], "status": "UP" }
+```
+
+### Authenticated
+
+Additionally includes the detailed status of each health component
+
+```json
+{
+  "components": {
+    "db": {
+      "status": "UP"
+    },
+    "diskSpace": {
+      "status": "UP"
+    },
+    "livenessState": {
+      "status": "UP"
+    },
+    "ping": {
+      "status": "UP"
+    },
+    "readinessState": {
+      "status": "UP"
+    },
+    "sendGrid": {
+      "status": "DOWN"
+    },
+    "ssl": {
+      "status": "UP"
+    }
+  },
+  "groups": ["liveness", "readiness"],
+  "status": "DOWN"
+}
+```
+
+The standard component keys report:
+
+| Key              | Health component                                          |
+| ---------------- | --------------------------------------------------------- |
+| `db`             | Relational database connection.                           |
+| `diskSpace`      | Available disk space.                                     |
+| `livenessState`  | Application liveness state.                               |
+| `ping`           | Actuator's basic ping indicator.                          |
+| `readinessState` | Application readiness state.                              |
+| `ssl`            | SSL certificate health, when SSL health checking applies. |
+
+Email health is reported separately for the configured, active provider when `enable.email` is `true`:
+
+| Response key | Provider | Check                                                 |
+| ------------ | -------- | ----------------------------------------------------- |
+| `mail`       | SMTP     | Tests the SMTP connection; it does not send an email. |
+| `postmark`   | Postmark | Calls the read-only server-information endpoint.      |
+| `sendGrid`   | SendGrid | Calls the read-only API scopes endpoint.              |
+
+Only the active provider's component is included. When email is disabled, no email-provider component is included. A `DOWN` email component indicates a provider connectivity or authentication issue and contributes to the overall health status; the component name identifies which provider is affected. Other components may appear or be absent depending on the application's configured dependencies and runtime environment.
+
+```sh
+curl http://localhost:8089/actuator/health
+```
+
 ## Swagger API
 
 The Intersection API utilizes swagger for viewing and testing api endpoints. The Swagger endpoint can be accessed here:
@@ -222,7 +301,8 @@ also available through this API and the Firmware tab.
   the required suffix in `manufacturers.firmware_file_extension`; the selected
   file must match it. Only one active/verified upload is allowed per model/version,
   and existing objects are never overwritten. The `ota/` directory is reserved
-  for OBU firmware and excluded from this feature.
+  for OBU firmware (see [OBU Firmware Management](#obu-firmware-management)) and
+  excluded from this feature, and `ota` cannot be used as an RSU vendor name.
 - New upgrade rules connect different versions of the same model and must target
   a verified, unchanged cloud file. Each source can have only one destination.
   Legacy rules remain usable, and legacy firmware can be a source. Resolve any
@@ -238,6 +318,66 @@ also available through this API and the Firmware tab.
   and upload again. Use **Clean Up Records** for entries marked **Missing file**.
   Automatic cleanup expires stale uploads and removes old failed/expired records;
   it does not delete cloud files or verified firmware.
+
+## OBU Firmware Management
+
+OBU firmware is uploaded through the same signed-URL flow as RSU firmware and is
+stored in the same bucket, beneath the reserved `ota/` directory. It is cataloged
+separately from RSU firmware, in the `obu_firmware_uploads` and
+`obu_firmware_images` tables, because the OBU OTA server serves it by file name
+instead of by RSU model and version. Routes are under `/admin/obu-firmware` and
+require an authenticated admin or superuser.
+
+### File names
+
+OBUs choose firmware from the OTA server's manifest by file name, so uploads keep
+the vendor's original file name. The API reads the device type, variant, release
+version, and partition and secure-boot flags from the name. Commsignia names
+follow `<variant>-<rw|ro>[-secureboot]-<release>.tar.sig`, for example
+`ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig`, where the variant is
+`ob4-generic` or `rs4-generic` with an optional suffix. Names are limited to 128
+characters. This parsing must match the OBU OTA server's
+`commsignia_manifest.parse_firmware_name`; both test suites share the same cases.
+
+A manufacturer can receive OBU firmware uploads only when it exists in the
+`manufacturers` table and the API has a naming convention for it. Commsignia is
+currently the only supported manufacturer.
+
+Files are stored as `ota/<manufacturer>/<file name>`. A file name can be used
+once per manufacturer, and existing objects are never overwritten.
+
+### Serving uploads with the OBU OTA server
+
+The OBU OTA server does not serve firmware uploaded through this API yet. It
+offers every file in its configured storage folder, including uploads that are
+not verified or published, so **do not set `OBU_OTA_BLOB_STORAGE_PATH` to `ota/`
+or a folder beneath it**. A later change makes the OTA server serve only
+published catalog entries, and uploaded firmware should be served only after
+that change is deployed. Until then, deployments keep serving their existing
+firmware folder, and uploads through this API do not reach OBUs.
+
+### Upload flow
+
+1. Get the supported manufacturers from `GET /upload-options`. Each option lists
+   the file extension, the maximum name length, an example name, and
+   `file_name_pattern`, a JavaScript-compatible regular expression clients can use
+   to check a name before uploading. The API remains the authority on whether a
+   name is accepted.
+2. Request `POST /signed-upload-url` with `manufacturer_name`, `file_name`,
+   `content_length`, `checksum_algorithm`, `checksum`, and optionally
+   `content_type` (default `application/octet-stream`). Upload the file to the
+   returned URL using its method and required headers.
+3. Call `POST /uploads/{uploadId}/complete` to verify the size and checksum. A
+   verified upload is added to the OBU firmware catalog **unpublished**, and the
+   response includes its `obu_firmware_id`. Completion can be retried with the
+   same upload ID.
+
+Abandoned and failed OBU uploads are expired and purged by the same cleanup task
+and settings as RSU uploads. An unfinished upload reserves its file name until its
+signed URL expires plus `FIRMWARE_UPLOAD_EXPIRATION_GRACE`; a new upload request
+after that point expires it immediately instead of waiting for the next cleanup
+run. A file that reached storage but was never completed must be deleted from the
+OBU firmware list before the same name can be uploaded again.
 
 ## OBU OTA Request History
 

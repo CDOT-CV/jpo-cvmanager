@@ -33,7 +33,7 @@ function VisualSettings(props: VisualSettingsProps) {
     if (getNumber(bsmTrailLengthLocal) !== null && getNumber(bsmTrailLengthLocal) !== bsmTrailLength) {
       dispatch(setBsmTrailLength(getNumber(bsmTrailLengthLocal)!))
     }
-  }, [bsmTrailLengthLocal])
+  }, [bsmTrailLengthLocal, bsmTrailLength, dispatch])
 
   const content = (
     <div>

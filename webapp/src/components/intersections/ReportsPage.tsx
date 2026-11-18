@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Box, Grid2, Typography } from '@mui/material'
 import { StyledEngineProvider, ThemeProvider, useTheme } from '@mui/material/styles'
 import { ReportListFilters } from '../../features/intersections/reports/report-list-filters'
@@ -44,34 +44,37 @@ const Page = () => {
     return 0
   }
 
-  const listReports = async (start_timestamp: Date, end_timestamp: Date, intersectionId: number) => {
-    try {
-      setLoading(true)
-      let data =
-        (await ReportsApi.listReports({
-          token: token,
-          intersectionId,
-          startTime: start_timestamp,
-          endTime: end_timestamp,
-        })) ?? []
-      data = data.sort(sortReportByAge)
-      setLogs(data)
-      setLoading(false)
-    } catch (err) {
-      console.error(err)
-      setLoading(false)
-    }
-  }
+  const listReports = useCallback(
+    async (start_timestamp: Date, end_timestamp: Date, intersectionId: number) => {
+      try {
+        setLoading(true)
+        let data =
+          (await ReportsApi.listReports({
+            token: token,
+            intersectionId,
+            startTime: start_timestamp,
+            endTime: end_timestamp,
+          })) ?? []
+        data = data.sort(sortReportByAge)
+        setLogs(data)
+        setLoading(false)
+      } catch (err) {
+        console.error(err)
+        setLoading(false)
+      }
+    },
+    [token]
+  )
 
   useEffect(() => {
     setLoading(true)
     setTimeout(() => listReports(filters.startDate, filters.endDate, intersectionId), 300)
-  }, [filters, intersectionId])
+  }, [filters, intersectionId, listReports])
 
-  const handleChangeFilters = (newFilters) => {
+  const handleChangeFilters = useCallback((newFilters) => {
     setFilters(newFilters)
     setPage(0)
-  }
+  }, [])
 
   const handlePageChange = (event, newPage) => {
     setPage(newPage)

@@ -1,4 +1,4 @@
-FROM python:3.12.2-slim
+FROM python:3.12-slim
 
 WORKDIR /home
 
@@ -7,8 +7,11 @@ COPY addons/images/firmware_manager/resources/xfer_yunex.jar ./tools/
 COPY addons/images/firmware_manager/upgrade_runner/*.py .
 COPY common/*.py ./common/
 
-RUN pip3 install -r requirements.txt 
-RUN apt-get update && apt-get install -y default-jdk && apt-get install -y iputils-ping
+RUN pip3 install --no-cache-dir -r requirements.txt
+# Keep the headless JRE in dpkg so Trivy inventories Java; XFER needs no desktop libraries.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openjdk-21-jre-headless iputils-ping \
+ && rm -rf /var/lib/apt/lists/*
 
 CMD ["/home/upgrade_runner.py"]
 ENTRYPOINT ["python3"]
