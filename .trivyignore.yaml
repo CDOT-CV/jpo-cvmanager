@@ -41,11 +41,6 @@ vulnerabilities:
     purls: ["pkg:maven/org.bouncycastle/bcprov-jdk18on"]
     statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
     expired_at: 2026-11-30
-  # CRITICAL; fixed in 2.14.0; api, repository
-  - id: CVE-2026-102268
-    purls: ["pkg:pypi/pyjwt"]
-    statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
-    expired_at: 2026-11-30
   # CRITICAL; fixed in 26.4.15, 26.6.6, 26.7.2; keycloak
   - id: CVE-2026-18963
     purls: ["pkg:maven/org.keycloak/keycloak-services"]
