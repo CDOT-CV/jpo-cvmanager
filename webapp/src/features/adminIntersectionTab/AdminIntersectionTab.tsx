@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { confirmAlert } from 'react-confirm-alert'
 import { useSelector } from 'react-redux'
 import { Options } from '../../components/AdminDeletionOptions'
@@ -27,6 +27,12 @@ const AdminIntersectionTab = () => {
 
   const organizationId = useSelector(selectOrganizationId)
   const [deleteIntersectionMutation] = useDeleteIntersectionMutation()
+  const [intersectionSelection, setIntersectionSelection] = useState<{
+    organizationId: number | undefined
+    rows: AdminEditIntersectionFormType[]
+  }>({ organizationId, rows: [] })
+  const selectedIntersections =
+    intersectionSelection.organizationId === organizationId ? intersectionSelection.rows : []
 
   const columns = useMemo(
     () => [
@@ -88,18 +94,21 @@ const AdminIntersectionTab = () => {
     {
       tooltip: 'Remove All Selected From Organization',
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
+      disabled: selectedIntersections.length === 0,
       position: 'toolbarOnSelect',
       iconProps: {
-        itemType: 'rowAction',
+        title: `Delete Selected (${selectedIntersections.length})`,
+        itemType: 'contained',
+        color: 'error',
       },
-      onClick: (_, rowData: AdminEditIntersectionFormType[]) => {
+      onClick: () => {
         const buttons = [
-          { label: 'Yes', onClick: () => multiDelete(rowData) },
+          { label: 'Yes', onClick: () => multiDelete(selectedIntersections) },
           { label: 'No', onClick: () => {} },
         ]
         const alertOptions = Options(
           'Delete Selected Intersections',
-          'Are you sure you want to delete ' + rowData.length + ' Intersections?',
+          'Are you sure you want to delete ' + selectedIntersections.length + ' Intersections?',
           buttons
         )
         confirmAlert(alertOptions)
@@ -138,30 +147,45 @@ const AdminIntersectionTab = () => {
       ? (error.data as { detail?: string }).detail
       : undefined
 
-  const onDelete = (row: AdminEditIntersectionFormType) => {
-    toast.promise(deleteIntersectionMutation(row.intersection_id).unwrap(), {
-      loading: `Deleting intersection ${row.intersection_id}`,
-      success: `Successfully deleted intersection ${row.intersection_id}`,
-      error: (error) => {
-        const detail = extractErrorDetail(error)
-        return detail
-          ? `Failed to delete intersection ${row.intersection_id}: ${detail}`
-          : `Failed to delete intersection ${row.intersection_id}`
-      },
-    })
+  const onDelete = async (row: AdminEditIntersectionFormType) => {
+    try {
+      await toast.promise(deleteIntersectionMutation(row.intersection_id).unwrap(), {
+        loading: `Deleting intersection ${row.intersection_id}`,
+        success: `Successfully deleted intersection ${row.intersection_id}`,
+        error: (error) => {
+          const detail = extractErrorDetail(error)
+          return detail
+            ? `Failed to delete intersection ${row.intersection_id}: ${detail}`
+            : `Failed to delete intersection ${row.intersection_id}`
+        },
+      })
+      setIntersectionSelection((current) => ({
+        organizationId,
+        rows: current.rows.filter((intersection) => intersection.intersection_id !== row.intersection_id),
+      }))
+    } catch (error) {
+      console.error(`Failed to delete intersection ${row.intersection_id}:`, error)
+    }
   }
 
   const multiDelete = async (rows: AdminEditIntersectionFormType[]) => {
-    toast.promise(Promise.all(rows.map((row) => deleteIntersectionMutation(row.intersection_id).unwrap())), {
-      loading: 'Deleting selected intersections',
-      success: 'Intersections Deleted Successfully',
-      error: (error) => {
-        const detail = extractErrorDetail(error)
-        return detail
-          ? `Failed to delete one or more Intersection(s): ${detail}`
-          : 'Failed to delete one or more Intersection(s)'
-      },
-    })
+    const deletion = Promise.all(rows.map((row) => deleteIntersectionMutation(row.intersection_id).unwrap()))
+    try {
+      await toast.promise(deletion, {
+        loading: 'Deleting selected intersections',
+        success: 'Intersections Deleted Successfully',
+        error: (error) => {
+          const detail = extractErrorDetail(error)
+          return detail
+            ? `Failed to delete one or more Intersection(s): ${detail}`
+            : 'Failed to delete one or more Intersection(s)'
+        },
+      })
+      setIntersectionSelection({ organizationId, rows: [] })
+      handleRefresh()
+    } catch (error) {
+      console.error('Failed to delete selected intersections:', error)
+    }
   }
 
   return (
@@ -178,6 +202,9 @@ const AdminIntersectionTab = () => {
                 handleQueryChange={handleQueryChange}
                 isLoading={isRefreshing}
                 tableRef={tableRef}
+                selectionKeyField="intersection_id"
+                selectedRows={selectedIntersections}
+                onSelectionChange={(rows) => setIntersectionSelection({ organizationId, rows })}
               />
             </div>
           }
