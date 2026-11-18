@@ -145,6 +145,18 @@ export const selectSelectedRsu = (state: RootState) => state.rsu.value.selectedR
 export const selectRsuManufacturer = (state: RootState) => state.rsu.value.selectedRsu?.properties?.manufacturer_name
 export const selectRsuIpv4 = (state: RootState) => state.rsu.value.selectedRsu?.properties?.ipv4_address
 export const selectRsuPrimaryRoute = (state: RootState) => state.rsu.value.selectedRsu?.properties?.primary_route
+const forwardingDevices = (state: RootState, ips: string[]) => ips.map((ip) =>
+  state.rsu.value.selectedRsu?.properties.ipv4_address === ip
+    ? state.rsu.value.selectedRsu
+    : state.rsu.value.rsuData.find((rsu) => rsu.properties.ipv4_address === ip)
+)
+
+/** Only known legacy devices are skipped; missing inventory/protocol metadata must still block submission. */
+export const legacyForwardingIps = (state: RootState, ips: string[]): string[] =>
+  forwardingDevices(state, [...new Set(ips)])
+    .filter((rsu) => rsu?.properties.snmp_protocol_code && rsu.properties.snmp_protocol_code !== '1218')
+    .map((rsu) => rsu.properties.ipv4_address)
+
 /** UI guidance only; the API independently checks credentials, ownership, and roles. */
 export const forwardingUnavailableReason = (
   state: RootState,
@@ -157,13 +169,9 @@ export const forwardingUnavailableReason = (
     return 'An operator or administrator must change message forwarding.'
   // The map lists RSUs associated with the selected organization; the API checks read access.
   if (operation === 'cached') return undefined
-  const devices = ips.map((ip) =>
-    state.rsu.value.selectedRsu?.properties.ipv4_address === ip
-      ? state.rsu.value.selectedRsu
-      : state.rsu.value.rsuData.find((rsu) => rsu.properties.ipv4_address === ip)
-  )
+  const devices = forwardingDevices(state, ips)
   if (devices.some((rsu) => rsu?.properties.snmp_protocol_code !== '1218')) {
-    return 'Message forwarding changes and live refresh require NTCIP 1218 on every selected RSU. Legacy cached configurations remain available.'
+    return 'Message forwarding changes and live refresh require NTCIP 1218. Legacy cached configurations remain available.'
   }
   if (
     !selectIsSuperUser(state) &&

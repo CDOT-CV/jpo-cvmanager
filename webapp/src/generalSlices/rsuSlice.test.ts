@@ -1,4 +1,4 @@
-import reducer, { forwardingUnavailableReason } from './rsuSlice'
+import reducer, { forwardingUnavailableReason, legacyForwardingIps } from './rsuSlice'
 import {
   // async thunks
   getRsuData,
@@ -480,7 +480,14 @@ describe('forwarding availability', () => {
     expect(forwardingUnavailableReason(operator, ['192.0.2.1'], 'write')).toContain('owning organization')
   })
 
+  it('identifies only known legacy devices for omission, without hiding unknown metadata', () => {
+    const state = stateFor('41')
+    expect(legacyForwardingIps(state, ['192.0.2.1', '192.0.2.1', '192.0.2.2'])).toEqual(['192.0.2.1'])
+    expect(legacyForwardingIps(stateFor(), ['192.0.2.1'])).toEqual([])
+    expect(legacyForwardingIps(stateFor(''), ['192.0.2.1'])).toEqual([])
+  })
+
   it('blocks the whole bulk selection when a device is unknown or unsupported', () => {
-    expect(forwardingUnavailableReason(stateFor(), ['192.0.2.1', '192.0.2.2'], 'write')).toContain('every selected RSU')
+    expect(forwardingUnavailableReason(stateFor(), ['192.0.2.1', '192.0.2.2'], 'write')).toContain('require NTCIP 1218')
   })
 })

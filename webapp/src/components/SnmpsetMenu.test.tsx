@@ -30,14 +30,14 @@ describe('forwarding actions', () => {
   beforeEach(() => jest.clearAllMocks())
   afterEach(() => jest.restoreAllMocks())
 
-  const renderMenu = (type = 'bulk', ips = ['192.0.2.10', '192.0.2.11']) => {
+  const renderMenu = (type = 'bulk', ips = ['192.0.2.10', '192.0.2.11'], skippedIps: string[] = []) => {
     const store = setupStore({})
     store.dispatch(setDestIp('198.51.100.3'))
     store.dispatch(setMsgType('map'))
     render(
       <ThemeProvider theme={testTheme}>
         <Provider store={store}>
-          <SnmpsetMenu type={type} rsuIpList={ips} />
+          <SnmpsetMenu type={type} rsuIpList={ips} skippedIps={skippedIps} />
         </Provider>
       </ThemeProvider>
     )
@@ -93,6 +93,26 @@ describe('forwarding actions', () => {
       })
     })
 
+    it('lists legacy omissions before submission and retains them without sending them', async () => {
+      const api = jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
+        status: 200, message: '', body: {
+          '192.0.2.10': {
+            execution: { taskId: 'task', target: 'udp:192.0.2.10:161', status: 'SUCCEEDED',
+              message: 'Completed.', step: null, elapsedMs: 1, steps: [] },
+            changed: true, writeState: 'VERIFIED', databaseSync: 'UPDATED',
+          },
+        },
+      })
+      renderMenu('bulk', ['192.0.2.10'], ['192.0.2.11'])
+      fireEvent.click(screen.getByText('Skipped (legacy SNMP): 1'))
+      expect(screen.getByText('192.0.2.11')).toBeVisible()
+      fireEvent.click(screen.getByRole('button', { name: operation === 'create' ? 'Add Forwarding' : 'Delete Forwarding' }))
+      await screen.findByRole('region', { name: 'Forwarding results' })
+      expect(api.mock.calls[0][2].rsu_ips).toEqual(['192.0.2.10'])
+      expect(screen.getByRole('status')).toHaveTextContent('1 successful \u00b7 0 need attention / 1 skipped')
+      expect(screen.getByLabelText('192.0.2.11: Skipped: requires NTCIP 1218')).toBeInTheDocument()
+    })
+
     it('shows the failed RSU instead of a success notification for a mixed result', async () => {
       jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
         status: 200,
@@ -129,6 +149,17 @@ describe('forwarding actions', () => {
       expect(success).not.toHaveBeenCalled()
       expect(error).not.toHaveBeenCalled()
     })
+  })
+
+  it('disables both bulk actions when every selected device is legacy', () => {
+    const create = jest.spyOn(RsuMessageForwardingApi, 'create')
+    const remove = jest.spyOn(RsuMessageForwardingApi, 'delete')
+    renderMenu('bulk', [], ['192.0.2.11'])
+    expect(screen.getByText('No NTCIP 1218 RSUs selected.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add Forwarding' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Delete Forwarding' })).toBeDisabled()
+    expect(create).not.toHaveBeenCalled()
+    expect(remove).not.toHaveBeenCalled()
   })
 
   it('uses a specific single-device duplicate message', async () => {

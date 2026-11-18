@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import ConfigureRSU from './ConfigureRSU'
+import SnmpsetMenu from '../../components/SnmpsetMenu'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from '@mui/material'
 import { testTheme } from '../../styles'
@@ -10,7 +11,7 @@ import { RsuInfo } from '../../models/RsuApi'
 import { useGetRsuCountsByIpQuery } from '../api/rsuCountsApiSlice'
 
 vi.mock('../../components/SnmpwalkMenu', () => ({ default: () => null }))
-vi.mock('../../components/SnmpsetMenu', () => ({ default: () => null }))
+vi.mock('../../components/SnmpsetMenu', () => ({ default: vi.fn(() => null) }))
 vi.mock('../../components/RsuRebootMenu', () => ({ default: () => null }))
 vi.mock('../../components/RsuFirmwareMenu', () => ({ default: () => null }))
 
@@ -207,4 +208,33 @@ it('shows the Intersection API ProblemDetail when message counts fail', () => {
   expect(screen.getByRole('alert')).toHaveTextContent(
     'The message counts query ran out of memory. Please select a shorter time range.'
   )
+})
+
+// Legacy omissions must not weaken authorization or hide missing inventory metadata.
+it.each([
+  ['OPERATOR', 1, '41', true],
+  ['USER', 1, '41', false],
+  ['OPERATOR', 2, '41', false],
+  ['OPERATOR', 1, undefined, false],
+])('handles mixed selection for role %s, owner %s and protocol %s', (role, owner, protocol, allowed) => {
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
+  vi.mocked(SnmpsetMenu).mockClear()
+  const rsus = [
+    { ...selectedRsu, properties: { ...selectedRsu.properties, ipv4_address: '192.0.2.10',
+      snmp_protocol_code: '1218', owner_organization_id: owner } },
+    { ...selectedRsu, properties: { ...selectedRsu.properties, ipv4_address: '192.0.2.11', snmp_protocol_code: protocol } },
+  ]
+  render(<ThemeProvider theme={testTheme}><Provider store={setupStore({
+    rsu: { value: { selectedRsu: null, rsuData: rsus } },
+    config: { value: { configList: ['192.0.2.10', '192.0.2.11'] } },
+    user: { value: { organization: { name: 'Test Org', organization: 1, role } } },
+  })}><ConfigureRSU /></Provider></ThemeProvider>)
+  if (allowed) {
+    expect(screen.getByRole('button', { name: 'Configure Forwarding' })).toBeInTheDocument()
+    expect(vi.mocked(SnmpsetMenu).mock.calls[0][0]).toMatchObject({
+      rsuIpList: ['192.0.2.10'], skippedIps: ['192.0.2.11'],
+    })
+  } else {
+    expect(screen.queryByRole('button', { name: 'Configure Forwarding' })).not.toBeInTheDocument()
+  }
 })

@@ -21,6 +21,8 @@ import { RootState } from '../store'
 import './css/SnmpwalkMenu.css'
 import toast from 'react-hot-toast'
 import {
+  Alert,
+  Box,
   Button,
   Checkbox,
   FormControl,
@@ -42,10 +44,11 @@ const messageTypes = ['bsm', 'spat', 'map', 'srm', 'ssm', 'tim']
 export type SnmpsetMenuProps = {
   type: string
   rsuIpList: string[]
+  skippedIps?: string[]
 }
 
 const SnmpsetMenu = (props: SnmpsetMenuProps) => {
-  const { type, rsuIpList } = props
+  const { type, rsuIpList, skippedIps = [] } = props
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
   const destIp = useSelector(selectDestIp)
@@ -79,7 +82,9 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
       }
       const { results, changeSuccess, errorState } = action.payload
       if (type !== 'single_rsu') {
-        if (results.length) setReport({ operation, messageType, destination, results })
+        if (results.length) setReport({ operation, messageType, destination, results: [
+          ...results, ...skippedIps.map((ip) => ({ ip, success: false, skipped: true })),
+        ] })
         else setSubmissionError(errorState)
         return
       }
@@ -93,6 +98,15 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
 
   return (
     <div>
+      {skippedIps.length > 0 && (
+        <Box component="details" sx={{ mb: 1 }}>
+          <Typography component="summary" variant="body2">Skipped (legacy SNMP): {skippedIps.length}</Typography>
+          <Box sx={{ maxHeight: 80, overflowY: 'auto' }}>
+            {skippedIps.map((ip) => <Typography key={ip} variant="caption" component="div">{ip}</Typography>)}
+          </Box>
+        </Box>
+      )}
+      {rsuIpList?.length === 0 && <Alert severity="warning" sx={{ mb: 1 }}>No NTCIP 1218 RSUs selected.</Alert>}
       <form id="snmpform" onSubmit={(event) => event.preventDefault()}>
         <Grid2 container spacing={1}>
           <Grid2 size={8}>

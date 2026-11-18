@@ -6,11 +6,11 @@ import RsuFirmwareMenu from '../../components/RsuFirmwareMenu'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
-import { useDispatch, useSelector } from 'react-redux'
+import { shallowEqual, useDispatch, useSelector } from 'react-redux'
 import { Box, CircularProgress, useTheme, Paper, Grid2, IconButton, Divider } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
-import { selectSelectedRsu, selectRsu, forwardingUnavailableReason } from '../../generalSlices/rsuSlice'
+import { selectSelectedRsu, selectRsu, forwardingUnavailableReason, legacyForwardingIps } from '../../generalSlices/rsuSlice'
 import { clearConfig, selectConfigList } from '../../generalSlices/configSlice'
 import { selectCountsEndDate, selectCountsStartDate } from './menuSlice'
 import '../../components/css/SnmpwalkMenu.css'
@@ -42,8 +42,10 @@ const ConfigureRSU = () => {
   const countsStartDate = useSelector(selectCountsStartDate)
   const countsEndDate = useSelector(selectCountsEndDate)
   const rsuIp = selectedRsu?.properties?.ipv4_address
+  const skippedIps = useSelector((state: RootState) => legacyForwardingIps(state, selectedConfigList), shallowEqual)
+  const forwardingIps = selectedConfigList.filter((ip) => !skippedIps.includes(ip))
   const forwardingReason = useSelector((state: RootState) =>
-    forwardingUnavailableReason(state, rsuIp ? [rsuIp] : selectedConfigList, 'write')
+    forwardingUnavailableReason(state, rsuIp ? [rsuIp] : forwardingIps, 'write')
   )
   const messageTypes = useMemo(() => EnvironmentVars.getMessageTypes(), [])
   const maxDurationMs = EnvironmentVars.MAX_QUERY_DURATION_DAYS * 24 * 60 * 60 * 1000
@@ -243,7 +245,7 @@ const ConfigureRSU = () => {
                 </AccordionSummary>
                 <AccordionDetails>
                   <ConfigMenu>
-                    <SnmpsetMenu type="multi_rsu" rsuIpList={selectedConfigList} />
+                    <SnmpsetMenu type="multi_rsu" rsuIpList={forwardingIps} skippedIps={skippedIps} />
                   </ConfigMenu>
                 </AccordionDetails>
               </Accordion>
