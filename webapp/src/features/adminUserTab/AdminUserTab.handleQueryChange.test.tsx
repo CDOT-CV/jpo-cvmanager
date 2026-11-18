@@ -41,10 +41,10 @@ vi.mock('react-hot-toast', () => ({
   default: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), loading: vi.fn() }),
 }))
 
-const renderTab = (organization = 'Test Org') =>
+const renderTab = (organization = 1) =>
   render(
     <ThemeProvider theme={testTheme}>
-      <Provider store={setupStore({ user: { value: { organization: { name: organization } } } } as any)}>
+      <Provider store={setupStore({ user: { value: { organization: { organization, name: 'Test Org' } } } } as any)}>
         <BrowserRouter>
           <AdminUserTab />
         </BrowserRouter>
@@ -77,7 +77,7 @@ describe('handleQueryChange', () => {
 
     const result = await callHandler(makeQuery())
 
-    const expectedParams = { page: 2, size: 10, sort: 'first_name,asc', search: 'abc', organization: 'Test Org' }
+    const expectedParams = { page: 2, size: 10, sort: 'first_name,asc', search: 'abc', organization: 1 }
     expect(mockTrigger).toHaveBeenCalledWith(expectedParams)
     expect(mockQueryRef.current).toEqual(expectedParams)
     expect(mockMarkTableRenderedData).toHaveBeenCalledWith(expectedParams, response)
@@ -94,7 +94,7 @@ describe('handleQueryChange', () => {
   })
 
   it('keeps the requested page when the organization is unchanged', async () => {
-    mockQueryRef.current = { organization: 'Test Org' }
+    mockQueryRef.current = { organization: 1 }
     mockTrigger.mockReturnValue({ unwrap: () => Promise.resolve({ content: [], totalElements: 0 }) })
     renderTab()
 
@@ -102,12 +102,12 @@ describe('handleQueryChange', () => {
     const result = await callHandler(query)
 
     expect(query.page).toBe(2)
-    expect(mockTrigger).toHaveBeenCalledWith(expect.objectContaining({ page: 2 }))
+    expect(mockTrigger).toHaveBeenCalledWith(expect.objectContaining({ page: 2, organization: 1 }))
     expect(result.page).toBe(2)
   })
 
   it('resets to page 0 when the organization changed', async () => {
-    mockQueryRef.current = { organization: 'Previous Org' }
+    mockQueryRef.current = { organization: 2 }
     mockTrigger.mockReturnValue({ unwrap: () => Promise.resolve({ content: [], totalElements: 0 }) })
     renderTab()
 
@@ -115,8 +115,8 @@ describe('handleQueryChange', () => {
     const result = await callHandler(query)
 
     expect(query.page).toBe(0)
-    expect(mockTrigger).toHaveBeenCalledWith(expect.objectContaining({ page: 0, organization: 'Test Org' }))
-    expect(mockQueryRef.current.organization).toBe('Test Org')
+    expect(mockTrigger).toHaveBeenCalledWith(expect.objectContaining({ page: 0, organization: 1 }))
+    expect(mockQueryRef.current.organization).toBe(1)
     expect(result.page).toBe(0)
   })
 
