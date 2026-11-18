@@ -88,10 +88,14 @@ class EmailRateLimitTest {
 
     @BeforeEach
     void setUp() {
-        // Bucket4j registers its filter while the web-server factory is customized,
-        // which can happen after the auto-configured MockMvc has been built.
-        // Disable MockMvc printing so reapplying its customizers doesn't register
-        // another DeferredLinesWriter singleton in the same context.
+        // Bucket4j may register its filter after @AutoConfigureMockMvc has built
+        // its MockMvc, so this test rebuilds MockMvc and reapplies the builder
+        // customizers to include the filter. With printing enabled, reapplying
+        // Boot's print-on-failure customizer can register a second
+        // DeferredLinesWriter in the same context. Keep printing disabled while
+        // this manual rebuild is needed; remove the workaround when the filter is
+        // registered before auto-configured MockMvc is built and the injected
+        // MockMvc can be used, or when reapplying the customizer is safe.
         assertThat(webApplicationContext.getBeansOfType(ServletRateLimitFilter.class)).hasSize(1);
         DefaultMockMvcBuilder builder = webAppContextSetup(webApplicationContext);
         mockMvcBuilderCustomizers.forEach(customizer -> customizer.customize(builder));
