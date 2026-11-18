@@ -20,7 +20,7 @@ import {
   // Actions
   deleteSnmpRow,
 } from '../generalSlices/configSlice'
-import { Button, Tooltip, Typography } from '@mui/material'
+import { Alert, Button, Tooltip, Typography } from '@mui/material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import toast from 'react-hot-toast'
@@ -168,9 +168,7 @@ const SnmpwalkMenu = () => {
           )
       )}
       {refreshUnavailable && (
-        <Typography sx={{ mt: 1.5, mb: 1, pl: 1, borderLeft: 3, borderColor: 'info.main' }}>
-          <strong style={{ fontWeight: 700 }}>{refreshUnavailable}</strong>
-        </Typography>
+        <Alert severity="warning" sx={{ mt: 1.5, mb: 1, alignItems: 'center' }}>{refreshUnavailable}</Alert>
       )}
       {!refreshUnavailable && (
         <div id="msgfwddiv">

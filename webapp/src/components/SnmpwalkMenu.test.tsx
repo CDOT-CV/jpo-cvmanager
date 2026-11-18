@@ -133,6 +133,7 @@ it.each(['41', '1218'])('shows cached %s rows to a user without delete controls'
   expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
   if (protocol === '41') {
     expect(screen.getAllByText(/Message forwarding changes and live refresh require/)).toHaveLength(1)
+    expect(screen.getByRole('alert')).toHaveTextContent('NTCIP 1218')
     expect(screen.queryByRole('button', { name: 'Refresh Message Forwarding' })).not.toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
   } else {
