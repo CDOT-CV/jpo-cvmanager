@@ -1,5 +1,9 @@
 package us.dot.its.jpo.ode.api.repositories;
 
+import java.net.InetAddress;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,10 +14,6 @@ import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
-
-import java.net.InetAddress;
-import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization, Integer> {
@@ -27,11 +27,6 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
     @Transactional
     @Query("DELETE FROM RsuOrganization ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses")
     void removeMultipleRsuOrganizationsByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
-
-    @Query("SELECT ro FROM RsuOrganization ro WHERE ro.rsu.ipv4Address = :ipv4Address")
-    List<RsuOrganization> findAllByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
-
-    Optional<RsuOrganization> findByOrganization_Name(String organizationName);
 
     @Query("SELECT ro.rsu.ipv4Address FROM RsuOrganization ro WHERE ro.organization.id = :organizationId")
     List<InetAddress> findAllRsuIpsByOrganizationId(@Param("organizationId") Integer organizationId);
