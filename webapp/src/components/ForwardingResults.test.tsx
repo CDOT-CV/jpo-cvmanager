@@ -17,7 +17,6 @@ it.each([
   [{ success: false, status: 403 }, 'Not authorized'],
   [{ success: false, status: 504 }, 'Timed out'],
   [{ success: false }, 'No response; check device before retrying'],
-  [{ success: false, skipped: true }, 'Skipped: requires NTCIP 1218'],
 ] as [Omit<ForwardingDeviceOutcome, 'ip'>, string][])('explains status %s on hover', async (outcome, detail) => {
   render(<ForwardingResults operation="create" messageType="MAP" destination="198.51.100.3"
     results={[{ ip: '192.0.2.10', ...outcome }]} onDismiss={() => {}} />)

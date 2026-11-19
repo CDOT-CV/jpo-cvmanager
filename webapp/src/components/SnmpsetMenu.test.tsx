@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import SnmpsetMenu from './SnmpsetMenu'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from '@mui/material'
@@ -93,7 +93,7 @@ describe('forwarding actions', () => {
       })
     })
 
-    it('lists legacy omissions before submission and retains them without sending them', async () => {
+    it('lists legacy omissions separately from requested device results', async () => {
       const api = jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
         status: 200, message: '', body: {
           '192.0.2.10': {
@@ -109,8 +109,11 @@ describe('forwarding actions', () => {
       fireEvent.click(screen.getByRole('button', { name: operation === 'create' ? 'Add Forwarding' : 'Delete Forwarding' }))
       await screen.findByRole('region', { name: 'Forwarding results' })
       expect(api.mock.calls[0][2].rsu_ips).toEqual(['192.0.2.10'])
-      expect(screen.getByRole('status')).toHaveTextContent('1 successful \u00b7 0 need attention / 1 skipped')
-      expect(screen.getByLabelText('192.0.2.11: Skipped: requires NTCIP 1218')).toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent('1 successful \u00b7 0 need attention')
+      const results = screen.getByRole('region', { name: 'Forwarding results' })
+      expect(within(results).queryByText('192.0.2.11')).not.toBeInTheDocument()
+      expect(within(results).getAllByRole('row')).toHaveLength(2)
+      expect(screen.getByText('192.0.2.11')).toBeVisible()
     })
 
     it('shows the failed RSU instead of a success notification for a mixed result', async () => {

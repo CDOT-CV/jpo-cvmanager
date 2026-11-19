@@ -36,7 +36,6 @@ export type MessageForwardingResponse = Record<string, MessageForwardingResult>
 export type ForwardingDeviceOutcome = {
   ip: string
   success: boolean
-  skipped?: boolean
   result?: MessageForwardingResult
   status?: number
 }

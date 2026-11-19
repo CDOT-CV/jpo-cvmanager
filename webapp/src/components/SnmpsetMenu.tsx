@@ -82,9 +82,7 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
       }
       const { results, changeSuccess, errorState } = action.payload
       if (type !== 'single_rsu') {
-        if (results.length) setReport({ operation, messageType, destination, results: [
-          ...results, ...skippedIps.map((ip) => ({ ip, success: false, skipped: true })),
-        ] })
+        if (results.length) setReport({ operation, messageType, destination, results })
         else setSubmissionError(errorState)
         return
       }

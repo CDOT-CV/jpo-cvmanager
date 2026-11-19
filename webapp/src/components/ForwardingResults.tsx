@@ -16,7 +16,6 @@ export type ForwardingResultsProps = {
 /** Keeps batch outcomes reviewable within the map overlay; tooltips also open on keyboard focus. */
 const ForwardingResults = ({ operation, messageType, destination, results, onDismiss }: ForwardingResultsProps) => {
   const successful = results.filter((row) => row.success).length
-  const skipped = results.filter((row) => row.skipped).length
   return (
     <Box component="section" aria-label="Forwarding results" sx={{ mt: 2 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -28,8 +27,7 @@ const ForwardingResults = ({ operation, messageType, destination, results, onDis
         </IconButton>
       </Stack>
       <Typography variant="caption" component="div" role="status">
-        {successful} successful · {results.length - successful - skipped} need attention
-        {skipped > 0 && ` / ${skipped} skipped`}
+        {successful} successful · {results.length - successful} need attention
       </Typography>
       <TableContainer sx={{ maxHeight: 200, overflowY: 'auto' }}>
         <Table stickyHeader size="small" aria-label="Forwarding results by RSU" sx={{ tableLayout: 'fixed' }}>
@@ -60,7 +58,6 @@ const ForwardingResults = ({ operation, messageType, destination, results, onDis
 }
 
 function resultDetail(row: ForwardingDeviceOutcome, operation: 'create' | 'delete'): string {
-  if (row.skipped) return 'Skipped: requires NTCIP 1218'
   if (row.success) {
     if (row.result?.changed === false) return operation === 'create' ? 'Already configured' : 'Already absent'
     return operation === 'create' ? 'Added' : 'Deleted'
