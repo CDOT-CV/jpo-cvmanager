@@ -113,11 +113,13 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
             <FormControl fullWidth margin="dense">
               <TextField
                 label="Destination IPv4"
-                placeholder="Enter Destination IP"
+                required
+                placeholder="Enter Valid IP Address"
                 id="snmpinput"
                 color="info"
                 variant="outlined"
                 value={destIp}
+                error={destIp.length > 0 && !validDestination}
                 onChange={(event) => {
                   const ip = event.target.value as string
                   dispatch(setDestIp(ip))

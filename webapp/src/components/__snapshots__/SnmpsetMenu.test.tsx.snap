@@ -19,12 +19,19 @@ exports[`should take a snapshot 1`] = `
               class="MuiFormControl-root MuiTextField-root css-mocked-MuiFormControl-root-MuiTextField-root"
             >
               <label
-                class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorInfo MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-mocked-MuiFormLabel-root-MuiInputLabel-root"
+                class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorInfo Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-mocked-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
                 for="snmpinput"
                 id="snmpinput-label"
               >
                 Destination IPv4
+                <span
+                  aria-hidden="true"
+                  class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-mocked-MuiFormLabel-asterisk"
+                >
+                   
+                  *
+                </span>
               </label>
               <div
                 class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorInfo MuiInputBase-formControl css-mocked-MuiInputBase-root-MuiOutlinedInput-root"
@@ -32,7 +39,8 @@ exports[`should take a snapshot 1`] = `
                 <input
                   class="MuiInputBase-input MuiOutlinedInput-input css-mocked-MuiInputBase-input-MuiOutlinedInput-input"
                   id="snmpinput"
-                  placeholder="Enter Destination IP"
+                  placeholder="Enter Valid IP Address"
+                  required=""
                   type="text"
                   value=""
                 />
@@ -45,6 +53,8 @@ exports[`should take a snapshot 1`] = `
                   >
                     <span>
                       Destination IPv4
+                       
+                      *
                     </span>
                   </legend>
                 </fieldset>

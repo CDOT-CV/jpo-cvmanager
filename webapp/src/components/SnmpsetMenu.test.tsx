@@ -71,7 +71,7 @@ describe('forwarding actions', () => {
       })
       const success = jest.spyOn(toast, 'success').mockReturnValue('fixture-toast')
       renderMenu()
-      expect(screen.getByLabelText('Destination IPv4')).toHaveValue('198.51.100.3')
+      expect(screen.getByRole('textbox', { name: /Destination IPv4/ })).toHaveValue('198.51.100.3')
       fireEvent.click(screen.getByLabelText('Security Header'))
       fireEvent.click(
         screen.getByRole('button', { name: operation === 'create' ? 'Add Forwarding' : 'Delete Forwarding' })
@@ -81,7 +81,7 @@ describe('forwarding actions', () => {
       expect(screen.getByLabelText(`192.0.2.10: ${operation === 'create' ? 'Added' : 'Already absent'}`)).toHaveAttribute('tabindex', '0')
       expect(success).not.toHaveBeenCalled()
       // Editing the form must not relabel a completed operation.
-      fireEvent.change(screen.getByLabelText('Destination IPv4'), { target: { value: '198.51.100.8' } })
+      fireEvent.change(screen.getByRole('textbox', { name: /Destination IPv4/ }), { target: { value: '198.51.100.8' } })
       expect(screen.getByRole('region', { name: 'Forwarding results' })).toHaveTextContent('198.51.100.3')
       fireEvent.click(screen.getByRole('button', { name: 'Dismiss forwarding results' }))
       expect(screen.queryByRole('region', { name: 'Forwarding results' })).not.toBeInTheDocument()
@@ -182,13 +182,17 @@ describe('forwarding actions', () => {
   it.each(['single_rsu', 'bulk'])('requires a valid destination and message type in %s mode', (type) => {
     const api = jest.spyOn(RsuMessageForwardingApi, 'create')
     const store = renderMenu(type)
-    const destination = screen.getByLabelText('Destination IPv4')
+    const destination = screen.getByRole('textbox', { name: /Destination IPv4/ })
+    expect(destination).toBeRequired()
+    expect(destination).toHaveAttribute('placeholder', 'Enter Valid IP Address')
     const buttons = screen.getAllByRole('button', { name: /^(Add|Delete) Forwarding$/ })
     for (const value of ['', '198.51.100', '999.1.1.1', '198.051.100.3', '2001:db8::1', 'hostname', '198.51.100.3 ']) {
       fireEvent.change(destination, { target: { value } })
       buttons.forEach((button) => expect(button).toBeDisabled())
+      expect(destination).toHaveAttribute('aria-invalid', String(value.length > 0))
     }
     fireEvent.change(destination, { target: { value: '198.51.100.3' } })
+    expect(destination).toHaveAttribute('aria-invalid', 'false')
     buttons.forEach((button) => expect(button).toBeEnabled())
     act(() => { store.dispatch(setMsgType('')) })
     buttons.forEach((button) => expect(button).toBeDisabled())
