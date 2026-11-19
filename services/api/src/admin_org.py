@@ -88,14 +88,17 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
     rsu_query = (
         "SELECT to_jsonb(row) "
         "FROM ("
-        "SELECT r.ipv4_address, r.primary_route, r.milepost, r.tim_deposit, r.snmp_monitoring "
+        "SELECT r.ipv4_address, r.primary_route, r.milepost, r.tim_deposit, r.snmp_monitoring, r.owner_organization "
         "FROM public.organizations AS org "
         "JOIN ("
         "SELECT ro.organization_id, rsus.ipv4_address, rsus.primary_route, rsus.milepost, "
-        "COALESCE(opts.tim_deposit, FALSE) as tim_deposit, COALESCE(opts.snmp_monitoring, FALSE) as snmp_monitoring "
+        "COALESCE(opts.tim_deposit, FALSE) as tim_deposit, COALESCE(opts.snmp_monitoring, FALSE) as snmp_monitoring, "
+        "owner_org.name as owner_organization "
         "FROM public.rsu_organization ro "
         "JOIN public.rsus ON ro.rsu_id = rsus.rsu_id "
-        "LEFT JOIN public.rsu_options opts ON rsus.rsu_id = opts.rsu_id"
+        "LEFT JOIN public.rsu_options opts ON rsus.rsu_id = opts.rsu_id "
+        "JOIN public.rsu_credentials rc ON rsus.credential_id = rc.credential_id "
+        "JOIN public.organizations owner_org ON rc.owner_organization_id = owner_org.organization_id"
         ") r ON r.organization_id = org.organization_id "
         "WHERE org.name = :org_name"
         ") as row"
@@ -110,6 +113,7 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
         rsu_obj["milepost"] = row["milepost"]
         rsu_obj["tim_deposit"] = row["tim_deposit"]
         rsu_obj["snmp_monitoring"] = row["snmp_monitoring"]
+        rsu_obj["owner_organization"] = row["owner_organization"]
         org_obj["org_rsus"].append(rsu_obj)
 
     # Get all Intersection members of the organization
@@ -249,9 +253,11 @@ def modify_org_authorized(orig_name: str, org_spec: dict, is_bulk_update: bool =
             "tim_deposit" in org_spec or "snmp_monitoring" in org_spec
         ):
             logging.info(
-                f"Bulk updating RSU options for all RSUs in organization {org_spec['name']}"
+                f"Bulk updating RSU options for all RSUs owned by organization {org_spec['name']}"
             )
 
+            # Only RSUs whose credential group is owned by this organization are updated;
+            # RSUs the organization merely views are left untouched
             # Build the update query to handle both columns
             # Only include columns that are actually being updated to avoid overwriting
             # other column values with defaults
@@ -282,7 +288,9 @@ def modify_org_authorized(orig_name: str, org_spec: dict, is_bulk_update: bool =
                 f"SELECT {', '.join(select_columns)} "
                 "FROM public.rsu_organization ro "
                 "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                "WHERE org.name = :name "
+                "JOIN public.rsus ON ro.rsu_id = rsus.rsu_id "
+                "JOIN public.rsu_credentials rc ON rsus.credential_id = rc.credential_id "
+                "WHERE org.name = :name AND rc.owner_organization_id = org.organization_id "
                 f"ON CONFLICT (rsu_id) DO UPDATE SET {', '.join(update_columns)}"
             )
 

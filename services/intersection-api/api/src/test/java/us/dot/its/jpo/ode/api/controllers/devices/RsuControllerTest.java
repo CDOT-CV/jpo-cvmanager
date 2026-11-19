@@ -95,7 +95,7 @@ class RsuControllerTest {
                     "v3",
                     Arrays.asList("TestOrg"),
                     Boolean.TRUE,
-                    Boolean.TRUE);
+                    Boolean.TRUE, null);
 
             RsuInfoDto rsu2 = new RsuInfoDto(
                     "192.168.1.101",
@@ -110,7 +110,7 @@ class RsuControllerTest {
                     "v2c",
                     Arrays.asList("TestOrg"),
                     Boolean.TRUE,
-                    Boolean.TRUE);
+                    Boolean.TRUE, null);
 
             List<RsuInfoDto> rsuList = Arrays.asList(rsu1, rsu2);
             Page<RsuInfoDto> rsuPage = new PageImpl<>(rsuList, pageable, 2);
@@ -203,7 +203,7 @@ class RsuControllerTest {
                     "v3",
                     Arrays.asList("TestOrg"),
                     Boolean.TRUE,
-                    Boolean.TRUE);
+                    Boolean.TRUE, null);
 
             Page<RsuInfoDto> rsuPage = new PageImpl<>(List.of(rsu1), pageable, 1);
 
@@ -239,7 +239,7 @@ class RsuControllerTest {
                     "v3",
                     Arrays.asList("TestOrg"),
                     Boolean.TRUE,
-                    Boolean.TRUE);
+                    Boolean.TRUE, null);
 
             when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
 
@@ -609,7 +609,7 @@ class RsuControllerTest {
                         "v3",
                         orgsToAdd,
                         true,
-                        true);
+                        true, null);
 
                 Rsu mockRsu = new Rsu();
 
@@ -644,7 +644,7 @@ class RsuControllerTest {
                         "v3",
                         orgsToAdd,
                         true,
-                        true);
+                        true, null);
 
                 when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(false);
 
@@ -676,7 +676,7 @@ class RsuControllerTest {
                         "v3",
                         orgsToAdd,
                         true,
-                        true);
+                        true, null);
 
                 when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(true);
 
@@ -709,7 +709,7 @@ class RsuControllerTest {
                     "v3",
                     orgsToAdd,
                     true,
-                    true);
+                    true, null);
 
             assertThrows(
                     RuntimeException.class,
@@ -733,7 +733,7 @@ class RsuControllerTest {
                     "v3",
                     orgsToAdd,
                     true,
-                    true);
+                    true, null);
 
             assertThrows(
                     ResponseStatusException.class,
@@ -755,7 +755,7 @@ class RsuControllerTest {
                     "v3",
                     null,
                     true,
-                    true);
+                    true, null);
 
             assertThrows(
                     ResponseStatusException.class,

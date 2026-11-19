@@ -22,7 +22,11 @@ import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import toast from 'react-hot-toast'
 
-const SnmpwalkMenu = () => {
+type SnmpwalkMenuProps = {
+  isOwnerOrg?: boolean
+}
+
+const SnmpwalkMenu = ({ isOwnerOrg = true }: SnmpwalkMenuProps) => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
   const msgFwdConfig = useSelector(selectMsgFwdConfig)
@@ -99,6 +103,7 @@ const SnmpwalkMenu = () => {
                   content={msgFwdConfig.rsuXmitMsgFwdingTable[index]}
                   handleDelete={handleDelete}
                   index={index}
+                  isOwnerOrg={isOwnerOrg}
                 />
               </div>
             ))}
@@ -111,6 +116,7 @@ const SnmpwalkMenu = () => {
                   content={msgFwdConfig.rsuReceivedMsgTable[index]}
                   handleDelete={handleDelete}
                   index={index}
+                  isOwnerOrg={isOwnerOrg}
                 />
               </div>
             ))}
@@ -124,6 +130,7 @@ const SnmpwalkMenu = () => {
                   content={msgFwdConfig[index]}
                   handleDelete={handleDelete}
                   index={index}
+                  isOwnerOrg={isOwnerOrg}
                 />
               </div>
             ))}

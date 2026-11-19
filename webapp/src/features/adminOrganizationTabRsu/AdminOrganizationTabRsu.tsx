@@ -17,8 +17,10 @@ import {
   rsuAddMultiple,
 } from './adminOrganizationTabRsuSlice'
 import {
+  getOrgData,
   updateOrgTimDeposit,
   updateOrgSnmpMonitoring,
+  AdminOrgSingle,
   selectTimDeposit,
   selectSnmpMonitoring,
   selectSelectedOrgName,
@@ -211,59 +213,66 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     })
   }
 
-  const handleOrgTimDepositChange = (newValue: boolean) => {
-    const actionLabel = newValue ? 'Enable' : 'Disable'
-    const buttons = [
-      {
-        label: 'Yes',
-        onClick: () => {
-          dispatch(updateOrgTimDeposit({ orgName: selectedOrg, email: selectedOrgEmail, timDeposit: newValue })).then(
-            (data: any) => {
-              if (data.payload.success) {
+  const confirmOrgRsuOptionChange = async (title: string, updateOwnedRsus: () => Promise<any>) => {
+    const result: any = await dispatch(getOrgData({ orgName: selectedOrg }))
+    const orgRsus: AdminOrgRsu[] | undefined = result.payload?.success
+      ? (result.payload.data?.org_data as AdminOrgSingle | undefined)?.org_rsus
+      : undefined
+    if (!orgRsus) {
+      toast.error('Failed to verify RSU ownership; no RSUs were updated')
+      return
+    }
+
+    const ownedRsus = orgRsus.filter((rsu) => rsu.owner_organization === selectedOrg)
+    const nonOwnedRsuCount = orgRsus.length - ownedRsus.length
+
+    if (ownedRsus.length === 0) {
+      confirmAlert(
+        Options(
+          title,
+          nonOwnedRsuCount === 0
+            ? 'This organization has no RSUs to update.'
+            : `None of the RSUs in this organization are owned by ${selectedOrg}, so no RSUs will be updated. Only the owner organization can change these settings.`,
+          [{ label: 'OK', onClick: () => {} }]
+        )
+      )
+      return
+    }
+
+    const message =
+      nonOwnedRsuCount === 0
+        ? `Are you sure? This will change the value on all ${ownedRsus.length} RSU(s) in this organization and overwrite any previous settings.`
+        : `Only the ${ownedRsus.length} RSU(s) owned by ${selectedOrg} will be updated. ` +
+          `${nonOwnedRsuCount} RSU(s) owned by other organizations will not be changed. ` +
+          'Are you sure you want to overwrite the previous settings on the owned RSUs?'
+
+    confirmAlert(
+      Options(title, message, [
+        {
+          label: 'Yes',
+          onClick: () =>
+            updateOwnedRsus().then((data: any) => {
+              if (data.payload?.success) {
                 toast.success(data.payload.message)
               } else {
-                toast.error(data.payload.message)
+                toast.error(data.payload?.message ?? 'Failed to update RSUs')
               }
-            }
-          )
+            }),
         },
-      },
-      { label: 'No', onClick: () => {} },
-    ]
-    const alertOptions = Options(
-      `${actionLabel} TIM Deposit`,
-      'Are you sure this will change all RSU values under this organization and overwrite any previous settings?',
-      buttons
+        { label: 'No', onClick: () => {} },
+      ])
     )
-    confirmAlert(alertOptions)
   }
 
-  const handleOrgSnmpMonitoringChange = (newValue: boolean) => {
-    const actionLabel = newValue ? 'Enable' : 'Disable'
-    const buttons = [
-      {
-        label: 'Yes',
-        onClick: () => {
-          dispatch(
-            updateOrgSnmpMonitoring({ orgName: selectedOrg, email: selectedOrgEmail, snmpMonitoring: newValue })
-          ).then((data: any) => {
-            if (data.payload.success) {
-              toast.success(data.payload.message)
-            } else {
-              toast.error(data.payload.message)
-            }
-          })
-        },
-      },
-      { label: 'No', onClick: () => {} },
-    ]
-    const alertOptions = Options(
-      `${actionLabel} SNMP Monitoring`,
-      'Are you sure this will change all RSU values under this organization and overwrite any previous settings?',
-      buttons
+  const handleOrgTimDepositChange = (newValue: boolean) =>
+    confirmOrgRsuOptionChange(`${newValue ? 'Enable' : 'Disable'} TIM Deposit`, () =>
+      dispatch(updateOrgTimDeposit({ orgName: selectedOrg, email: selectedOrgEmail, timDeposit: newValue }))
     )
-    confirmAlert(alertOptions)
-  }
+
+  const handleOrgSnmpMonitoringChange = (newValue: boolean) =>
+    confirmOrgRsuOptionChange(`${newValue ? 'Enable' : 'Disable'} SNMP Monitoring`, () =>
+      dispatch(updateOrgSnmpMonitoring({ orgName: selectedOrg, email: selectedOrgEmail, snmpMonitoring: newValue }))
+    )
 
   return (
     <div className="accordion">
@@ -332,7 +341,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                handleOrgTimDepositChange(true)
+                handleOrgTimDepositChange(true).catch(() => toast.error('Failed to update RSUs'))
               }}
             >
               Enable TIM Deposit
@@ -343,7 +352,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                handleOrgTimDepositChange(false)
+                handleOrgTimDepositChange(false).catch(() => toast.error('Failed to update RSUs'))
               }}
             >
               Disable TIM Deposit
@@ -354,7 +363,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                handleOrgSnmpMonitoringChange(true)
+                handleOrgSnmpMonitoringChange(true).catch(() => toast.error('Failed to update RSUs'))
               }}
             >
               Enable SNMP Monitoring
@@ -365,7 +374,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                handleOrgSnmpMonitoringChange(false)
+                handleOrgSnmpMonitoringChange(false).catch(() => toast.error('Failed to update RSUs'))
               }}
             >
               Disable SNMP Monitoring

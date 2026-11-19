@@ -156,7 +156,7 @@ class RsuManagementServiceTest {
                 "v3",
                 Arrays.asList("Org1", "Org2"),
                 Boolean.TRUE,
-                Boolean.TRUE);
+                Boolean.TRUE, null);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(mockRsu);
         when(rsuMapper.toDto(mockRsu)).thenReturn(mockDto);
@@ -244,7 +244,7 @@ class RsuManagementServiceTest {
                 "v3",
                 Arrays.asList("TestOrg"),
                 Boolean.TRUE,
-                Boolean.TRUE);
+                Boolean.TRUE, null);
         RsuInfoDto dto2 = new RsuInfoDto(
                 "192.168.1.101",
                 new SimplePosition(39.7400, -105.0850),
@@ -258,7 +258,7 @@ class RsuManagementServiceTest {
                 "v2c",
                 Arrays.asList("TestOrg"),
                 Boolean.TRUE,
-                Boolean.TRUE);
+                Boolean.TRUE, null);
 
         when(rsuRepository.findAllByOrganization(orgName, search, pageable)).thenReturn(rsuPage);
         when(rsuMapper.toDto(rsu1)).thenReturn(dto1);
@@ -397,7 +397,7 @@ class RsuManagementServiceTest {
                 "v3",
                 Arrays.asList("Org1"),
                 Boolean.TRUE,
-                Boolean.TRUE);
+                Boolean.TRUE, null);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         doNothing().when(rsuPatchMapper).updateRsuFromPatch(patch, existingRsu);

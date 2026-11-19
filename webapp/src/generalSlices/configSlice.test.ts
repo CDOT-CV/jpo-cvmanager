@@ -6,6 +6,8 @@ import reducer, {
   rebootRsu,
   checkFirmwareUpgrade,
   startFirmwareUpgrade,
+  geoRsuQuery,
+  notifyGeoRsuQueryResult,
 
   // reducers
   setDestIp,
@@ -13,6 +15,7 @@ import reducer, {
   toggleConfigPointSelect,
 } from './configSlice'
 import RsuApi from '../apis/rsu-api'
+import toast from 'react-hot-toast'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import { RootState } from '../store'
@@ -26,7 +29,7 @@ describe('config reducer', () => {
         errorState: '',
         changeSuccess: false,
         rebootChangeSuccess: false,
-      rebootRequestedIp: undefined,
+        rebootRequestedIp: undefined,
         firmwareUpgradeAvailable: false,
         firmwareUpgradeName: '',
         firmwareUpgradeMsg: '',
@@ -448,6 +451,82 @@ describe('async thunks', () => {
     })
   })
 
+  describe('geoRsuQuery', () => {
+    const ring = [
+      [0, 0],
+      [1, 0],
+      [1, 1],
+      [0, 0],
+    ]
+    const getState = () =>
+      ({
+        user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
+        config: { value: { configCoordinates: ring } },
+      }) as unknown as RootState
+    const ownershipDispatch = (unwrap: () => Promise<unknown>) => {
+      const unsubscribe = jest.fn()
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? { unwrap, unsubscribe } : action))
+      return { dispatch, unsubscribe }
+    }
+
+    it('keeps only RSUs owned by the organization', async () => {
+      const api = jest
+        .spyOn(RsuApi, 'postRsuGeo')
+        .mockResolvedValue({ status: 200, body: ['10.0.0.1', '10.0.0.2'] } as any)
+      const { dispatch, unsubscribe } = ownershipDispatch(() =>
+        Promise.resolve({
+          content: [
+            { ip: '10.0.0.1', owner_organization: 'Org 1' },
+            { ip: '10.0.0.2', owner_organization: 'Org 2' },
+          ],
+        })
+      )
+      try {
+        const result = await geoRsuQuery('Select Vendor')(dispatch, getState, undefined)
+        expect(result.type).toBe('config/geoRsuQuery/fulfilled')
+        expect((result.payload as any).body).toEqual(['10.0.0.1'])
+        expect(unsubscribe).toHaveBeenCalled()
+      } finally {
+        api.mockRestore()
+      }
+    })
+
+    it('rejects when RSU ownership cannot be verified', async () => {
+      const api = jest.spyOn(RsuApi, 'postRsuGeo').mockResolvedValue({ status: 200, body: ['10.0.0.1'] } as any)
+      const { dispatch, unsubscribe } = ownershipDispatch(() => Promise.reject(new Error('boom')))
+      try {
+        const result = await geoRsuQuery('Select Vendor')(dispatch, getState, undefined)
+        expect(result.type).toBe('config/geoRsuQuery/rejected')
+        expect(result.payload).toBe('Failed to verify RSU ownership')
+        expect(unsubscribe).toHaveBeenCalled()
+      } finally {
+        api.mockRestore()
+      }
+    })
+
+    it('returns every RSU in the area for a super user without checking ownership', async () => {
+      const api = jest
+        .spyOn(RsuApi, 'postRsuGeo')
+        .mockResolvedValue({ status: 200, body: ['10.0.0.1', '10.0.0.2'] } as any)
+      const superUserState = () =>
+        ({
+          user: {
+            value: { authLoginData: { token: 'token', data: { super_user: true } }, organization: { name: 'Org 1' } },
+          },
+          config: { value: { configCoordinates: ring } },
+        }) as unknown as RootState
+      const { dispatch } = ownershipDispatch(() => Promise.reject(new Error('should not be called')))
+      try {
+        const result = await geoRsuQuery('Select Vendor')(dispatch, superUserState, undefined)
+        expect(result.type).toBe('config/geoRsuQuery/fulfilled')
+        expect((result.payload as any).body).toEqual(['10.0.0.1', '10.0.0.2'])
+        expect(dispatch.mock.calls.some(([action]) => typeof action === 'function')).toBe(false)
+      } finally {
+        api.mockRestore()
+      }
+    })
+  })
+
   describe('rebootRsu', () => {
     it('awaits acceptance from the Intersection API', async () => {
       const dispatch = jest.fn()
@@ -456,9 +535,10 @@ describe('async thunks', () => {
       })
       let finish: (value: { requestId: string; status: 'ACCEPTED' }) => void
       const api = jest.spyOn(RsuRebootApi, 'reboot').mockImplementation(
-        () => new Promise((resolve) => {
-          finish = resolve
-        })
+        () =>
+          new Promise((resolve) => {
+            finish = resolve
+          })
       )
       try {
         const promise = rebootRsu('192.0.2.10')(dispatch, getState, undefined)
@@ -476,9 +556,14 @@ describe('async thunks', () => {
     it('rejects failed admission rather than showing success', async () => {
       const api = jest.spyOn(RsuRebootApi, 'reboot').mockRejectedValue(new Error('Reboot capacity is busy'))
       try {
-        const result = await rebootRsu('192.0.2.10')(jest.fn(), () => ({
-          user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
-        }) as RootState, undefined)
+        const result = await rebootRsu('192.0.2.10')(
+          jest.fn(),
+          () =>
+            ({
+              user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
+            }) as RootState,
+          undefined
+        )
         expect(result.type).toBe('config/rebootRsu/rejected')
       } finally {
         api.mockRestore()
@@ -488,9 +573,14 @@ describe('async thunks', () => {
     it('rejects a missing target without sending a reboot request', async () => {
       const api = jest.spyOn(RsuRebootApi, 'reboot')
       try {
-        const result = await rebootRsu('')(jest.fn(), () => ({
-          user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
-        }) as RootState, undefined)
+        const result = await rebootRsu('')(
+          jest.fn(),
+          () =>
+            ({
+              user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
+            }) as RootState,
+          undefined
+        )
         expect(result.type).toBe('config/rebootRsu/rejected')
         expect(api).not.toHaveBeenCalled()
       } finally {
@@ -1060,5 +1150,56 @@ describe('reducers', () => {
       ...initialState,
       value: { ...initialState.value, addConfigPoint: !addConfigPoint },
     })
+  })
+})
+
+describe('notifyGeoRsuQueryResult', () => {
+  const fulfilled = (body?: string[]) => geoRsuQuery.fulfilled({ status: 200, body } as any, 'req', 'vendor')
+  let toastError: jest.SpyInstance
+
+  beforeEach(() => {
+    toastError = jest.spyOn(toast, 'error').mockReturnValue('id')
+  })
+
+  afterEach(() => {
+    toastError.mockRestore()
+  })
+
+  it('shows the rejection message when the query fails', () => {
+    notifyGeoRsuQueryResult(geoRsuQuery.rejected(null, 'req', 'vendor', 'Failed to verify RSU ownership'))
+    expect(toastError).toHaveBeenCalledWith('Failed to verify RSU ownership')
+  })
+
+  it('stays quiet when the thunk was skipped by its condition guard', async () => {
+    const tooFewPoints = () =>
+      ({
+        user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
+        config: { value: { configCoordinates: [[0, 0]] } },
+      }) as unknown as RootState
+    const result = await geoRsuQuery('Select Vendor')(jest.fn(), tooFewPoints, undefined)
+    notifyGeoRsuQueryResult(result as any)
+    expect(toastError).not.toHaveBeenCalled()
+  })
+
+  it('falls back to a generic message when the rejection has no payload', () => {
+    notifyGeoRsuQueryResult(geoRsuQuery.rejected(null, 'req', 'vendor'))
+    expect(toastError).toHaveBeenCalledWith('Failed to query RSUs in the selected area')
+  })
+
+  it('warns when no owned RSUs were found in the area', () => {
+    notifyGeoRsuQueryResult(fulfilled([]))
+    notifyGeoRsuQueryResult(fulfilled(undefined))
+    expect(toastError).toHaveBeenCalledTimes(2)
+    expect(toastError).toHaveBeenCalledWith('No RSUs owned by your organization were found in the selected area')
+  })
+
+  it('does not mention ownership to super users when the area is empty', () => {
+    notifyGeoRsuQueryResult(fulfilled([]), true)
+    expect(toastError).toHaveBeenCalledWith('No RSUs were found in the selected area')
+  })
+
+  it('stays quiet when owned RSUs were selected', () => {
+    notifyGeoRsuQueryResult(fulfilled(['10.0.0.1']))
+    expect(toastError).not.toHaveBeenCalled()
   })
 })

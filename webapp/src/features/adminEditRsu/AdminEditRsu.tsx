@@ -2,6 +2,7 @@ import { ErrorMessage } from '@hookform/error-message'
 import { useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
+import { useSelector } from 'react-redux'
 
 import {
   Button,
@@ -26,6 +27,8 @@ import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
 import '../adminRsuTab/Admin.css'
 import { useGetRsuAllowedSelectionsQuery, useGetRsuQuery, usePatchRsuMutation } from '../api/rsuApiSlice'
+import { selectIsSuperUser, selectOrganizationName } from '../../generalSlices/userSlice'
+import { NotFound } from '../../pages/404'
 
 export type AdminEditRsuFormType = {
   orig_ip: string
@@ -46,6 +49,7 @@ export type AdminEditRsuFormType = {
   organizations: string[]
   tim_deposit: boolean
   snmp_monitoring: boolean
+  owner_organization: string
 }
 
 const AdminEditRsu = () => {
@@ -55,6 +59,9 @@ const AdminEditRsu = () => {
   const { data: rsuInfo, isLoading: isLoadingRsu } = useGetRsuQuery(rsuIp!)
   const { data: rsuAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetRsuAllowedSelectionsQuery()
   const [patchRsu, { isLoading: isPatchingRsu }] = usePatchRsuMutation()
+
+  const organization = useSelector(selectOrganizationName)
+  const isSuperUser = useSelector(selectIsSuperUser)
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
@@ -86,6 +93,7 @@ const AdminEditRsu = () => {
           organizations: rsuInfo.organizations,
           tim_deposit: rsuInfo.tim_deposit ?? false,
           snmp_monitoring: rsuInfo.snmp_monitoring ?? false,
+          owner_organization: rsuInfo.owner_organization,
         }
       : undefined,
   })
@@ -185,6 +193,17 @@ const AdminEditRsu = () => {
   }
 
   const isLoading = isLoadingRsu || isLoadingAllowedSelections
+
+  if (rsuInfo && !isSuperUser && rsuInfo.owner_organization !== organization) {
+    return (
+      <NotFound
+        redirectRoute="/dashboard/admin/rsus"
+        redirectRouteName="Admin RSU Page"
+        offsetHeight={319}
+        description="You do not have permission to edit this RSU. Please return to the admin RSU page."
+      />
+    )
+  }
 
   return (
     <Dialog open={open}>

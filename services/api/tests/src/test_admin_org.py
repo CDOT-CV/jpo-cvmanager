@@ -450,7 +450,9 @@ def test_modify_org_bulk_tim_deposit_success(app, permission_result):
                 "SELECT ro.rsu_id, :tim_deposit "
                 "FROM public.rsu_organization ro "
                 "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                "WHERE org.name = :name "
+                "JOIN public.rsus ON ro.rsu_id = rsus.rsu_id "
+                "JOIN public.rsu_credentials rc ON rsus.credential_id = rc.credential_id "
+                "WHERE org.name = :name AND rc.owner_organization_id = org.organization_id "
                 "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit"
             )
             bulk_params = {"name": "Test Org", "tim_deposit": True}
@@ -494,7 +496,9 @@ def test_modify_org_bulk_snmp_monitoring_success(app, permission_result):
                 "SELECT ro.rsu_id, :snmp_monitoring "
                 "FROM public.rsu_organization ro "
                 "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                "WHERE org.name = :name "
+                "JOIN public.rsus ON ro.rsu_id = rsus.rsu_id "
+                "JOIN public.rsu_credentials rc ON rsus.credential_id = rc.credential_id "
+                "WHERE org.name = :name AND rc.owner_organization_id = org.organization_id "
                 "ON CONFLICT (rsu_id) DO UPDATE SET snmp_monitoring = EXCLUDED.snmp_monitoring"
             )
             bulk_params = {"name": "Test Org", "snmp_monitoring": True}
@@ -539,7 +543,9 @@ def test_modify_org_bulk_both_success(app, permission_result):
                 "SELECT ro.rsu_id, :tim_deposit, :snmp_monitoring "
                 "FROM public.rsu_organization ro "
                 "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                "WHERE org.name = :name "
+                "JOIN public.rsus ON ro.rsu_id = rsus.rsu_id "
+                "JOIN public.rsu_credentials rc ON rsus.credential_id = rc.credential_id "
+                "WHERE org.name = :name AND rc.owner_organization_id = org.organization_id "
                 "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit, snmp_monitoring = EXCLUDED.snmp_monitoring"
             )
             bulk_params = {

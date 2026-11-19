@@ -47,13 +47,14 @@ import {
   selectGeoMsgType,
 } from '../generalSlices/rsuSlice'
 import { selectWzdxData, getWzdxData } from '../generalSlices/wzdxSlice'
-import { selectIsAdminOrAbove, selectOrganizationName } from '../generalSlices/userSlice'
+import { selectIsAdminOrAbove, selectIsSuperUser, selectOrganizationName } from '../generalSlices/userSlice'
 import {
   selectConfigCoordinates,
   toggleConfigPointSelect,
   selectAddConfigPoint,
   updateConfigPoints,
   geoRsuQuery,
+  notifyGeoRsuQueryResult,
   clearConfig,
   clearFirmware,
 } from '../generalSlices/configSlice'
@@ -281,6 +282,7 @@ function MapPage() {
   const intersectionIconLoadingRef = React.useRef(false)
   const wzdxIconLoadingRef = React.useRef(false)
   const organization = useSelector(selectOrganizationName)
+  const isSuperUser = useSelector(selectIsSuperUser)
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
   const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
@@ -1197,11 +1199,18 @@ function MapPage() {
                       disabled={!(configCoordinates.length > 2)}
                       onClick={() => {
                         dispatch(geoRsuQuery(selectedVendor))
+                          .then((result) => notifyGeoRsuQueryResult(result, isSuperUser))
+                          .catch(() => toast.error('Failed to query RSUs in the selected area'))
                       }}
                       className="museo-slab capital-case"
                     >
                       Configure RSUs
                     </Button>
+                    {!isSuperUser && (
+                      <Typography variant="caption" color="textSecondary" sx={{ mt: 1, textAlign: 'center' }}>
+                        Only RSUs owned by your organization will be selected.
+                      </Typography>
+                    )}
                   </FormGroup>
                 </AccordionDetails>
               </Accordion>

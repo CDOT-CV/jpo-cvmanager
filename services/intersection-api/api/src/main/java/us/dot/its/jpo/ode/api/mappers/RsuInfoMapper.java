@@ -31,6 +31,7 @@ public interface RsuInfoMapper {
     @Mapping(source = "rsuOrganizations", target = "organizations", qualifiedByName = "mapOrganizationNames")
     @Mapping(source = "rsuOption", target = "timDeposit", qualifiedByName = "mapTimDeposit")
     @Mapping(source = "rsuOption", target = "snmpMonitoring", qualifiedByName = "mapSnmpMonitoring")
+    @Mapping(source = "credential.ownerOrganization.name", target = "ownerOrganization")
     RsuInfoDto toDto(Rsu rsu);
 
     /**

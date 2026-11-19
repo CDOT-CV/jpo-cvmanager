@@ -71,4 +71,7 @@ public class RsuInfoDto implements Serializable {
     @NotNull
     @JsonProperty("snmp_monitoring")
     Boolean snmpMonitoring;
+
+    @JsonProperty("owner_organization")
+    String ownerOrganization;
 }

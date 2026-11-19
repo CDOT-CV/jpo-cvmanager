@@ -103,6 +103,7 @@ get_org_data_rsu_return = [
             "milepost": "test",
             "tim_deposit": False,
             "snmp_monitoring": False,
+            "owner_organization": "Test Org",
         },
     ),
 ]
@@ -137,6 +138,7 @@ get_org_data_result = {
             "milepost": "test",
             "tim_deposit": False,
             "snmp_monitoring": False,
+            "owner_organization": "Test Org",
         }
     ],
     "org_intersections": [
@@ -167,14 +169,17 @@ get_org_data_user_sql = (
 get_org_data_rsu_sql = (
     "SELECT to_jsonb(row) "
     "FROM ("
-    "SELECT r.ipv4_address, r.primary_route, r.milepost, r.tim_deposit, r.snmp_monitoring "
+    "SELECT r.ipv4_address, r.primary_route, r.milepost, r.tim_deposit, r.snmp_monitoring, r.owner_organization "
     "FROM public.organizations AS org "
     "JOIN ("
     "SELECT ro.organization_id, rsus.ipv4_address, rsus.primary_route, rsus.milepost, "
-    "COALESCE(opts.tim_deposit, FALSE) as tim_deposit, COALESCE(opts.snmp_monitoring, FALSE) as snmp_monitoring "
+    "COALESCE(opts.tim_deposit, FALSE) as tim_deposit, COALESCE(opts.snmp_monitoring, FALSE) as snmp_monitoring, "
+    "owner_org.name as owner_organization "
     "FROM public.rsu_organization ro "
     "JOIN public.rsus ON ro.rsu_id = rsus.rsu_id "
-    "LEFT JOIN public.rsu_options opts ON rsus.rsu_id = opts.rsu_id"
+    "LEFT JOIN public.rsu_options opts ON rsus.rsu_id = opts.rsu_id "
+    "JOIN public.rsu_credentials rc ON rsus.credential_id = rc.credential_id "
+    "JOIN public.organizations owner_org ON rc.owner_organization_id = owner_org.organization_id"
     ") r ON r.organization_id = org.organization_id "
     "WHERE org.name = :org_name"
     ") as row"
