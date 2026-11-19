@@ -150,7 +150,10 @@ class OrganizationControllerTest {
         void validBody_returns201WithCreatedId() throws Exception {
             Organization createdOrg = new Organization();
             createdOrg.setId(42);
-            when(organizationManagementService.createOrganization(any())).thenReturn(createdOrg);
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+            when(authToken.getEmail()).thenReturn("creator@example.com");
+            when(organizationManagementService.createOrganization(any(), eq("creator@example.com")))
+                    .thenReturn(createdOrg);
 
             mockMvc.perform(post("/organizations")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -159,14 +162,16 @@ class OrganizationControllerTest {
                     .andExpect(jsonPath("$").value(42));
 
             verify(organizationManagementService)
-                    .createOrganization(new NewOrganizationBody("New Org", "new@org.test"));
+                    .createOrganization(new NewOrganizationBody("New Org", "new@org.test"), "creator@example.com");
         }
 
         @Test
         @WithMockUser
         @DisplayName("returns 409 when an organization with the same name already exists")
         void duplicateName_returns409() throws Exception {
-            when(organizationManagementService.createOrganization(any()))
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+            when(authToken.getEmail()).thenReturn("creator@example.com");
+            when(organizationManagementService.createOrganization(any(), eq("creator@example.com")))
                     .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Organization with name already exists"));
 
             mockMvc.perform(post("/organizations")
