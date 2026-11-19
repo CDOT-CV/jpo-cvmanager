@@ -71,6 +71,15 @@ const objects = [
   firmware({ object_id: 'local', file_name: 'local.tar.sig', obu_firmware_id: 4, storage_provider: 'local', provider_object_version: null, verification_status: 'LOCAL' }),
   firmware({ object_id: 'missing', file_name: 'missing.tar.sig', obu_firmware_id: 5, provider_object_version: null, verification_status: 'MISSING' }),
   firmware({ object_id: 'unknown', file_name: 'unknown.tar.sig', obu_firmware_id: 6, provider_object_version: null, verification_status: 'UNKNOWN' }),
+  firmware({ object_id: 'rsu', file_name: 'rsu.tar.sig', obu_firmware_id: 7, device_type: 'RSU' }),
+  firmware({
+    object_id: 'rsu-published',
+    file_name: 'rsu-published.tar.sig',
+    obu_firmware_id: 8,
+    device_type: 'RSU',
+    published: true,
+    published_at: '2026-10-15T12:02:00Z',
+  }),
 ]
 
 describe('OBU firmware tab', () => {
@@ -144,6 +153,24 @@ describe('OBU firmware tab', () => {
     for (const name of ['untracked.tar.sig', 'missing.tar.sig', 'unknown.tar.sig']) {
       expect(screen.getByRole('checkbox', { name: `Publish ${name}` })).toBeDisabled()
     }
+  })
+
+  it('does not publish RSU firmware but still allows withdrawing it', async () => {
+    renderTab()
+    await screen.findByText('rsu.tar.sig')
+
+    expect(screen.getByRole('checkbox', { name: 'Publish rsu.tar.sig' })).toBeDisabled()
+    expect(screen.getByLabelText('RSU firmware cannot be published to OBUs')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Unpublish rsu-published.tar.sig' })).toBeEnabled()
+  })
+
+  it('lets keyboard users reach the reason a switch is disabled', async () => {
+    renderTab()
+    await screen.findByText('missing.tar.sig')
+
+    const reason = within(row('missing.tar.sig')).getByLabelText('Only verified or local firmware can be published')
+    expect(reason).toHaveAttribute('tabindex', '0')
+    expect(within(row('verified.tar.sig')).getByLabelText('Not published')).not.toHaveAttribute('tabindex')
   })
 
   it('confirms publication, publishes, and reloads the list', async () => {

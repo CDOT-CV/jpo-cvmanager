@@ -18,24 +18,26 @@ import '../adminRsuTab/Admin.css'
 
 const DEFAULT_PAGE_SIZE = 25
 const HEADER_STYLE = { textTransform: 'none' as const }
-// API sort fields in column order; null marks a column that cannot be sorted
-const COLUMN_SORT_FIELDS = [
-  'manufacturer',
-  'file_name',
-  'device_type',
-  'release_version',
-  null,
-  'content_length',
-  'registered_at',
-  'verification_status',
-  'published',
+// Table columns in display order. A sortable column's field is also its API sort
+// field, and column header clicks report the column's index in this list.
+const COLUMN_LAYOUT: Column<ObuFirmwareObject>[] = [
+  { title: 'Manufacturer', field: 'manufacturer' },
+  { title: 'File Name', field: 'file_name' },
+  { title: 'Type', field: 'device_type' },
+  { title: 'Release', field: 'release_version' },
+  { title: 'Details', sorting: false },
+  { title: 'Size', field: 'content_length' },
+  { title: 'Registered', field: 'registered_at' },
+  { title: 'Verification', field: 'verification_status' },
+  { title: 'Published', field: 'published' },
 ]
 type PublishedFilter = '' | 'true' | 'false'
 
 const obuFirmwareSort = (query: Query<ObuFirmwareObject>) => {
   const sort = query.orderByCollection?.[0]
   const orderBy = sort?.orderBy as number | Column<ObuFirmwareObject> | undefined
-  const field = typeof orderBy === 'number' ? COLUMN_SORT_FIELDS[orderBy] : orderBy?.field
+  const column = typeof orderBy === 'number' ? COLUMN_LAYOUT[orderBy] : orderBy
+  const field = column?.sorting === false ? undefined : column?.field
   return typeof field === 'string' ? `${field},${sort.orderDirection || 'asc'}` : 'manufacturer,asc'
 }
 
@@ -73,11 +75,13 @@ const describeDetails = (object: ObuFirmwareObject) =>
     .filter(Boolean)
     .join(' · ')
 
-// Only verified cloud files and local files can be published. Published firmware can
-// always be withdrawn, even after its file changed or went missing.
+// Only verified cloud files and local files of OBU firmware can be published.
+// Published firmware can always be withdrawn, even after its file changed or went missing.
 const canChangePublication = (object: ObuFirmwareObject) =>
   object.obu_firmware_id != null &&
-  (object.published || object.verification_status === 'VERIFIED' || object.verification_status === 'LOCAL')
+  (object.published ||
+    (object.device_type !== 'RSU' &&
+      (object.verification_status === 'VERIFIED' || object.verification_status === 'LOCAL')))
 
 const publicationTooltip = (object: ObuFirmwareObject) => {
   if (object.published) {
@@ -85,7 +89,9 @@ const publicationTooltip = (object: ObuFirmwareObject) => {
     const at = object.published_at ? ` on ${formatTimestamp(object.published_at)}` : ''
     return `Published${by}${at}`
   }
-  return canChangePublication(object) ? 'Not published' : 'Only verified or local firmware can be published'
+  if (canChangePublication(object)) return 'Not published'
+  if (object.device_type === 'RSU') return 'RSU firmware cannot be published to OBUs'
+  return 'Only verified or local firmware can be published'
 }
 
 // Missing and local files are removed from the catalog without deleting a stored file.
@@ -245,58 +251,39 @@ const AdminObuFirmwareTab = () => {
     [listObuFirmwareObjects]
   )
 
-  const columns: Column<ObuFirmwareObject>[] = [
-    { title: 'Manufacturer', field: 'manufacturer', headerStyle: HEADER_STYLE },
-    {
-      title: 'File Name',
-      field: 'file_name',
-      headerStyle: HEADER_STYLE,
-      render: (object) => <span style={{ overflowWrap: 'anywhere' }}>{object.file_name}</span>,
-    },
-    { title: 'Type', field: 'device_type', headerStyle: HEADER_STYLE },
-    { title: 'Release', field: 'release_version', headerStyle: HEADER_STYLE },
-    { title: 'Details', sorting: false, headerStyle: HEADER_STYLE, render: describeDetails },
-    {
-      title: 'Size',
-      field: 'content_length',
-      headerStyle: HEADER_STYLE,
-      render: (object) => (object.content_length == null ? '' : formatFileSize(object.content_length)),
-    },
-    {
-      title: 'Registered',
-      field: 'registered_at',
-      headerStyle: HEADER_STYLE,
-      render: (object) => formatTimestamp(object.registered_at),
-    },
-    {
-      title: 'Verification',
-      field: 'verification_status',
-      headerStyle: HEADER_STYLE,
-      render: (object) => (
-        <Typography variant="body2" sx={{ color: verificationColor[object.verification_status], fontWeight: 'bold' }}>
-          {verificationLabel[object.verification_status]}
-        </Typography>
-      ),
-    },
-    {
-      title: 'Published',
-      field: 'published',
-      headerStyle: HEADER_STYLE,
-      render: (object) => (
+  const renderers: Record<string, Column<ObuFirmwareObject>['render']> = {
+    'File Name': (object) => <span style={{ overflowWrap: 'anywhere' }}>{object.file_name}</span>,
+    Details: describeDetails,
+    Size: (object) => (object.content_length == null ? '' : formatFileSize(object.content_length)),
+    Registered: (object) => formatTimestamp(object.registered_at),
+    Verification: (object) => (
+      <Typography variant="body2" sx={{ color: verificationColor[object.verification_status], fontWeight: 'bold' }}>
+        {verificationLabel[object.verification_status]}
+      </Typography>
+    ),
+    Published: (object) => {
+      const changeable = !isChanging && canChangePublication(object)
+      return (
         <Tooltip title={publicationTooltip(object)}>
-          <span>
+          {/* A disabled switch cannot take focus, so the wrapper does, to reveal why */}
+          <span tabIndex={changeable ? undefined : 0}>
             <Switch
               size="small"
               checked={object.published}
-              disabled={isChanging || !canChangePublication(object)}
+              disabled={!changeable}
               onChange={() => changePublication(object)}
               inputProps={{ 'aria-label': `${object.published ? 'Unpublish' : 'Publish'} ${object.file_name}` }}
             />
           </span>
         </Tooltip>
-      ),
+      )
     },
-  ]
+  }
+  const columns: Column<ObuFirmwareObject>[] = COLUMN_LAYOUT.map((column) => ({
+    ...column,
+    headerStyle: HEADER_STYLE,
+    render: renderers[column.title as string],
+  }))
 
   const tableActions: (Action<ObuFirmwareObject> | ((row: ObuFirmwareObject) => Action<ObuFirmwareObject>))[] = [
     (object) => ({
