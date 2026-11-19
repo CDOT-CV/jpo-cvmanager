@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -150,6 +152,62 @@ class RsuRepositoryTest {
 
         assertTrue(rsuRepository.findLatestSuccessfulPingTimestamp(
                 RsuManagementService.toIpv4Address("10.0.0.2")).isEmpty());
+    }
+
+    @Test
+    @DisplayName("credential listing queries return owned credentials plus those used by the organization's RSUs")
+    void credentialListingQueries_scopeToOwnedOrUsedByOrganization() throws Exception {
+        Organization ownerOrg = organizationRepository.save(fixtures.createOrg(null, "OwnerOrg", "email"));
+        Organization viewerOrg = organizationRepository.save(fixtures.createOrg(null, "ViewerOrg", "email"));
+        Organization unrelatedOrg = organizationRepository.save(fixtures.createOrg(null, "UnrelatedOrg", "email"));
+        RsuGraph graph = saveSharedGraph(ownerOrg);
+        RsuCredential viewerSpareSsh = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(viewerOrg));
+        SnmpCredential viewerSpareSnmp = snmpCredentialRepository
+                .save(fixtures.createRandomSnmpCredential(viewerOrg));
+
+        // 10.0.0.1 is shared with the viewer org; 10.0.0.2 is visible to the owner only
+        Rsu shared = saveRsu(graph, ownerOrg, "10.0.0.1");
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(shared, viewerOrg));
+        saveRsu(graph, ownerOrg, "10.0.0.2");
+
+        String sshNickname = graph.rsuCredential().getNickname();
+        String snmpNickname = graph.snmpCredential().getNickname();
+
+        // Owner: its own credentials, used by both RSUs
+        assertEquals(List.of(sshNickname), rsuCredentialRepository.findOwnedOrUsedByOrganization(ownerOrg)
+                .stream().map(RsuCredential::getNickname).toList());
+        assertEquals(List.of(sshNickname + "@10.0.0.1", sshNickname + "@10.0.0.2"),
+                rsuCredentialRepository.findRsuUsageInOrganization(ownerOrg).stream()
+                        .map(u -> u.getNickname() + "@" + u.getIpv4Address().getHostAddress()).toList());
+        assertEquals(List.of(snmpNickname), snmpCredentialRepository.findOwnedOrUsedByOrganization(ownerOrg)
+                .stream().map(SnmpCredential::getNickname).toList());
+        assertEquals(List.of(snmpNickname + "@10.0.0.1", snmpNickname + "@10.0.0.2"),
+                snmpCredentialRepository.findRsuUsageInOrganization(ownerOrg).stream()
+                        .map(u -> u.getNickname() + "@" + u.getIpv4Address().getHostAddress()).toList());
+
+        // Viewer: the owner's credentials (via the shared RSU only) plus its own unused ones
+        List<RsuCredential> viewerSsh = rsuCredentialRepository.findOwnedOrUsedByOrganization(viewerOrg);
+        assertEquals(Set.of(sshNickname, viewerSpareSsh.getNickname()),
+                viewerSsh.stream().map(RsuCredential::getNickname).collect(Collectors.toSet()));
+        assertEquals(2, viewerSsh.size());
+        assertEquals("OwnerOrg", viewerSsh.stream().filter(c -> c.getNickname().equals(sshNickname)).findFirst()
+                .orElseThrow().getOwnerOrganization().getName());
+        assertEquals(List.of(sshNickname + "@10.0.0.1"),
+                rsuCredentialRepository.findRsuUsageInOrganization(viewerOrg).stream()
+                        .map(u -> u.getNickname() + "@" + u.getIpv4Address().getHostAddress()).toList());
+        List<SnmpCredential> viewerSnmp = snmpCredentialRepository.findOwnedOrUsedByOrganization(viewerOrg);
+        assertEquals(Set.of(snmpNickname, viewerSpareSnmp.getNickname()),
+                viewerSnmp.stream().map(SnmpCredential::getNickname).collect(Collectors.toSet()));
+        assertEquals(2, viewerSnmp.size());
+        assertEquals(List.of(snmpNickname + "@10.0.0.1"),
+                snmpCredentialRepository.findRsuUsageInOrganization(viewerOrg).stream()
+                        .map(u -> u.getNickname() + "@" + u.getIpv4Address().getHostAddress()).toList());
+
+        // Unrelated: nothing
+        assertTrue(rsuCredentialRepository.findOwnedOrUsedByOrganization(unrelatedOrg).isEmpty());
+        assertTrue(rsuCredentialRepository.findRsuUsageInOrganization(unrelatedOrg).isEmpty());
+        assertTrue(snmpCredentialRepository.findOwnedOrUsedByOrganization(unrelatedOrg).isEmpty());
+        assertTrue(snmpCredentialRepository.findRsuUsageInOrganization(unrelatedOrg).isEmpty());
     }
 
     private RsuGraph saveSharedGraph(Organization owner) {

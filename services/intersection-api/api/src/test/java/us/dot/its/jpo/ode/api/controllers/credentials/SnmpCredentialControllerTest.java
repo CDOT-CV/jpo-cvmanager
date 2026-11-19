@@ -7,9 +7,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapper;
 import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapperImpl;
+import us.dot.its.jpo.ode.api.models.credentials.CredentialSummaryDTO;
 import us.dot.its.jpo.ode.api.models.credentials.SnmpCredentialDTO;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doNothing;
@@ -216,6 +220,36 @@ class SnmpCredentialControllerTest {
         // Act & Assert
         assertThrows(EntityNotFoundException.class, () -> snmpCredentialController.deleteByNickname(request));
 
+    }
+
+    @Test
+    void testListForOrganization_Success() throws Exception {
+        // Arrange
+        String organization = "testOrg";
+        List<CredentialSummaryDTO> expected = List.of(
+                new CredentialSummaryDTO("nickname", "username", "ownerOrg", List.of("10.0.0.1")));
+        when(mockSnmpCredentialManagementService.listForOrganization(organization)).thenReturn(expected);
+        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+
+        // Act
+        List<CredentialSummaryDTO> response = snmpCredentialController.listForOrganization(organization);
+
+        // Assert
+        assertEquals(expected, response);
+        String json = new ObjectMapper().writeValueAsString(response);
+        assertFalse(json.contains("password"));
+    }
+
+    @Test
+    void testListForOrganization_Failure_OrganizationNotFound() {
+        // Arrange
+        String organization = "missing";
+        when(mockSnmpCredentialManagementService.listForOrganization(organization))
+                .thenThrow(EntityNotFoundException.class);
+        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialController.listForOrganization(organization));
     }
 
 }

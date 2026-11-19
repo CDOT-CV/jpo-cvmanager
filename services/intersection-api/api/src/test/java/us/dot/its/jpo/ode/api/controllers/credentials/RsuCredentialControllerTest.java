@@ -7,11 +7,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import us.dot.its.jpo.ode.api.mappers.RsuCredentialMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuCredentialMapperImpl;
+import us.dot.its.jpo.ode.api.models.credentials.CredentialSummaryDTO;
 import us.dot.its.jpo.ode.api.models.credentials.RsuCredentialDTO;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -230,6 +236,36 @@ class RsuCredentialControllerTest {
 
         // Act & Assert
         assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.deleteByNickname(deleteRequest));
+    }
+
+    @Test
+    void testListForOrganization_Success() throws Exception {
+        // Arrange
+        String organization = "testOrg";
+        List<CredentialSummaryDTO> expected = List.of(
+                new CredentialSummaryDTO("nickname", "username", "ownerOrg", List.of("10.0.0.1")));
+        when(mockRsuCredentialManagementService.listForOrganization(organization)).thenReturn(expected);
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        // Act
+        List<CredentialSummaryDTO> response = rsuCredentialController.listForOrganization(organization);
+
+        // Assert
+        assertEquals(expected, response);
+        String json = new ObjectMapper().writeValueAsString(response);
+        assertFalse(json.contains("password"));
+    }
+
+    @Test
+    void testListForOrganization_Failure_OrganizationNotFound() {
+        // Arrange
+        String organization = "missing";
+        when(mockRsuCredentialManagementService.listForOrganization(organization))
+                .thenThrow(EntityNotFoundException.class);
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.listForOrganization(organization));
     }
 
 }

@@ -12,10 +12,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import us.dot.its.jpo.ode.api.mappers.RsuCredentialMapper;
+import us.dot.its.jpo.ode.api.models.credentials.CredentialSummaryDTO;
 import us.dot.its.jpo.ode.api.models.credentials.RsuCredentialDTO;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -42,6 +46,18 @@ public class RsuCredentialController {
     public RsuCredentialDTO getByNickname(
             RsuCredentialGetRequest rsuCredentialGetRequest) throws EntityNotFoundException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname()));
+    }
+
+    /**
+     * Lists the SSH credentials an organization owns or uses on its RSUs, without
+     * passwords. Ownership is reported per credential so clients can tell which
+     * ones the organization may manage.
+     */
+    @GetMapping("/list")
+    @PreAuthorize("@PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public List<CredentialSummaryDTO> listForOrganization(
+            @RequestParam("organization") String organization) throws EntityNotFoundException {
+        return rsuCredentialManagementService.listForOrganization(organization);
     }
 
     @PostMapping("/update")

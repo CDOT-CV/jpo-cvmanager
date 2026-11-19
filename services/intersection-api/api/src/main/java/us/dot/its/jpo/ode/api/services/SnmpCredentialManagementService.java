@@ -8,7 +8,12 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
+import us.dot.its.jpo.ode.api.models.credentials.CredentialSummaryDTO;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -37,6 +42,30 @@ public class SnmpCredentialManagementService {
 
     public SnmpCredential getByNickname(String nickname) throws EntityNotFoundException {
         return snmpCredentialRepository.findByNickname(nickname).orElseThrow(() -> new EntityNotFoundException("No credential found with nickname " + nickname));
+    }
+
+    /**
+     * Lists the SNMP credentials visible to an organization: those it owns and
+     * those used by RSUs associated with it. Passwords are not included.
+     */
+    public List<CredentialSummaryDTO> listForOrganization(String organizationName) throws EntityNotFoundException {
+        Organization organization = organizationRepository.findByName(organizationName)
+                .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
+
+        Map<String, List<String>> rsuIpsByNickname = new HashMap<>();
+        for (SnmpCredentialRepository.CredentialRsuUsage usage : snmpCredentialRepository
+                .findRsuUsageInOrganization(organization)) {
+            rsuIpsByNickname.computeIfAbsent(usage.getNickname(), nickname -> new ArrayList<>())
+                    .add(usage.getIpv4Address().getHostAddress());
+        }
+
+        return snmpCredentialRepository.findOwnedOrUsedByOrganization(organization).stream()
+                .map(credential -> new CredentialSummaryDTO(
+                        credential.getNickname(),
+                        credential.getUsername(),
+                        credential.getOwnerOrganization().getName(),
+                        rsuIpsByNickname.getOrDefault(credential.getNickname(), List.of())))
+                .toList();
     }
 
     public SnmpCredential update(SnmpCredentialController.SnmpCredentialPatch patch) throws EntityNotFoundException {
