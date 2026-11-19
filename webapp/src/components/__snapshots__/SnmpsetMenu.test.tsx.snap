@@ -30,6 +30,7 @@ exports[`should take a snapshot 1`] = `
                 class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorInfo MuiInputBase-formControl css-mocked-MuiInputBase-root-MuiOutlinedInput-root"
               >
                 <input
+                  aria-describedby="snmpinput-helper-text"
                   class="MuiInputBase-input MuiOutlinedInput-input css-mocked-MuiInputBase-input-MuiOutlinedInput-input"
                   id="snmpinput"
                   placeholder="Enter Destination IP"
@@ -49,6 +50,12 @@ exports[`should take a snapshot 1`] = `
                   </legend>
                 </fieldset>
               </div>
+              <p
+                class="MuiFormHelperText-root MuiFormHelperText-sizeMedium MuiFormHelperText-contained css-mocked-MuiFormHelperText-root"
+                id="snmpinput-helper-text"
+              >
+                Enter a valid IPv4 address to enable the buttons.
+              </p>
             </div>
           </div>
         </div>

@@ -187,9 +187,11 @@ describe('forwarding actions', () => {
     for (const value of ['', '198.51.100', '999.1.1.1', '198.051.100.3', '2001:db8::1', 'hostname', '198.51.100.3 ']) {
       fireEvent.change(destination, { target: { value } })
       buttons.forEach((button) => expect(button).toBeDisabled())
+      expect(destination).toHaveAccessibleDescription('Enter a valid IPv4 address to enable the buttons.')
     }
     fireEvent.change(destination, { target: { value: '198.51.100.3' } })
     buttons.forEach((button) => expect(button).toBeEnabled())
+    expect(screen.queryByText('Enter a valid IPv4 address to enable the buttons.')).not.toBeInTheDocument()
     act(() => { store.dispatch(setMsgType('')) })
     buttons.forEach((button) => expect(button).toBeDisabled())
     expect(api).not.toHaveBeenCalled()

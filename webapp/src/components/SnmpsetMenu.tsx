@@ -118,6 +118,7 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
                 color="info"
                 variant="outlined"
                 value={destIp}
+                helperText={validDestination ? undefined : 'Enter a valid IPv4 address to enable the buttons.'}
                 onChange={(event) => {
                   const ip = event.target.value as string
                   dispatch(setDestIp(ip))
