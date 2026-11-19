@@ -193,14 +193,32 @@ describe('OBU firmware tab', () => {
     )
   })
 
-  it('blocks deletion of published firmware and of files that cannot be checked', async () => {
+  it('blocks deletion of published firmware', async () => {
     renderTab()
     await screen.findByText('published.tar.sig')
 
     expect(within(row('published.tar.sig')).getByRole('button', { name: 'Unpublish before deleting' })).toBeDisabled()
-    expect(within(row('unknown.tar.sig')).getByRole('button', { name: /once storage is available/ })).toBeDisabled()
     expect(within(row('verified.tar.sig')).getByRole('button', { name: 'Delete Firmware' })).toBeEnabled()
     expect(within(row('untracked.tar.sig')).getByRole('button', { name: 'Delete Firmware' })).toBeEnabled()
+  })
+
+  it('cleans up entries from a previous bucket while storage is available', async () => {
+    renderTab()
+    await screen.findByText('unknown.tar.sig')
+
+    fireEvent.click(within(row('unknown.tar.sig')).getByRole('button', { name: 'Clean Up Records' }))
+    expect(screen.getByText(/previously configured storage bucket/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+
+    await waitFor(() => expect(deleteObject).toHaveBeenCalledWith({ object_id: 'unknown', provider_object_version: null }))
+  })
+
+  it('blocks deleting entries that cannot be checked while storage is unavailable', async () => {
+    storageAvailable = false
+    renderTab()
+    await screen.findByText('unknown.tar.sig')
+
+    expect(within(row('unknown.tar.sig')).getByRole('button', { name: /once storage is available/ })).toBeDisabled()
   })
 
   it('deletes a stored file with its listed version', async () => {

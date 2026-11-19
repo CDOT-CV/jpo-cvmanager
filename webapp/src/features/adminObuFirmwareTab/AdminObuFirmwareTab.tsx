@@ -61,12 +61,15 @@ const verificationColor: Record<ObuFirmwareVerificationStatus, string> = {
   UNKNOWN: 'text.secondary',
 }
 
+const describeFileSystem = (writable: boolean | null | undefined) => {
+  if (writable == null) {
+    return null
+  }
+  return writable ? 'Read-write' : 'Read-only'
+}
+
 const describeDetails = (object: ObuFirmwareObject) =>
-  [
-    object.variant,
-    object.writable_system_partition == null ? null : object.writable_system_partition ? 'Read-write' : 'Read-only',
-    object.secure_boot ? 'Secure boot' : null,
-  ]
+  [object.variant, describeFileSystem(object.writable_system_partition), object.secure_boot ? 'Secure boot' : null]
     .filter(Boolean)
     .join(' · ')
 
@@ -85,13 +88,17 @@ const publicationTooltip = (object: ObuFirmwareObject) => {
   return canChangePublication(object) ? 'Not published' : 'Only verified or local firmware can be published'
 }
 
-// Missing and local files are removed from the catalog without deleting a stored file
-const isRecordsCleanup = (object: ObuFirmwareObject) =>
-  object.verification_status === 'MISSING' || object.verification_status === 'LOCAL'
+// Missing and local files are removed from the catalog without deleting a stored file.
+// While storage is available, UNKNOWN entries are from a previously configured bucket
+// and are removed the same way; without storage nothing can be checked.
+const isRecordsCleanup = (object: ObuFirmwareObject, storageAvailable: boolean) =>
+  object.verification_status === 'MISSING' ||
+  object.verification_status === 'LOCAL' ||
+  (object.verification_status === 'UNKNOWN' && storageAvailable)
 
-const deletionTooltip = (object: ObuFirmwareObject) => {
+const deletionTooltip = (object: ObuFirmwareObject, storageAvailable: boolean) => {
   if (object.published) return 'Unpublish before deleting'
-  if (isRecordsCleanup(object)) return 'Clean Up Records'
+  if (isRecordsCleanup(object, storageAvailable)) return 'Clean Up Records'
   if (!object.provider_object_version) return 'Refresh the list once storage is available to delete this file'
   return 'Delete Firmware'
 }
@@ -102,6 +109,9 @@ const deletionMessage = (object: ObuFirmwareObject) => {
   }
   if (object.verification_status === 'MISSING') {
     return 'The file is missing from storage. Remove its upload and catalog records?'
+  }
+  if (object.verification_status === 'UNKNOWN') {
+    return 'This entry is from a previously configured storage bucket. Remove its upload and catalog records? The file stays in that bucket and must be deleted there.'
   }
   return 'Delete this file and its upload and catalog records?'
 }
@@ -197,7 +207,7 @@ const AdminObuFirmwareTab = () => {
   }
 
   const deleteFirmware = (object: ObuFirmwareObject) => {
-    const cleanup = isRecordsCleanup(object)
+    const cleanup = isRecordsCleanup(object, storageAvailable)
     void runChange(
       cleanup ? 'Cleaning up firmware records...' : 'Deleting firmware...',
       cleanup ? 'Firmware records cleaned up successfully' : 'Firmware deleted successfully',
@@ -293,11 +303,14 @@ const AdminObuFirmwareTab = () => {
       position: 'row',
       icon: ObuFirmwareDeleteIcon,
       iconProps: { itemType: 'rowAction' },
-      tooltip: deletionTooltip(object),
-      disabled: isChanging || object.published || (!isRecordsCleanup(object) && !object.provider_object_version),
+      tooltip: deletionTooltip(object, storageAvailable),
+      disabled:
+        isChanging ||
+        object.published ||
+        (!isRecordsCleanup(object, storageAvailable) && !object.provider_object_version),
       onClick: (_event, row: ObuFirmwareObject) => {
         confirmAlert({
-          ...Options(isRecordsCleanup(row) ? 'Clean Up OBU Firmware Records' : 'Delete OBU Firmware', deletionMessage(row), [
+          ...Options(isRecordsCleanup(row, storageAvailable) ? 'Clean Up OBU Firmware Records' : 'Delete OBU Firmware', deletionMessage(row), [
             { label: 'Yes', onClick: () => deleteFirmware(row) },
             { label: 'No', onClick: () => {} },
           ]),
