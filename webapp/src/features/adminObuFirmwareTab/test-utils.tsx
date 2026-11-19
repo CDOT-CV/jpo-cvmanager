@@ -13,13 +13,16 @@ export const MockAdminTable = ({
 }: any) => {
   const [rows, setRows] = React.useState<any[]>([])
   const [totalCount, setTotalCount] = React.useState(0)
-  const queryRef = React.useRef<any>({ page: 0, pageSize: defaultPageSize, search: '' })
+  // The state renders the query; the ref gives event handlers the latest query
+  const [query, setQuery] = React.useState<any>(() => ({ page: 0, pageSize: defaultPageSize, search: '' }))
+  const queryRef = React.useRef<any>(query)
 
   const runQuery = React.useCallback(
     async (changes: Record<string, unknown> = {}) => {
-      const query = { ...queryRef.current, ...changes }
-      queryRef.current = query
-      const result = await handleQueryChange(query)
+      const nextQuery = { ...queryRef.current, ...changes }
+      queryRef.current = nextQuery
+      setQuery(nextQuery)
+      const result = await handleQueryChange(nextQuery)
       setRows(result.data)
       setTotalCount(result.totalCount)
     },
@@ -48,7 +51,7 @@ export const MockAdminTable = ({
     <div>
       <input
         placeholder="Search"
-        value={queryRef.current.search}
+        value={query.search}
         onChange={(event) => void loadRows({ page: 0, search: event.target.value })}
       />
       {toolbarActions.map((action: any, index: number) =>
@@ -106,7 +109,7 @@ export const MockAdminTable = ({
       </table>
       <button
         aria-label="Next Page"
-        disabled={(queryRef.current.page + 1) * queryRef.current.pageSize >= totalCount}
+        disabled={(query.page + 1) * query.pageSize >= totalCount}
         onClick={() => void loadRows({ page: queryRef.current.page + 1 })}
       >
         Next
