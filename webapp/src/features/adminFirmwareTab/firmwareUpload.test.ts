@@ -4,6 +4,7 @@ import { FirmwareUploadUrl } from '../../models/Firmware'
 import {
   calculateFileChecksum,
   formatFileSize,
+  getErrorMessage,
   getObjectStorageUploadError,
   uploadFileToSignedUrl,
 } from './firmwareUpload'
@@ -101,6 +102,24 @@ describe('getObjectStorageUploadError', () => {
   it('retains the status for other object-storage failures', () => {
     expect(getObjectStorageUploadError(503).message).toBe('Object storage rejected the file upload (HTTP 503).')
   })
+
+  it('describes an existing object with a workflow-specific message', () => {
+    expect(getObjectStorageUploadError(412, 'An OBU firmware file with this name already exists.').message).toBe(
+      'An OBU firmware file with this name already exists.'
+    )
+    expect(getObjectStorageUploadError(503, 'unused').message).toBe('Object storage rejected the file upload (HTTP 503).')
+  })
+})
+
+describe('getErrorMessage', () => {
+  it('reads errors, API problem details, and plain response bodies', () => {
+    expect(getErrorMessage(new Error('read failed'))).toBe('read failed')
+    expect(getErrorMessage({ data: { detail: 'already exists' } })).toBe('already exists')
+    expect(getErrorMessage({ data: { message: 'bad request' } })).toBe('bad request')
+    expect(getErrorMessage({ data: {} })).toBe('The firmware API rejected the request.')
+    expect(getErrorMessage({ data: 'Bad gateway' })).toBe('Bad gateway')
+    expect(getErrorMessage(undefined)).toBe('An unexpected error occurred while uploading the firmware.')
+  })
 })
 
 describe('formatFileSize', () => {
@@ -158,6 +177,21 @@ describe('uploadFileToSignedUrl', () => {
     request.onload?.()
 
     await expect(upload).rejects.toThrow('Firmware already exists for this manufacturer, model, and version')
+  })
+
+  it('uses the given conflict message for an existing object', async () => {
+    const upload = uploadFileToSignedUrl(
+      new File(['firmware'], 'firmware.tar.sig'),
+      uploadInstructions,
+      vi.fn(),
+      'An OBU firmware file with this name already exists.'
+    )
+    const request = FakeXMLHttpRequest.instances[0]
+
+    request.status = 409
+    request.onload?.()
+
+    await expect(upload).rejects.toThrow('An OBU firmware file with this name already exists.')
   })
 
   it('reports network errors and upload cancellation distinctly', async () => {
