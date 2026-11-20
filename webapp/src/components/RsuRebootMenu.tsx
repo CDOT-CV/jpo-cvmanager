@@ -29,7 +29,7 @@ const RsuRebootMenu = () => {
 
   const options = {
     title: 'RSU Reboot',
-    message: 'Are you sure you want to perform a reboot?',
+    message: 'Rebooting takes the RSU offline and interrupts message forwarding. Are you sure you want to continue?',
     buttons: [
       {
         label: 'Yes',

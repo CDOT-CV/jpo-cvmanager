@@ -58,6 +58,7 @@ const ForwardingResults = ({ operation, messageType, destination, results, onDis
 }
 
 function resultDetail(row: ForwardingDeviceOutcome, operation: 'create' | 'delete'): string {
+  if (row.notAttempted) return 'Not attempted after authorization failure'
   if (row.success) {
     if (row.result?.changed === false) return operation === 'create' ? 'Already configured' : 'Already absent'
     return operation === 'create' ? 'Added' : 'Deleted'

@@ -7,6 +7,7 @@ import {
   selectDestIp,
   selectSnmpMsgType,
   selectIncludeSecurityHeader,
+  forwardingMessageTypes,
 
   // Actions
   submitSnmpSet,
@@ -39,7 +40,7 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 
-const messageTypes = ['bsm', 'spat', 'map', 'srm', 'ssm', 'tim']
+const messageTypes = forwardingMessageTypes.map((type) => type.toLowerCase())
 
 export type SnmpsetMenuProps = {
   type: string

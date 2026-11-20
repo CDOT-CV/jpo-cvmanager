@@ -19,6 +19,8 @@ import {
   RsuUpgradePostBody,
 } from '../models/RsuApi'
 
+export const forwardingMessageTypes: readonly ForwardingMessageType[] = ['BSM', 'SPAT', 'MAP', 'SRM', 'SSM', 'TIM']
+
 const initialState = {
   msgFwdConfig: {} as any,
   errorState: '',
@@ -120,6 +122,14 @@ async function executeForwardingRequests(
       if (forwardingCompleted(result)) continue
       failures.push(`${ip}: ${forwardingFailureMessage(result)}`)
     }
+    // Stop on request-level auth rejection; later batches have not reached the API.
+    if (response?.status === 401 || response?.status === 403) {
+      for (const ip of selected.slice(offset + batch.length)) {
+        results.push({ ip, success: false, notAttempted: true })
+        failures.push(`${ip}: Not attempted after an authorization failure.`)
+      }
+      break
+    }
   }
   return {
     changeSuccess: failures.length === 0,
@@ -150,7 +160,7 @@ function forwardingFailureMessage(result: MessageForwardingResult | undefined): 
 
 function forwardingMessageType(value: string): ForwardingMessageType {
   const normalized = value.toUpperCase()
-  if (!['BSM', 'SPAT', 'MAP', 'SSM', 'SRM', 'TIM'].includes(normalized)) {
+  if (!forwardingMessageTypes.some((type) => type === normalized)) {
     throw new Error(`Unsupported forwarding message type: ${value}`)
   }
   return normalized as ForwardingMessageType

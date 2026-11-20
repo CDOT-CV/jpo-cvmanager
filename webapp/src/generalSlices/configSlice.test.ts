@@ -443,6 +443,31 @@ describe('async thunks', () => {
         expect(api.mock.calls.flatMap((call) => call[2].rsu_ips)).toEqual(selected)
       })
 
+      it.each([[401, 0], [403, 0], [401, 1], [403, 1]])(
+        'stops after HTTP %i with %i earlier successful batches and marks remaining devices as not attempted',
+        async (status, earlierBatches) => {
+          const api = jest.spyOn(RsuMessageForwardingApi, operation)
+          if (earlierBatches) api.mockImplementationOnce(async (_token, _org, body) => ({
+            status: 200, message: '', body: Object.fromEntries(body.rsu_ips.map((ip) => [ip, result()])),
+          }))
+          api.mockResolvedValue({ status, body: null, message: 'Authorization failed' })
+          const selected = Array.from({ length: 201 }, (_, index) => `192.0.2.${index + 1}`)
+          const outcome = await run(operation, [...selected, selected[0]])
+          const attempted = (earlierBatches + 1) * 100
+          expect(api).toHaveBeenCalledTimes(earlierBatches + 1)
+          expect(api.mock.calls.flatMap((call) => call[2].rsu_ips)).toEqual(selected.slice(0, attempted))
+          expect(outcome.payload).toMatchObject({
+            changeSuccess: false,
+            errorState: expect.stringContaining('Not attempted after an authorization failure'),
+            results: [
+              ...selected.slice(0, earlierBatches * 100).map((ip) => ({ ip, success: true, result: result() })),
+              ...selected.slice(earlierBatches * 100, attempted).map((ip) => ({ ip, success: false, status })),
+              ...selected.slice(attempted).map((ip) => ({ ip, success: false, notAttempted: true })),
+            ],
+          })
+        }
+      )
+
       it('counts both changed and unchanged devices as successful in a mixed batch', async () => {
         jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
           status: 200,

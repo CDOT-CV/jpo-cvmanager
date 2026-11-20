@@ -36,6 +36,8 @@ export type MessageForwardingResponse = Record<string, MessageForwardingResult>
 export type ForwardingDeviceOutcome = {
   ip: string
   success: boolean
+  /** The batch was never sent because an earlier batch returned HTTP 401/403. */
+  notAttempted?: boolean
   result?: MessageForwardingResult
   status?: number
 }

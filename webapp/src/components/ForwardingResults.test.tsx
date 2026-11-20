@@ -15,6 +15,7 @@ it.each([
   [{ success: false, result: { ...result, databaseSync: 'FAILED' } }, 'Change verified; cache not updated'],
   [{ success: false, result: { ...result, changed: false, databaseSync: 'FAILED' } }, 'No change needed; cache not updated'],
   [{ success: false, status: 403 }, 'Not authorized'],
+  [{ success: false, notAttempted: true }, 'Not attempted after authorization failure'],
   [{ success: false, status: 504 }, 'Timed out'],
   [{ success: false }, 'No response; check device before retrying'],
 ] as [Omit<ForwardingDeviceOutcome, 'ip'>, string][])('explains status %s on hover', async (outcome, detail) => {
