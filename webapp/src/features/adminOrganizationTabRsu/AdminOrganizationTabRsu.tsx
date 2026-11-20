@@ -41,6 +41,11 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getRsuOrganizations] = useLazyGetRsuOrganizationsQuery()
   const [selectedRsuList, setSelectedRsuList] = useState<AdminRsu[]>([])
+  const [rsuSelection, setRsuSelection] = useState<{ organizationId: number; rows: AdminRsu[] }>({
+    organizationId: selectedOrgId,
+    rows: [],
+  })
+  const selectedRsus = rsuSelection.organizationId === selectedOrgId ? rsuSelection.rows : []
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const [rsuColumns] = useState<Column<any>[]>([
     { title: 'IP Address', field: 'ip', id: 0, width: '18%' },
@@ -158,31 +163,20 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     {
       tooltip: 'Remove All Selected From Organization',
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
-      iconProps: {
-        itemType: 'rowAction',
-      },
+      disabled: selectedRsus.length === 0,
       position: 'toolbarOnSelect',
-      onClick: (event, rowData: AdminRsu | AdminRsu[]) => {
+      onClick: (_event, rowData: AdminRsu | AdminRsu[]) => {
+        const rows = selectedRsus.length > 0 ? selectedRsus : Array.isArray(rowData) ? rowData : [rowData]
         const buttons = [
           {
             label: 'Yes',
-            onClick: async () => {
-              if (Array.isArray(rowData)) {
-                await rsuMultiDelete(rowData)
-              } else {
-                await rsuOnDelete(rowData)
-              }
-            },
+            onClick: async () => rsuMultiDelete(rows),
           },
           { label: 'No', onClick: () => {} },
         ]
         const alertOptions = Options(
           'Delete Selected RSUs',
-          'Are you sure you want to delete ' +
-            (Array.isArray(rowData) ? rowData.length : 1) +
-            ' RSU(s) from ' +
-            selectedOrgName +
-            ' organization?',
+          'Are you sure you want to delete ' + rows.length + ' RSU(s) from ' + selectedOrgName + ' organization?',
           buttons
         )
         confirmAlert(alertOptions)
@@ -235,6 +229,10 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           id: selectedOrgId,
           rsus_to_remove: [rsu.ip],
         }).unwrap()
+        setRsuSelection((current) => ({
+          organizationId: selectedOrgId,
+          rows: current.rows.filter((row) => row.ip !== rsu.ip),
+        }))
         toast.success('RSU deleted successfully', { id: loadingToast })
       } else {
         toast.dismiss(loadingToast)
@@ -279,6 +277,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         id: selectedOrgId,
         rsus_to_remove: validRsuIps,
       }).unwrap()
+      setRsuSelection({ organizationId: selectedOrgId, rows: [] })
       toast.success('RSU(s) deleted successfully', { id: loadingToast })
     } catch (error) {
       toast.error('Failed to delete RSU(s) due to error: ' + error, { id: loadingToast })
@@ -483,6 +482,9 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
                 handleQueryChange={handleQueryChange}
                 isLoading={isRefreshing}
                 tableRef={tableRef}
+                selectionKeyField="ip"
+                selectedRows={selectedRsus}
+                onSelectionChange={(rows) => setRsuSelection({ organizationId: selectedOrgId, rows })}
               />
             </div>,
           ]}

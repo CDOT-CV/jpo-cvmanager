@@ -30,6 +30,11 @@ const AdminUserTab = () => {
 
   const [deleteUserApi] = useDeleteUserMutation()
   const [deleteMultipleUsersApi] = useDeleteMultipleUsersMutation()
+  const [userSelection, setUserSelection] = useState<{
+    organization: number | undefined
+    rows: AdminUserWithId[]
+  }>({ organization, rows: [] })
+  const selectedUsers = userSelection.organization === organization ? userSelection.rows : []
 
   const [columns] = useState([
     { title: 'First Name', field: 'first_name', id: 0 },
@@ -85,15 +90,13 @@ const AdminUserTab = () => {
     {
       tooltip: 'Remove All Selected Users',
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
+      disabled: selectedUsers.length === 0,
       position: 'toolbarOnSelect',
-      iconProps: {
-        itemType: 'rowAction',
-      },
-      onClick: (event, rowData: AdminUserWithId[]) => {
+      onClick: () => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => multiDelete(rowData),
+            onClick: () => multiDelete(selectedUsers),
           },
           {
             label: 'No',
@@ -102,7 +105,7 @@ const AdminUserTab = () => {
         ]
         const alertOptions = Options(
           'Delete Selected Users',
-          'Are you sure you want to delete ' + rowData.length + ' users?',
+          'Are you sure you want to delete ' + selectedUsers.length + ' users?',
           buttons
         )
         confirmAlert(alertOptions)
@@ -136,6 +139,10 @@ const AdminUserTab = () => {
     const loadingToast = toast.loading(`Deleting User ${row.email}...`)
     try {
       await deleteUserApi(row.email).unwrap()
+      setUserSelection((current) => ({
+        organization,
+        rows: current.rows.filter((user) => user.email !== row.email),
+      }))
       handleRefresh()
       toast.success('User Deleted Successfully', { id: loadingToast })
     } catch (error) {
@@ -147,6 +154,7 @@ const AdminUserTab = () => {
     const loadingToast = toast.loading(`Deleting ${rows.length} Users...`)
     try {
       await deleteMultipleUsersApi(rows.map((row) => row.email)).unwrap()
+      setUserSelection({ organization, rows: [] })
       handleRefresh()
       toast.success('Users Deleted Successfully', { id: loadingToast })
     } catch (error) {
@@ -172,6 +180,9 @@ const AdminUserTab = () => {
                 handleQueryChange={handleQueryChange}
                 isLoading={isRefreshing}
                 tableRef={tableRef}
+                selectionKeyField="email"
+                selectedRows={selectedUsers}
+                onSelectionChange={(rows) => setUserSelection({ organization, rows })}
               />
             </div>
           }

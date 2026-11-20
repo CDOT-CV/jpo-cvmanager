@@ -41,6 +41,11 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
   const availableIntersectionList = availableIntersectionsResponse?.intersection_data ?? []
 
   const [selectedIntersectionList, setSelectedIntersectionList] = useState<AdminIntersection[]>([])
+  const [intersectionSelection, setIntersectionSelection] = useState<{
+    organizationId: number
+    rows: AdminIntersection[]
+  }>({ organizationId: selectedOrgId, rows: [] })
+  const selectedIntersections = intersectionSelection.organizationId === selectedOrgId ? intersectionSelection.rows : []
 
   useEffect(() => {
     setSelectedIntersectionList([])
@@ -96,19 +101,18 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     {
       tooltip: 'Remove All Selected From Organization',
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
+      disabled: selectedIntersections.length === 0,
       position: 'toolbarOnSelect',
-      iconProps: {
-        itemType: 'rowAction',
-      },
-      onClick: (event, rowData: AdminIntersection | AdminIntersection[]) => {
+      onClick: (_event, rowData: AdminIntersection | AdminIntersection[]) => {
+        const rows = selectedIntersections.length > 0 ? selectedIntersections : rowData
         const buttons = [
           {
             label: 'Yes',
             onClick: async () => {
-              if (Array.isArray(rowData)) {
-                await intersectionMultiDelete(rowData)
+              if (Array.isArray(rows)) {
+                await intersectionMultiDelete(rows)
               } else {
-                await intersectionOnDelete(rowData)
+                await intersectionOnDelete(rows)
               }
             },
           },
@@ -117,7 +121,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
         const alertOptions = Options(
           'Delete Selected Intersections',
           'Are you sure you want to delete ' +
-            (Array.isArray(rowData) ? rowData.length : 1) +
+            (Array.isArray(rows) ? rows.length : 1) +
             ' Intersection(s) from ' +
             selectedOrgName +
             ' organization?',
@@ -169,6 +173,10 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
           id: selectedOrgId,
           intersections_to_remove: [Number(intersection.intersection_id)],
         }).unwrap()
+        setIntersectionSelection((current) => ({
+          organizationId: selectedOrgId,
+          rows: current.rows.filter((row) => row.intersection_id !== intersection.intersection_id),
+        }))
         toast.success('Intersection deleted successfully', { id: loadingToast })
       } else {
         toast.dismiss(loadingToast)
@@ -231,6 +239,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
         id: selectedOrgId,
         intersections_to_remove: validIntersectionIds,
       }).unwrap()
+      setIntersectionSelection({ organizationId: selectedOrgId, rows: [] })
       toast.success('Intersection(s) deleted successfully', { id: loadingToast })
     } catch (error) {
       toast.error('Failed to delete Intersection(s) due to error: ' + error, { id: loadingToast })
@@ -253,6 +262,9 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
                 handleQueryChange={handleQueryChange}
                 isLoading={isRefreshing}
                 tableRef={tableRef}
+                selectionKeyField="intersection_id"
+                selectedRows={selectedIntersections}
+                onSelectionChange={(rows) => setIntersectionSelection({ organizationId: selectedOrgId, rows })}
               />
             </div>,
           ]}

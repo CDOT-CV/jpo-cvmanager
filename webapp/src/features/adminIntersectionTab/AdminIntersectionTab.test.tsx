@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import AdminIntersectionTab from './AdminIntersectionTab'
 import { Provider } from 'react-redux'
@@ -24,7 +24,7 @@ vi.mock('../api/adminIntersectionApiSlice', async (importOriginal) => ({
   useLazyGetIntersectionsQuery: () => [vi.fn()],
 }))
 
-test('uses server-side paging for the intersection table', () => {
+test('supports cross-page selection and bulk delete for the intersection table', () => {
   render(
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore({})}>
@@ -44,4 +44,18 @@ test('uses server-side paging for the intersection table', () => {
   ])
   expect(typeof mocks.tableProps.current.handleQueryChange).toBe('function')
   expect(mocks.tableProps.current.tableRef).toBeTruthy()
+  expect(mocks.tableProps.current.selectionKeyField).toBe('intersection_id')
+  expect(mocks.tableProps.current.selectedRows).toEqual([])
+
+  const selectedIntersection = {
+    intersection_id: '123',
+    intersection_name: 'Main & First',
+    origin_ip: '192.0.2.1',
+    rsus: '192.0.2.2',
+  }
+  act(() => mocks.tableProps.current.onSelectionChange([selectedIntersection]))
+
+  expect(mocks.tableProps.current.selectedRows).toEqual([selectedIntersection])
+  const bulkDeleteAction = mocks.tableProps.current.actions.find((action: any) => action.position === 'toolbarOnSelect')
+  expect(bulkDeleteAction.disabled).toBe(false)
 })

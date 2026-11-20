@@ -12,8 +12,13 @@ const mocks = vi.hoisted(() => ({
   tableProps: { current: null as any },
   patch: vi.fn(),
   getUserOrgs: vi.fn(),
+  fetchUsers: vi.fn(),
   dispatch: vi.fn(),
   confirmAlert: vi.fn(),
+  availableUsers: [
+    { email: 'a@test.com', first_name: 'A', last_name: 'A', organizations: [] },
+    { email: 'b@test.com', first_name: 'B', last_name: 'B', organizations: [] },
+  ],
   loadingGlobal: { value: false },
   authEmail: { value: 'me@test.com' },
   toast: {
@@ -30,7 +35,8 @@ vi.mock('react-redux', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-redux')>()),
   useDispatch: () => mocks.dispatch,
 }))
-vi.mock('../../components/AdminTable', () => ({
+vi.mock('../../components/AdminTable', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../components/AdminTable')>()),
   default: (props: any) => {
     mocks.tableProps.current = props
     return <div data-testid="admin-table" />
@@ -46,7 +52,7 @@ vi.mock('../../generalSlices/userSlice', async (importOriginal) => ({
 vi.mock('../api/organizationApiSlice', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/organizationApiSlice')>()),
   useGetAllUsersNotInOrganizationQuery: () => ({
-    currentData: [{ id: 'u1', email: 'a@test.com', first_name: 'A', last_name: 'A', role: '' }],
+    currentData: mocks.availableUsers,
   }),
   usePatchOrganizationMutation: () => [mocks.patch],
   useLazyGetUserOrganizationsQuery: () => [mocks.getUserOrgs],
@@ -66,6 +72,7 @@ vi.mock('../api/userApiSlice', async (importOriginal) => ({
       ],
     },
   }),
+  useLazyGetUsersQuery: () => [mocks.fetchUsers],
   useGetUserAllowedSelectionsQuery: () => ({ currentData: { roles: ['user', 'operator', 'admin'] } }),
 }))
 
@@ -111,6 +118,20 @@ describe('AdminOrganizationTabUser', () => {
     mocks.authEmail.value = 'me@test.com'
     mocks.patch.mockReturnValue(ok())
     mocks.getUserOrgs.mockReturnValue(orgsResult(2))
+    mocks.fetchUsers.mockReturnValue(
+      ok({
+        content: [
+          {
+            email: 'me@test.com',
+            first_name: 'Me',
+            last_name: 'X',
+            organizations: [{ organization: 1, role: 'ADMIN' }],
+          },
+          { email: 'b@test.com', first_name: 'B', last_name: 'B', organizations: [] },
+        ],
+        totalElements: 2,
+      })
+    )
     vi.spyOn(window, 'alert').mockImplementation(() => {})
   })
 
@@ -125,14 +146,70 @@ describe('AdminOrganizationTabUser', () => {
     expect(screen.queryByTestId('admin-table')).toBeNull()
   })
 
-  it('maps roles to lowercase and falls back to empty string', () => {
+  it('matches selected users by email after assigning roles', () => {
     renderComponent()
-    const data = mocks.tableProps.current.data
-    console.error('ERROR: data', data)
+    let multiselect = actions()[2].icon() as ReactElement<any>
+    expect(multiselect.props.dataKey).toBe('email')
+    selectUsers([mocks.availableUsers[0]])
+    expect(screen.getByText('New User: a@test.com')).toBeInTheDocument()
+    multiselect = actions()[2].icon() as ReactElement<any>
+    expect(multiselect.props.value[0]).toMatchObject({ email: 'a@test.com', role: 'USER' })
+    expect(multiselect.props.value[0][multiselect.props.dataKey]).toBe(
+      multiselect.props.data[0][multiselect.props.dataKey]
+    )
+    expect(multiselect.props.value[0][multiselect.props.dataKey]).not.toBe(
+      multiselect.props.data[1][multiselect.props.dataKey]
+    )
+    selectUsers([])
+    multiselect = actions()[2].icon() as ReactElement<any>
+    expect(multiselect.props.value).toEqual([])
+  })
+
+  it('retains the chosen role when the selected user is returned as an available option', () => {
+    renderComponent()
+    selectUsers([{ ...mocks.availableUsers[0], role: 'OPERATOR' }])
+    selectUsers(mocks.availableUsers)
+
+    const multiselect = actions()[2].icon() as ReactElement<any>
+    expect(multiselect.props.value.map((user: AdminUserForOrg) => [user.email, user.role])).toEqual([
+      ['a@test.com', 'OPERATOR'],
+      ['b@test.com', 'USER'],
+    ])
+  })
+
+  it('maps roles to lowercase and falls back to empty string', async () => {
+    renderComponent()
+    let result: any
+    await act(async () => {
+      result = await mocks.tableProps.current.handleQueryChange({
+        page: 0,
+        pageSize: 25,
+        search: '',
+        orderByCollection: [],
+      })
+    })
+    const data = result.data
     expect(data.map((d: any) => d.role)).toEqual(['admin', ''])
   })
 
   describe('delete confirmation dialogs', () => {
+    it('keeps multi-select and bulk delete selections across server pages', async () => {
+      renderComponent()
+      const firstPageRows = [row('b@test.com')]
+      const allSelectedRows = [...firstPageRows, row('c@test.com')]
+
+      expect(mocks.tableProps.current.selectionKeyField).toBe('email')
+      act(() => mocks.tableProps.current.onSelectionChange(firstPageRows))
+      act(() => mocks.tableProps.current.onSelectionChange(allSelectedRows))
+
+      expect(mocks.tableProps.current.selectedRows).toEqual(allSelectedRows)
+      expect(actions()[1].disabled).toBe(false)
+
+      const options = await confirmYes(1, [allSelectedRows[1]])
+      expect(options.message).toContain('delete 2 user(s)')
+      expect(mocks.patch).toHaveBeenCalledWith({ id: 1, users_to_remove: ['b@test.com', 'c@test.com'] })
+    })
+
     it('row delete action asks for a single user and calls userOnDelete on Yes', async () => {
       renderComponent()
       const options = await confirmYes(0, row('b@test.com'))

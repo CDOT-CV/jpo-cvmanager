@@ -142,6 +142,23 @@ describe('AdminOrganizationTabRsu', () => {
     expect(mocks.tableProps.current.isLoading).toBeDefined()
   })
 
+  it('keeps multi-select and bulk delete selections across server pages', async () => {
+    renderComponent()
+    const firstPageRows = [rsu('1.1.1.1')]
+    const allSelectedRows = [...firstPageRows, rsu('2.2.2.2')]
+
+    expect(mocks.tableProps.current.selectionKeyField).toBe('ip')
+    act(() => mocks.tableProps.current.onSelectionChange(firstPageRows))
+    act(() => mocks.tableProps.current.onSelectionChange(allSelectedRows))
+
+    expect(mocks.tableProps.current.selectedRows).toEqual(allSelectedRows)
+    expect(actions()[1].disabled).toBe(false)
+
+    const options = await confirmYes(1, [allSelectedRows[1]])
+    expect(options.message).toContain('delete 2 RSU(s)')
+    expect(mocks.patch).toHaveBeenCalledWith({ id: 1, rsus_to_remove: ['1.1.1.1', '2.2.2.2'] })
+  })
+
   describe('TIM deposit and SNMP monitoring status', () => {
     it.each([
       ['all enabled', [rsu('a', true, true), rsu('b', true, true)], 'Enabled'],
