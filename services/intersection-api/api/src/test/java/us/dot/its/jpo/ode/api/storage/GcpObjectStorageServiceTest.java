@@ -309,10 +309,11 @@ class GcpObjectStorageServiceTest {
     void rejectsMissingBucketBeforeAccessingCredentials(String bucket) {
         gcpProperties.setBucketName(bucket);
         assertThatThrownBy(() -> service.createSignedUploadUrl(request))
-                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
-                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
-                    assertThat(ex.getReason()).contains("bucket");
-                });
+                .isInstanceOf(ObjectStorageUnavailableException.class)
+                .hasMessageContaining("bucket");
+        assertThatThrownBy(() -> service.listObjects(new ObjectListRequest("ota/", 200, null)))
+                .isInstanceOf(ObjectStorageUnavailableException.class)
+                .hasMessageContaining("bucket");
         verifyNoInteractions(clientProvider);
     }
 
@@ -325,10 +326,8 @@ class GcpObjectStorageServiceTest {
     void rejectsInvalidExpirationBeforeCallingCloud(Duration expiration) {
         properties.setSignedUrlExpiration(expiration);
         assertThatThrownBy(() -> service.createSignedUploadUrl(request))
-                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
-                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
-                    assertThat(ex.getReason()).contains("expiration");
-                });
+                .isInstanceOf(ObjectStorageUnavailableException.class)
+                .hasMessageContaining("expiration");
         verifyNoInteractions(clientProvider);
     }
 

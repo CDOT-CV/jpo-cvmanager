@@ -52,6 +52,7 @@ import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService.FirmwareRule
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
+import us.dot.its.jpo.ode.api.services.firmware.ObuFirmwareConflictException;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
@@ -123,10 +124,12 @@ public class GlobalExceptionHandler {
             return;
         }
 
-        MediaType contentType = accepted.isEmpty() || accepts(accepted, MediaType.APPLICATION_PROBLEM_JSON)
-                ? MediaType.APPLICATION_PROBLEM_JSON
-                : (accepts(accepted, MediaType.APPLICATION_JSON) ? MediaType.APPLICATION_JSON : null);
-        if (contentType == null) {
+        MediaType contentType;
+        if (accepted.isEmpty() || accepts(accepted, MediaType.APPLICATION_PROBLEM_JSON)) {
+            contentType = MediaType.APPLICATION_PROBLEM_JSON;
+        } else if (accepts(accepted, MediaType.APPLICATION_JSON)) {
+            contentType = MediaType.APPLICATION_JSON;
+        } else {
             return;
         }
         Map<String, Object> problem = new HashMap<>();
@@ -227,9 +230,10 @@ public class GlobalExceptionHandler {
     }
 
     @ResponseStatus(HttpStatus.CONFLICT)
-    @ExceptionHandler({FirmwareDeletionConflictException.class, ObjectStorageConflictException.class})
+    @ExceptionHandler({FirmwareDeletionConflictException.class, ObjectStorageConflictException.class,
+            ObuFirmwareConflictException.class})
     public ProblemDetail handleFirmwareDeletionConflict(RuntimeException ex) {
-        log.warn("Firmware deletion conflict: {}", ex.getMessage());
+        log.warn("Firmware conflict: {}", ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
