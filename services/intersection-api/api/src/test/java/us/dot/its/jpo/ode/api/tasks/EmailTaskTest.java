@@ -41,6 +41,8 @@ import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
 import us.dot.its.jpo.ode.api.models.emails.EmailRecipient;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountRsuItem;
+import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
+import us.dot.its.jpo.ode.api.repositories.IntersectionOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
@@ -62,6 +64,9 @@ public class EmailTaskTest {
     @Mock
     private OrganizationRepository organizationRepository;
 
+    @Mock
+    private IntersectionOrganizationRepository intersectionOrganizationRepository;
+
     private EmailTask emailTask;
 
     private final int maximumResponseSize = 10;
@@ -69,7 +74,7 @@ public class EmailTaskTest {
     @BeforeEach
     void setUp() {
         emailTask = new EmailTask(emailService, activeNotificationRepo, maximumResponseSize, emailGenerator,
-                countsRepository, organizationRepository, "test");
+                countsRepository, organizationRepository, intersectionOrganizationRepository, "test");
     }
 
     Notification createNotification(String key, String heading, String text, int intersectionId, long generatedAt) {
@@ -255,8 +260,10 @@ public class EmailTaskTest {
         emailTask.sendHourlyNotifications();
 
         List<EmailRecipient> recipients = List.of(new EmailRecipient("email", "name"));
-        when(emailService.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                EmailFrequency.ONCE_PER_HOUR)).thenReturn(recipients);
+        when(intersectionOrganizationRepository.findOrganizationNamesByIntersectionNumbers(List.of("2")))
+                .thenReturn(List.<Object[]>of(new Object[] { "2", "Org A" }));
+        when(emailService.getUsersForNotificationTypeByOrganization(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                "Org A", EmailFrequency.ONCE_PER_HOUR)).thenReturn(recipients);
 
         EmailContent content = new EmailContent("subject", "body");
         when(emailGenerator.generateEmailBody(any())).thenReturn(content);
@@ -283,8 +290,10 @@ public class EmailTaskTest {
         emailTask.sendHourlyNotifications();
 
         List<EmailRecipient> recipients = Collections.emptyList();
-        when(emailService.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                EmailFrequency.ONCE_PER_HOUR)).thenReturn(recipients);
+        when(intersectionOrganizationRepository.findOrganizationNamesByIntersectionNumbers(List.of("2")))
+                .thenReturn(List.<Object[]>of(new Object[] { "2", "Org A" }));
+        when(emailService.getUsersForNotificationTypeByOrganization(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                "Org A", EmailFrequency.ONCE_PER_HOUR)).thenReturn(recipients);
 
         emailTask.sendHourlyNotifications();
 
@@ -321,8 +330,10 @@ public class EmailTaskTest {
         emailTask.sendDailyNotifications();
 
         List<EmailRecipient> recipients = List.of(new EmailRecipient("email", "name"));
-        when(emailService.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                EmailFrequency.ONCE_PER_DAY)).thenReturn(recipients);
+        when(intersectionOrganizationRepository.findOrganizationNamesByIntersectionNumbers(List.of("2")))
+                .thenReturn(List.<Object[]>of(new Object[] { "2", "Org A" }));
+        when(emailService.getUsersForNotificationTypeByOrganization(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                "Org A", EmailFrequency.ONCE_PER_DAY)).thenReturn(recipients);
 
         EmailContent content = new EmailContent("subject", "body");
         when(emailGenerator.generateEmailBody(any())).thenReturn(content);
@@ -362,8 +373,10 @@ public class EmailTaskTest {
         emailTask.sendWeeklyNotifications();
 
         List<EmailRecipient> recipients = List.of(new EmailRecipient("email", "name"));
-        when(emailService.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                EmailFrequency.ONCE_PER_WEEK)).thenReturn(recipients);
+        when(intersectionOrganizationRepository.findOrganizationNamesByIntersectionNumbers(List.of("2")))
+                .thenReturn(List.<Object[]>of(new Object[] { "2", "Org A" }));
+        when(emailService.getUsersForNotificationTypeByOrganization(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                "Org A", EmailFrequency.ONCE_PER_WEEK)).thenReturn(recipients);
 
         EmailContent content = new EmailContent("subject", "body");
         when(emailGenerator.generateEmailBody(any())).thenReturn(content);
@@ -403,8 +416,10 @@ public class EmailTaskTest {
         emailTask.sendMonthlyNotifications();
 
         List<EmailRecipient> recipients = List.of(new EmailRecipient("email", "name"));
-        when(emailService.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                EmailFrequency.ONCE_PER_MONTH)).thenReturn(recipients);
+        when(intersectionOrganizationRepository.findOrganizationNamesByIntersectionNumbers(List.of("2")))
+                .thenReturn(List.<Object[]>of(new Object[] { "2", "Org A" }));
+        when(emailService.getUsersForNotificationTypeByOrganization(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                "Org A", EmailFrequency.ONCE_PER_MONTH)).thenReturn(recipients);
 
         EmailContent content = new EmailContent("subject", "body");
         when(emailGenerator.generateEmailBody(any())).thenReturn(content);
@@ -412,5 +427,90 @@ public class EmailTaskTest {
         emailTask.sendMonthlyNotifications();
 
         verify(emailService).sendEmails(eq(recipients), eq(content));
+    }
+
+    @Test
+    void testSendIntersectionNotificationSummariesGroupsByOrganization() {
+        Notification sharedIntersection = createNotification("k1", "h1", "t1", 1, 1000);
+        Notification orgAOnly = createNotification("k2", "h2", "t2", 2, 2000);
+        Notification unassigned = createNotification("k3", "h3", "t3", 3, 3000);
+
+        when(intersectionOrganizationRepository.findOrganizationNamesByIntersectionNumbers(List.of("1", "2", "3")))
+                .thenReturn(List.of(
+                        new Object[] { "1", "Org A" },
+                        new Object[] { "1", "Org B" },
+                        new Object[] { "2", "Org A" }));
+        List<EmailRecipient> orgARecipients = List.of(new EmailRecipient("a@example.com", null));
+        List<EmailRecipient> orgBRecipients = List.of(new EmailRecipient("b@example.com", null));
+        when(emailService.getUsersForNotificationTypeByOrganization(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                "Org A", EmailFrequency.ONCE_PER_DAY)).thenReturn(orgARecipients);
+        when(emailService.getUsersForNotificationTypeByOrganization(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                "Org B", EmailFrequency.ONCE_PER_DAY)).thenReturn(orgBRecipients);
+        EmailContent content = new EmailContent("subject", "body");
+        ArgumentCaptor<IntersectionNotificationSummaryEmailContents> contentsCaptor = ArgumentCaptor
+                .forClass(IntersectionNotificationSummaryEmailContents.class);
+        when(emailGenerator.generateEmailBody(contentsCaptor.capture())).thenReturn(content);
+
+        emailTask.sendIntersectionNotificationSummaries(List.of(sharedIntersection, orgAOnly, unassigned),
+                EmailFrequency.ONCE_PER_DAY);
+
+        // Org A gets both of its intersections; Org B only the shared one; intersection 3 is skipped
+        assertThat(contentsCaptor.getAllValues()).hasSize(2);
+        assertThat(contentsCaptor.getAllValues().get(0).getNotifications())
+                .containsExactly(sharedIntersection, orgAOnly);
+        assertThat(contentsCaptor.getAllValues().get(1).getNotifications())
+                .containsExactly(sharedIntersection);
+        verify(emailService).sendEmails(orgARecipients, content);
+        verify(emailService).sendEmails(orgBRecipients, content);
+    }
+
+    @Test
+    void testSendIntersectionNotificationSummariesSendsSharedIntersectionOncePerRecipient() {
+        Notification sharedIntersection = createNotification("k1", "h1", "t1", 1, 1000);
+        Notification orgAOnly = createNotification("k2", "h2", "t2", 2, 2000);
+        Notification orgBOnly = createNotification("k3", "h3", "t3", 3, 3000);
+
+        when(intersectionOrganizationRepository.findOrganizationNamesByIntersectionNumbers(List.of("1", "2", "3")))
+                .thenReturn(List.of(
+                        new Object[] { "1", "Org A" },
+                        new Object[] { "1", "Org B" },
+                        new Object[] { "2", "Org A" },
+                        new Object[] { "3", "Org B" }));
+        EmailRecipient bothOrgs = new EmailRecipient("both@example.com", null);
+        EmailRecipient orgAOnlyRecipient = new EmailRecipient("a@example.com", null);
+        when(emailService.getUsersForNotificationTypeByOrganization(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                "Org A", EmailFrequency.ONCE_PER_DAY)).thenReturn(List.of(bothOrgs, orgAOnlyRecipient));
+        when(emailService.getUsersForNotificationTypeByOrganization(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                "Org B", EmailFrequency.ONCE_PER_DAY)).thenReturn(List.of(bothOrgs));
+        ArgumentCaptor<IntersectionNotificationSummaryEmailContents> contentsCaptor = ArgumentCaptor
+                .forClass(IntersectionNotificationSummaryEmailContents.class);
+        EmailContent bothOrgsContent = new EmailContent("subject", "both");
+        EmailContent orgAContent = new EmailContent("subject", "org a");
+        when(emailGenerator.generateEmailBody(contentsCaptor.capture())).thenReturn(bothOrgsContent, orgAContent);
+
+        emailTask.sendIntersectionNotificationSummaries(List.of(sharedIntersection, orgAOnly, orgBOnly),
+                EmailFrequency.ONCE_PER_DAY);
+
+        // The recipient in both organizations gets one email with the shared intersection listed once
+        assertThat(contentsCaptor.getAllValues()).hasSize(2);
+        assertThat(contentsCaptor.getAllValues().get(0).getNotifications())
+                .containsExactly(sharedIntersection, orgAOnly, orgBOnly);
+        assertThat(contentsCaptor.getAllValues().get(1).getNotifications())
+                .containsExactly(sharedIntersection, orgAOnly);
+        verify(emailService).sendEmails(List.of(bothOrgs), bothOrgsContent);
+        verify(emailService).sendEmails(List.of(orgAOnlyRecipient), orgAContent);
+        verify(emailService, times(2)).sendEmails(anyList(), any());
+    }
+
+    @Test
+    void testSendIntersectionNotificationSummariesSkipsUnassignedIntersections() {
+        Notification unassigned = createNotification("k1", "h1", "t1", 9, 1000);
+        when(intersectionOrganizationRepository.findOrganizationNamesByIntersectionNumbers(List.of("9")))
+                .thenReturn(List.of());
+
+        emailTask.sendIntersectionNotificationSummaries(List.of(unassigned), EmailFrequency.ONCE_PER_HOUR);
+
+        verify(emailService, never()).getUsersForNotificationTypeByOrganization(any(), anyString(), any());
+        verify(emailService, never()).sendEmails(anyList(), any());
     }
 }

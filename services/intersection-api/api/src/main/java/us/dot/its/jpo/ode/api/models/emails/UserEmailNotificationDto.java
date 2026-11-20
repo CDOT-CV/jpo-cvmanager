@@ -16,6 +16,11 @@ public class UserEmailNotificationDto {
     @NotNull
     public String category;
 
+    /**
+     * Organization the subscription applies to; null for system-wide email types.
+     */
+    public String organization;
+
     public String description;
 
     @NotNull

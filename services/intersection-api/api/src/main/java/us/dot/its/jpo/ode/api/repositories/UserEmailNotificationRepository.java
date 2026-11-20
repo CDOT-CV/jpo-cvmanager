@@ -14,6 +14,9 @@ import java.util.List;
 
 /**
  * Frequency filter strings must match {@link us.dot.its.jpo.ode.api.models.emails.EmailFrequency#toQueryValue()}.
+ * Subscriptions to organization-scoped email types are per organization; queries
+ * without an organization filter match a user subscribed for any of their
+ * organizations. System-wide email types have no organization.
  */
 @Repository
 public interface UserEmailNotificationRepository extends JpaRepository<UserEmailNotification, Integer> {
@@ -31,8 +34,7 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
 
     @Query("SELECT DISTINCT uen.user.email " +
             "FROM UserEmailNotification uen " +
-            "JOIN UserOrganization uo ON uen.user.id = uo.user.id " +
-            "JOIN RsuOrganization ro ON uo.organization.id = ro.organization.id " +
+            "JOIN RsuOrganization ro ON uen.organization.id = ro.organization.id " +
             "JOIN Rsu r ON ro.rsu.id = r.id " +
             "WHERE uen.emailType.emailType = :notificationType " +
             "AND r.ipv4Address = :rsuIp " +
@@ -46,10 +48,8 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
 
     @Query("SELECT DISTINCT uen.user.email " +
             "FROM UserEmailNotification uen " +
-            "JOIN UserOrganization uo ON uen.user.id = uo.user.id " +
-            "JOIN Organization o ON uo.organization.id = o.id " +
             "WHERE uen.emailType.emailType = :notificationType " +
-            "AND o.name = :organizationName " +
+            "AND uen.organization.name = :organizationName " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
             "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
             "OR (:frequency = 'DAILY' AND uen.daily = true) " +
@@ -60,6 +60,8 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
 
     @Query("SELECT uen " +
             "FROM UserEmailNotification uen " +
+            "JOIN FETCH uen.emailType " +
+            "LEFT JOIN FETCH uen.organization " +
             "WHERE uen.user.email = :userEmail")
     List<UserEmailNotification> findNotificationsByUser(@Param("userEmail") String userEmail);
 

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -24,6 +25,14 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
     @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber = :intersectionNumber AND io.organization.name IN :orgNames")
     void deleteByIntersectionNumberAndOrganizationNameIn(@Param("intersectionNumber") String intersectionNumber,
             @Param("orgNames") List<String> orgNames);
+
+    /**
+     * Returns [intersectionNumber, organizationName] pairs for the given intersections.
+     */
+    @Query("SELECT io.intersection.intersectionNumber, io.organization.name FROM IntersectionOrganization io " +
+            "WHERE io.intersection.intersectionNumber IN :intersectionNumbers")
+    List<Object[]> findOrganizationNamesByIntersectionNumbers(
+            @Param("intersectionNumbers") Collection<String> intersectionNumbers);
 
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +

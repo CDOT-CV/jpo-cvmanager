@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,6 +35,7 @@ import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSum
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountCountsItem;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountRsuItem;
+import us.dot.its.jpo.ode.api.repositories.IntersectionOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
@@ -53,6 +56,7 @@ public class EmailTask {
     private final IntersectionNotificationSummaryEmailGenerator emailGenerator;
     private final CountsRepository countsRepository;
     private final OrganizationRepository organizationRepository;
+    private final IntersectionOrganizationRepository intersectionOrganizationRepository;
     private final String deploymentEnvironment;
 
     private List<Notification> lastHourList;
@@ -68,6 +72,7 @@ public class EmailTask {
             IntersectionNotificationSummaryEmailGenerator emailGenerator,
             CountsRepository countsRepository,
             OrganizationRepository organizationRepository,
+            IntersectionOrganizationRepository intersectionOrganizationRepository,
             @Value("${deployment.environment:UNKNOWN}") String deploymentEnvironment) {
         this.email = email;
         this.activeNotificationRepo = activeNotificationRepo;
@@ -75,6 +80,7 @@ public class EmailTask {
         this.emailGenerator = emailGenerator;
         this.countsRepository = countsRepository;
         this.organizationRepository = organizationRepository;
+        this.intersectionOrganizationRepository = intersectionOrganizationRepository;
         this.deploymentEnvironment = deploymentEnvironment;
     }
 
@@ -98,16 +104,7 @@ public class EmailTask {
 
             lastHourList = currentNotifications;
 
-            if (!newNotifications.isEmpty()) {
-                List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                        EmailFrequency.ONCE_PER_HOUR);
-                if (!recipients.isEmpty()) {
-                    EmailContent content = emailGenerator
-                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                    email.sendEmails(recipients, content);
-                }
-            }
+            sendIntersectionNotificationSummaries(newNotifications, EmailFrequency.ONCE_PER_HOUR);
         });
     }
 
@@ -128,16 +125,7 @@ public class EmailTask {
 
             lastDayList = currentNotifications;
 
-            if (!newNotifications.isEmpty()) {
-                List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                        EmailFrequency.ONCE_PER_DAY);
-                if (!recipients.isEmpty()) {
-                    EmailContent content = emailGenerator
-                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                    email.sendEmails(recipients, content);
-                }
-            }
+            sendIntersectionNotificationSummaries(newNotifications, EmailFrequency.ONCE_PER_DAY);
 
             sendDailyCountEmails();
         });
@@ -159,16 +147,7 @@ public class EmailTask {
 
             lastWeekList = currentNotifications;
 
-            if (!newNotifications.isEmpty()) {
-                List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                        EmailFrequency.ONCE_PER_WEEK);
-                if (!recipients.isEmpty()) {
-                    EmailContent content = emailGenerator
-                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                    email.sendEmails(recipients, content);
-                }
-            }
+            sendIntersectionNotificationSummaries(newNotifications, EmailFrequency.ONCE_PER_WEEK);
         });
     }
 
@@ -188,16 +167,64 @@ public class EmailTask {
 
             lastMonthList = currentNotifications;
 
-            if (!newNotifications.isEmpty()) {
-                List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                        EmailFrequency.ONCE_PER_MONTH);
-                if (!recipients.isEmpty()) {
-                    EmailContent content = emailGenerator
-                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                    email.sendEmails(recipients, content);
-                }
+            sendIntersectionNotificationSummaries(newNotifications, EmailFrequency.ONCE_PER_MONTH);
+        });
+    }
+
+    /**
+     * Sends each subscriber one summary of the new notifications for the
+     * intersections of every organization they are subscribed to. A notification
+     * for an intersection shared by several of a subscriber's organizations is
+     * included once. Notifications for intersections not assigned to any
+     * organization are skipped.
+     */
+    void sendIntersectionNotificationSummaries(List<Notification> newNotifications, EmailFrequency frequency) {
+        if (newNotifications.isEmpty()) {
+            return;
+        }
+        Map<String, List<String>> orgsByIntersection = new HashMap<>();
+        for (Object[] row : intersectionOrganizationRepository.findOrganizationNamesByIntersectionNumbers(
+                newNotifications.stream().map(n -> String.valueOf(n.getIntersectionID())).distinct().toList())) {
+            orgsByIntersection.computeIfAbsent((String) row[0], k -> new ArrayList<>()).add((String) row[1]);
+        }
+
+        Set<String> notifiedOrgs = new TreeSet<>();
+        for (Notification notification : newNotifications) {
+            List<String> orgNames = orgsByIntersection.get(String.valueOf(notification.getIntersectionID()));
+            if (orgNames == null) {
+                log.debug("Skipping notification for intersection {} with no organization",
+                        notification.getIntersectionID());
+                continue;
             }
+            notifiedOrgs.addAll(orgNames);
+        }
+
+        // The organizations each recipient is subscribed to, keyed by email
+        Map<String, EmailRecipient> recipientsByEmail = new LinkedHashMap<>();
+        Map<String, Set<String>> orgsByRecipient = new HashMap<>();
+        for (String orgName : notifiedOrgs) {
+            for (EmailRecipient recipient : email.getUsersForNotificationTypeByOrganization(
+                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY, orgName, frequency)) {
+                recipientsByEmail.putIfAbsent(recipient.getEmail(), recipient);
+                orgsByRecipient.computeIfAbsent(recipient.getEmail(), k -> new TreeSet<>()).add(orgName);
+            }
+        }
+
+        // Recipients subscribed to the same organizations receive the same summary
+        Map<Set<String>, List<EmailRecipient>> recipientsByOrgs = new LinkedHashMap<>();
+        recipientsByEmail.forEach((recipientEmail, recipient) -> recipientsByOrgs
+                .computeIfAbsent(orgsByRecipient.get(recipientEmail), k -> new ArrayList<>()).add(recipient));
+
+        recipientsByOrgs.forEach((orgNames, recipients) -> {
+            List<Notification> notifications = newNotifications.stream()
+                    .filter(notification -> orgsByIntersection
+                            .getOrDefault(String.valueOf(notification.getIntersectionID()), List.of())
+                            .stream()
+                            .anyMatch(orgNames::contains))
+                    .toList();
+            EmailContent content = emailGenerator
+                    .generateEmailBody(new IntersectionNotificationSummaryEmailContents(notifications));
+            email.sendEmails(recipients, content);
         });
     }
 

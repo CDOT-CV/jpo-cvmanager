@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.AccessDeniedException;
@@ -56,15 +58,9 @@ public class UnsubscribeController {
             throw new AccessDeniedException("Invalid or expired token");
         }
 
-        boolean isSuperUser = userRepository.findByEmail(userEmail).getSuperUser();
-        List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
-        boolean isOperator = isSuperUser || userOrganizations.stream()
-                .anyMatch(org -> UserRole.OPERATOR.equals(UserRole.fromString(org.getRole().getName())));
-        boolean isAdmin = isSuperUser || userOrganizations.stream()
-                .anyMatch(org -> UserRole.ADMIN.equals(UserRole.fromString(org.getRole().getName())));
-
+        boolean isSuperUser = isSuperUser(userEmail);
         List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail,
-                isOperator, isAdmin);
+                getOrgRoles(userEmail, isSuperUser), isSuperUser);
         return new EmailSubscriptionGetResponse(subscriptions, userEmail);
     }
 
@@ -83,15 +79,28 @@ public class UnsubscribeController {
             throw new AccessDeniedException("Invalid or expired token");
         }
 
-        boolean isSuperUser = userRepository.findByEmail(userEmail).getSuperUser();
-        List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
-        boolean isOperator = isSuperUser || userOrganizations.stream()
-                .anyMatch(org -> UserRole.OPERATOR.equals(UserRole.fromString(org.getRole().getName())));
-        boolean isAdmin = isSuperUser || userOrganizations.stream()
-                .anyMatch(org -> UserRole.ADMIN.equals(UserRole.fromString(org.getRole().getName())));
-        emailService.updateEmailSubscriptions(userEmail, isOperator, isAdmin, requestedSubscriptions);
+        boolean isSuperUser = isSuperUser(userEmail);
+        emailService.updateEmailSubscriptions(userEmail, getOrgRoles(userEmail, isSuperUser), isSuperUser,
+                requestedSubscriptions);
 
         return;
+    }
+
+    /**
+     * The user's role in each of their organizations, keyed by organization name.
+     * Super users are treated as ADMIN in every organization they belong to.
+     */
+    private Map<String, UserRole> getOrgRoles(String userEmail, boolean isSuperUser) {
+        List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
+        return userOrganizations.stream()
+                .collect(Collectors.toMap(
+                        userOrg -> userOrg.getOrganization().getName(),
+                        userOrg -> isSuperUser ? UserRole.ADMIN : UserRole.fromString(userOrg.getRole().getName()),
+                        (first, second) -> first));
+    }
+
+    private boolean isSuperUser(String userEmail) {
+        return Boolean.TRUE.equals(userRepository.findByEmail(userEmail).getSuperUser());
     }
 
     private String extractToken(String authorization) {
