@@ -74,6 +74,7 @@ export type RsuUpgradeCheckPostBody = {
 }
 
 export type ApiMsgResp = { message: string }
+export type RsuOperationOutcome = { ip: string; success: boolean; detail: string }
 export type ApiMsgRespWithCodes<T> = {
   body: T
   status: number
