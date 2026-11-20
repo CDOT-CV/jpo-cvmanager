@@ -124,13 +124,13 @@ class PermissionServiceTest {
 
     @Test
     void testGetAllowedIntersectionIdsByOrganization() {
-        when(intersectionRepository.findIntersectionsByOrganization("TestOrg"))
+        when(intersectionRepository.findIntersectionsByOrganizationId(1))
                 .thenReturn(List.of("111", "222"));
 
-        List<Integer> result = permissionService.getAllowedIntersectionIdsByOrganization("TestOrg");
+        List<Integer> result = permissionService.getAllowedIntersectionIdsByOrganization(1);
 
         assertEquals(List.of(111, 222), result);
-        verify(intersectionRepository).findIntersectionsByOrganization("TestOrg");
+        verify(intersectionRepository).findIntersectionsByOrganizationId(1);
     }
 
     // ==================== hasRole Tests ====================

@@ -42,8 +42,8 @@ public class PermissionService {
                 .collect(Collectors.toList());
     }
 
-    public List<Integer> getAllowedIntersectionIdsByOrganization(String email) {
-        return intersectionRepository.findIntersectionsByOrganization(email).stream().map(Integer::parseInt)
+    public List<Integer> getAllowedIntersectionIdsByOrganization(Integer orgId) {
+        return intersectionRepository.findIntersectionsByOrganizationId(orgId).stream().map(Integer::parseInt)
                 .collect(Collectors.toList());
     }
 
