@@ -294,6 +294,7 @@ class RsuManagementServiceTest {
     @Test
     void createRsuRejectsLegacyProtocol() {
         var dto = new RsuInfoDto();
+        dto.setFirmwareId(5);
         dto.setSnmpVersionGroup("RSU 4.1");
         var legacy = new SnmpProtocol();
         legacy.setProtocolCode("41");
@@ -305,6 +306,8 @@ class RsuManagementServiceTest {
                 () -> rsuManagementService.createRsu(dto, List.of()));
 
         assertEquals(400, failure.getStatusCode().value());
+        assertEquals("New SNMP protocol assignments require NTCIP 1218. Existing legacy assignments may be retained.",
+                failure.getReason());
         verify(rsuRepository, never()).save(any());
     }
 
