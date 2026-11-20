@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 /**
  * Flat properties block inside a GeoJSON Feature returned by the
  * /devices/rsus/info endpoint.
+ * Includes the installed firmware version recorded for the RSU, when known.
  * Includes protocol and ownership metadata for the webapp forwarding controls.
  */
 @Data
@@ -49,4 +50,7 @@ public class RsuGeoInfoPropertiesDto {
 
     @JsonProperty("manufacturer_name")
     private String manufacturerName;
+
+    @JsonProperty("firmware_version")
+    private String firmwareVersion;
 }

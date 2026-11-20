@@ -17,6 +17,7 @@ import {
   RsuRxTxMsgFwdConfigs,
   RsuUpgradeCheckPostBody,
   RsuUpgradePostBody,
+  RsuOperationOutcome,
 } from '../models/RsuApi'
 
 export const forwardingMessageTypes: readonly ForwardingMessageType[] = ['BSM', 'SPAT', 'MAP', 'SRM', 'SSM', 'TIM']
@@ -286,14 +287,16 @@ export const startFirmwareUpgrade = createAsyncThunk(
 
     const perRsuResults = response.body as Record<string, { code?: number; data?: unknown }> | undefined
     if (!perRsuResults || typeof perRsuResults !== 'object') {
-      return response.status === 200
-        ? { message: 'Firmware upgrades started successfully', statusCode: response.status }
-        : { message: 'Firmware upgrades failed to be started', statusCode: response.status }
+      return {
+        message: 'Firmware upgrade results were not returned.', statusCode: 500,
+        results: rsuIps.map((ip) => ({ ip, success: false, detail: 'No response; check upgrade status before retrying' })),
+      }
     }
 
     const failedIps: string[] = []
     const startedIps: string[] = []
     const upToDateIps: string[] = []
+    const results: RsuOperationOutcome[] = []
 
     const extractDataMessage = (data: unknown): string => {
       if (typeof data === 'string') {
@@ -310,6 +313,12 @@ export const startFirmwareUpgrade = createAsyncThunk(
       const code = perRsuResults?.[ip]?.code
       const dataMessage = extractDataMessage(perRsuResults?.[ip]?.data)
       const isUpToDate = code === 409 && dataMessage.toLowerCase().includes('already up to date')
+      // Report request acceptance separately from completion of the firmware installation.
+      const success = code === 200 || code === 201 || isUpToDate
+      const detail = isUpToDate ? 'Already up to date'
+        : success ? 'Upgrade start accepted'
+        : dataMessage || (code == null ? 'No response; check upgrade status before retrying' : 'Upgrade failed to start')
+      results.push({ ip, success, detail })
 
       if (code === 200 || code === 201) {
         startedIps.push(ip)
@@ -325,12 +334,13 @@ export const startFirmwareUpgrade = createAsyncThunk(
         return {
           message: 'Selected RSU is already up to date.',
           statusCode: 200,
+          results,
         }
       }
 
       return failedIps.length > 0
-        ? { message: 'Firmware upgrade failed to start.', statusCode: perRsuResults?.[rsuIps[0]]?.code ?? 500 }
-        : { message: 'Firmware upgrade started successfully.', statusCode: 200 }
+        ? { message: 'Firmware upgrade failed to start.', statusCode: perRsuResults?.[rsuIps[0]]?.code ?? 500, results }
+        : { message: 'Firmware upgrade started successfully.', statusCode: 200, results }
     }
 
     if (failedIps.length === 0) {
@@ -338,21 +348,24 @@ export const startFirmwareUpgrade = createAsyncThunk(
         return {
           message: `Firmware upgrade started for ${startedIps.length} RSUs. ${upToDateIps.length} RSUs already up to date.`,
           statusCode: 200,
+          results,
         }
       }
       if (upToDateIps.length > 0) {
         return {
           message: 'Selected RSUs are already up to date.',
           statusCode: 200,
+          results,
         }
       }
-      return { message: `Firmware upgrade started for ${startedIps.length} RSUs.`, statusCode: 200 }
+      return { message: `Firmware upgrade started for ${startedIps.length} RSUs.`, statusCode: 200, results }
     }
 
     if (startedIps.length === 0) {
       return {
         message: `Firmware upgrade failed for selected RSUs: ${failedIps.join(', ')}`,
         statusCode: 500,
+        results,
       }
     }
 
@@ -363,6 +376,7 @@ export const startFirmwareUpgrade = createAsyncThunk(
     return {
       message: `${successSummary}${upToDateSummary} Failed: ${failedIps.join(', ')}`.trim(),
       statusCode: firstFailedIpCode,
+      results,
     }
   }
 )

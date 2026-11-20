@@ -892,7 +892,8 @@ describe('async thunks', () => {
         },
         ''
       )
-      expect(resp.payload).toEqual({ message: 'Firmware upgrade started successfully.', statusCode: 200 })
+      expect(resp.payload).toEqual({ message: 'Firmware upgrade started successfully.', statusCode: 200,
+        results: [{ ip: '1.2.3.4', success: true, detail: 'Upgrade start accepted' }] })
     })
 
     it('returns a concise single-rsu failure message', async () => {
@@ -919,7 +920,8 @@ describe('async thunks', () => {
       const action = startFirmwareUpgrade(arg)
       const resp = await action(dispatch, getState, undefined)
 
-      expect(resp.payload).toEqual({ message: 'Firmware upgrade failed to start.', statusCode: 500 })
+      expect(resp.payload).toEqual({ message: 'Firmware upgrade failed to start.', statusCode: 500,
+        results: [{ ip: '1.2.3.4', success: false, detail: 'device is unreachable' }] })
     })
 
     it('returns an informational message when a single RSU is already up to date', async () => {
@@ -946,7 +948,8 @@ describe('async thunks', () => {
       const action = startFirmwareUpgrade(arg)
       const resp = await action(dispatch, getState, undefined)
 
-      expect(resp.payload).toEqual({ message: 'Selected RSU is already up to date.', statusCode: 200 })
+      expect(resp.payload).toEqual({ message: 'Selected RSU is already up to date.', statusCode: 200,
+        results: [{ ip: '1.2.3.4', success: true, detail: 'Already up to date' }] })
     })
 
     it('excludes up-to-date RSUs from multi-rsu failed list', async () => {
@@ -985,6 +988,11 @@ describe('async thunks', () => {
       expect(resp.payload).toEqual({
         message: 'Firmware upgrade started for 1 RSUs. 1 RSUs already up to date. Failed: 10.0.0.80',
         statusCode: 500,
+        results: [
+          { ip: '10.0.0.78', success: true, detail: 'Already up to date' },
+          { ip: '10.0.0.79', success: true, detail: 'Upgrade start accepted' },
+          { ip: '10.0.0.80', success: false, detail: 'device unreachable' },
+        ],
       })
     })
 
@@ -1069,7 +1077,8 @@ describe('async thunks', () => {
       const resp = await action(dispatch, getState, undefined)
 
       expect(resp.type).toBe('config/startFirmwareUpgrade/fulfilled')
-      expect(resp.payload).toEqual({ message: 'Firmware upgrade failed to start.', statusCode: 404 })
+      expect(resp.payload).toEqual({ message: 'Firmware upgrade failed to start.', statusCode: 404,
+        results: [{ ip: '1.2.3.4', success: false, detail: 'Provided RSU IP does not have complete RSU data: 1.2.3.4' }] })
     })
 
     it('handles 501 per-RSU result when firmware manager is not supported', async () => {
@@ -1097,7 +1106,8 @@ describe('async thunks', () => {
       const resp = await action(dispatch, getState, undefined)
 
       expect(resp.type).toBe('config/startFirmwareUpgrade/fulfilled')
-      expect(resp.payload).toEqual({ message: 'Firmware upgrade failed to start.', statusCode: 501 })
+      expect(resp.payload).toEqual({ message: 'Firmware upgrade failed to start.', statusCode: 501,
+        results: [{ ip: '1.2.3.4', success: false, detail: 'The firmware manager is not supported for this CV Manager deployment' }] })
     })
 
     it('handles multi-rsu response with mixed success and error codes', async () => {

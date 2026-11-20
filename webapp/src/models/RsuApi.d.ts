@@ -7,6 +7,7 @@ export type RsuProperties = {
   primary_route: string
   serial_number: string
   manufacturer_name: string
+  firmware_version?: string | null
   snmp_protocol_code?: string
   owner_organization_id?: number
   tim_deposit: boolean
@@ -73,6 +74,7 @@ export type RsuUpgradeCheckPostBody = {
 }
 
 export type ApiMsgResp = { message: string }
+export type RsuOperationOutcome = { ip: string; success: boolean; detail: string }
 export type ApiMsgRespWithCodes<T> = {
   body: T
   status: number

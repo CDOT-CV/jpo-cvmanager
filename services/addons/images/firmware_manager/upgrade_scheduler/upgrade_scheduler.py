@@ -135,7 +135,7 @@ def init_firmware_upgrade():
             return (
                 jsonify(
                     {
-                        "error": f"Firmware upgrade failed to start for '{request_args['rsu_ip']}': an upgrade is already underway or queued for the target device"
+                        "error": "Upgrade already running or queued"
                     }
                 ),
                 500,
@@ -146,7 +146,7 @@ def init_firmware_upgrade():
             return (
                 jsonify(
                     {
-                        "error": f"Firmware upgrade failed to start for '{request_args['rsu_ip']}': device is unreachable"
+                        "error": "Device unreachable"
                     }
                 ),
                 500,
@@ -159,7 +159,7 @@ def init_firmware_upgrade():
             return (
                 jsonify(
                     {
-                        "error": f"Firmware upgrade failed to start for '{request_args['rsu_ip']}': the target firmware is already installed or is an invalid upgrade from the current firmware"
+                        "error": "Target already installed or upgrade not allowed"
                     }
                 ),
                 500,
