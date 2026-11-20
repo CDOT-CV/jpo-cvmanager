@@ -111,15 +111,14 @@ const AdminEditIntersection = () => {
           : undefined
       const bbox =
         data.bbox &&
-        data.bbox !== intersectionInfo?.bbox &&
-        data.bbox.latitude1 &&
-        data.bbox.latitude1 != intersectionInfo?.bbox?.latitude1 &&
-        data.bbox.longitude1 &&
-        data.bbox.longitude1 != intersectionInfo?.bbox?.longitude1 &&
-        data.bbox.latitude2 &&
-        data.bbox.latitude2 != intersectionInfo?.bbox?.latitude2 &&
-        data.bbox.longitude2 &&
-        data.bbox.longitude2 != intersectionInfo?.bbox?.longitude2
+        data.bbox.latitude1 !== '' &&
+        data.bbox.longitude1 !== '' &&
+        data.bbox.latitude2 !== '' &&
+        data.bbox.longitude2 !== '' &&
+        (data.bbox.latitude1 != intersectionInfo?.bbox?.latitude1 ||
+          data.bbox.longitude1 != intersectionInfo?.bbox?.longitude1 ||
+          data.bbox.latitude2 != intersectionInfo?.bbox?.latitude2 ||
+          data.bbox.longitude2 != intersectionInfo?.bbox?.longitude2)
           ? data.bbox
           : undefined
 
