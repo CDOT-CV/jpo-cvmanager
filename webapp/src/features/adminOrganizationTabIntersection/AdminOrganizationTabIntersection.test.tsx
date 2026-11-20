@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   tableProps: { current: null as any },
   patch: vi.fn(),
   fetchIntersection: vi.fn(),
+  fetchIntersections: vi.fn(),
   confirmAlert: vi.fn(),
   loadingGlobal: { value: false },
   toast: {
@@ -24,7 +25,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('react-hot-toast', () => ({ default: mocks.toast }))
 vi.mock('react-confirm-alert', () => ({ confirmAlert: mocks.confirmAlert }))
-vi.mock('../../components/AdminTable', () => ({
+vi.mock('../../components/AdminTable', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../components/AdminTable')>()),
   default: (props: any) => {
     mocks.tableProps.current = props
     return <div data-testid="admin-table" />
@@ -49,13 +51,15 @@ vi.mock('../api/adminIntersectionApiSlice', async (importOriginal) => ({
     },
   }),
   useGetIntersectionsQuery: () => ({
-    currentData: {
-      intersection_data: [
+    data: {
+      content: [
         { intersection_id: '10', intersection_name: 'Ten' },
         { intersection_id: '20', intersection_name: 'Twenty' },
       ],
     },
+    isFetching: false,
   }),
+  useLazyGetIntersectionsQuery: () => [mocks.fetchIntersections],
   useLazyGetIntersectionQuery: () => [mocks.fetchIntersection],
 }))
 
@@ -112,6 +116,17 @@ describe('AdminOrganizationTabIntersection', () => {
     mocks.loadingGlobal.value = false
     mocks.patch.mockReturnValue(ok())
     mocks.fetchIntersection.mockReturnValue(intersectionResult(2))
+    mocks.fetchIntersections.mockImplementation((params: any) =>
+      ok({
+        content: params.search
+          ? [{ intersection_id: '20', intersection_name: 'Twenty' }]
+          : [
+              { intersection_id: '10', intersection_name: 'Ten' },
+              { intersection_id: '20', intersection_name: 'Twenty' },
+            ],
+        totalElements: params.search ? 1 : 2,
+      })
+    )
     vi.spyOn(window, 'alert').mockImplementation(() => {})
   })
 
@@ -126,11 +141,39 @@ describe('AdminOrganizationTabIntersection', () => {
     expect(screen.queryByTestId('admin-table')).toBeNull()
   })
 
-  it('passes table data and columns to the table', () => {
+  it('passes paging props and columns to the table', () => {
     renderComponent()
-    expect(mocks.tableProps.current.data).toHaveLength(2)
     expect(mocks.tableProps.current.columns.map((c: any) => c.field)).toEqual(['intersection_id', 'intersection_name'])
     expect(actions()).toHaveLength(4)
+    expect(mocks.tableProps.current.handleQueryChange).toBeTypeOf('function')
+    expect(mocks.tableProps.current.tableRef).toBeTruthy()
+  })
+
+  it('fetches the requested server-side page', async () => {
+    renderComponent()
+    let result: any
+
+    await act(async () => {
+      result = await mocks.tableProps.current.handleQueryChange({
+        page: 1,
+        pageSize: 10,
+        search: 'twenty',
+        orderByCollection: [],
+      })
+    })
+
+    expect(mocks.fetchIntersections).toHaveBeenCalledWith({
+      page: 1,
+      size: 10,
+      sort: 'intersection_id,asc',
+      search: 'twenty',
+      organization: 1,
+    })
+    expect(result).toEqual({
+      data: [{ intersection_id: '20', intersection_name: 'Twenty' }],
+      page: 1,
+      totalCount: 1,
+    })
   })
 
   describe('delete buttons', () => {

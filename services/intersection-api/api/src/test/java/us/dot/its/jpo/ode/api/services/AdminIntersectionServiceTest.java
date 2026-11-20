@@ -22,6 +22,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -215,11 +218,14 @@ class AdminIntersectionServiceTest {
             Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
             intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
 
-            IntersectionListResponse result = adminIntersectionService.getAllIntersections(org);
+            Page<IntersectionDto> result = adminIntersectionService.getAllIntersections(
+                    org, PageRequest.of(0, 25, Sort.by("intersectionNumber")), "");
 
-            assertNotNull(result.getIntersectionData());
-            assertEquals(1, result.getIntersectionData().size());
-            assertEquals(1123, result.getIntersectionData().getFirst().getIntersectionId());
+            assertNotNull(result.getContent());
+            assertEquals(1, result.getContent().size());
+            assertEquals(1123, result.getContent().getFirst().getIntersectionId());
+            assertEquals(1, result.getTotalElements());
+            assertEquals(0, result.getNumber());
         }
 
         @Test
@@ -231,10 +237,33 @@ class AdminIntersectionServiceTest {
             Intersection i2 = intersectionRepository.save(fixtures.createIntersection("1002"));
             intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i2, orgB));
 
-            IntersectionListResponse result = adminIntersectionService.getAllIntersections(orgA);
+            Page<IntersectionDto> result = adminIntersectionService.getAllIntersections(
+                    orgA, PageRequest.of(0, 25, Sort.by("intersectionNumber")), "");
 
-            assertEquals(1, result.getIntersectionData().size());
-            assertEquals(1001, result.getIntersectionData().getFirst().getIntersectionId());
+            assertEquals(1, result.getContent().size());
+            assertEquals(1001, result.getContent().getFirst().getIntersectionId());
+        }
+
+        @Test
+        void appliesServerSidePagingAndSearch() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            for (String id : List.of("2001", "2002", "2003")) {
+                Intersection intersection = intersectionRepository.save(fixtures.createIntersection(id));
+                intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(intersection, org));
+            }
+
+            Page<IntersectionDto> page = adminIntersectionService.getAllIntersections(
+                    org, PageRequest.of(1, 1, Sort.by("intersectionNumber")), "");
+            assertEquals(1, page.getContent().size());
+            assertEquals(2002, page.getContent().getFirst().getIntersectionId());
+            assertEquals(3, page.getTotalElements());
+            assertEquals(3, page.getTotalPages());
+
+            Page<IntersectionDto> searched = adminIntersectionService.getAllIntersections(
+                    org, PageRequest.of(0, 25, Sort.by("intersectionNumber")), "2003");
+            assertEquals(1, searched.getContent().size());
+            assertEquals(2003, searched.getContent().getFirst().getIntersectionId());
+            assertEquals(1, searched.getTotalElements());
         }
 
         @Test
@@ -242,10 +271,11 @@ class AdminIntersectionServiceTest {
             Organization org = organizationRepository.save(fixtures.createRandomOrg());
             intersectionRepository.save(fixtures.createIntersection("1123")); // no org association
 
-            IntersectionListResponse result = adminIntersectionService.getAllIntersections(org);
+            Page<IntersectionDto> result = adminIntersectionService.getAllIntersections(
+                    org, PageRequest.of(0, 25, Sort.by("intersectionNumber")), "");
 
-            assertNotNull(result.getIntersectionData());
-            assertTrue(result.getIntersectionData().isEmpty());
+            assertNotNull(result.getContent());
+            assertTrue(result.getContent().isEmpty());
         }
 
         @Test
@@ -256,10 +286,11 @@ class AdminIntersectionServiceTest {
             Rsu rsu = saveRsu("192.168.1.1", org);
             rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, i));
 
-            IntersectionListResponse result = adminIntersectionService.getAllIntersections(org);
+            Page<IntersectionDto> result = adminIntersectionService.getAllIntersections(
+                    org, PageRequest.of(0, 25, Sort.by("intersectionNumber")), "");
 
-            assertEquals(1, result.getIntersectionData().size());
-            assertEquals(List.of("192.168.1.1"), result.getIntersectionData().getFirst().getRsus());
+            assertEquals(1, result.getContent().size());
+            assertEquals(List.of("192.168.1.1"), result.getContent().getFirst().getRsus());
         }
     }
 

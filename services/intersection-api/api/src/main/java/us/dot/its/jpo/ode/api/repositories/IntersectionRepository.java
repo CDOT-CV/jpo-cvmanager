@@ -1,6 +1,8 @@
 package us.dot.its.jpo.ode.api.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -49,6 +51,37 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
             "LEFT JOIN FETCH io.organization " +
             "WHERE io.organization = :organization")
     List<Intersection> findAllByOrganization(Organization organization);
+
+    @Query(value = "SELECT i.id FROM Intersection i " +
+            "JOIN i.intersectionOrganizations io " +
+            "WHERE io.organization = :organization AND (" +
+            ":search = '' " +
+            "OR LOWER(i.intersectionNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(i.intersectionName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(CAST(i.originIp AS string)) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR EXISTS (SELECT ri.id FROM RsuIntersection ri " +
+            "WHERE ri.intersection = i " +
+            "AND LOWER(CAST(ri.rsu.ipv4Address AS string)) LIKE LOWER(CONCAT('%', :search, '%'))))",
+            countQuery = "SELECT COUNT(i.id) FROM Intersection i " +
+                    "JOIN i.intersectionOrganizations io " +
+                    "WHERE io.organization = :organization AND (" +
+                    ":search = '' " +
+                    "OR LOWER(i.intersectionNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                    "OR LOWER(i.intersectionName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                    "OR LOWER(CAST(i.originIp AS string)) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                    "OR EXISTS (SELECT ri.id FROM RsuIntersection ri " +
+                    "WHERE ri.intersection = i " +
+                    "AND LOWER(CAST(ri.rsu.ipv4Address AS string)) LIKE LOWER(CONCAT('%', :search, '%'))))")
+    Page<Integer> findPageIdsByOrganizationAndSearch(
+            @Param("organization") Organization organization,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query("SELECT DISTINCT i FROM Intersection i " +
+            "LEFT JOIN FETCH i.intersectionOrganizations io " +
+            "LEFT JOIN FETCH io.organization " +
+            "WHERE i.id IN :ids")
+    List<Intersection> findAllWithOrgsByIds(@Param("ids") List<Integer> ids);
 
     /**
      * Fetches intersections belonging to any of the given organizations, with org

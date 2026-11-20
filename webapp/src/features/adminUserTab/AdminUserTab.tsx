@@ -1,8 +1,8 @@
-import { useCallback, useRef, useState } from 'react'
+import { useState } from 'react'
 import { confirmAlert } from 'react-confirm-alert'
 import { useSelector } from 'react-redux'
 import { Options } from '../../components/AdminDeletionOptions'
-import AdminTable, { buildAdminTableQueryParams } from '../../components/AdminTable'
+import AdminTable from '../../components/AdminTable'
 import { selectOrganizationId } from '../../generalSlices/userSlice'
 import AdminAddUser from '../adminAddUser/AdminAddUser'
 import AdminEditUser from '../adminEditUser/AdminEditUser'
@@ -13,7 +13,7 @@ import ModeEditOutline from '@mui/icons-material/ModeEditOutline'
 import { useTheme } from '@mui/material'
 import toast from 'react-hot-toast'
 import { Route, Routes, useNavigate } from 'react-router-dom'
-import { useAdminTableQuerySync } from '../../hooks/useAdminTableQuerySync'
+import { useServerPagedAdminTable } from '../../hooks/useServerPagedAdminTable'
 import { NotFound } from '../../pages/404'
 import '../adminRsuTab/Admin.css'
 import {
@@ -27,28 +27,6 @@ const AdminUserTab = () => {
   const navigate = useNavigate()
   const theme = useTheme()
   const organization = useSelector(selectOrganizationId)
-
-  const tableRef = useRef<any>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [currentParams, setCurrentParams] = useState({
-    page: 0,
-    size: 20,
-    sort: 'first_name,asc',
-    search: '',
-    organization: organization || -1,
-  })
-
-  const [trigger] = useLazyGetUsersQuery()
-  const { data: subscribedData } = useGetUsersQuery(currentParams, {
-    skip: !organization,
-  })
-  const { currentQueryRef, markTableRenderedData, handleRefresh } = useAdminTableQuerySync({
-    organization,
-    tableRef,
-    isRefreshing,
-    currentPage: currentParams.page,
-    subscribedData,
-  })
 
   const [deleteUserApi] = useDeleteUserMutation()
   const [deleteMultipleUsersApi] = useDeleteMultipleUsersMutation()
@@ -64,6 +42,15 @@ const AdminUserTab = () => {
       render: (rowData: AdminUserWithId) => (rowData.super_user ? 'Yes' : 'No'),
     },
   ])
+
+  const { tableRef, isRefreshing, handleQueryChange, handleRefresh } = useServerPagedAdminTable({
+    organization,
+    columns,
+    defaultSortField: 'first_name',
+    entityName: 'Users',
+    useQuery: useGetUsersQuery,
+    useLazyQuery: useLazyGetUsersQuery,
+  })
 
   const tableActions: Action<AdminUserWithId>[] = [
     {
@@ -144,48 +131,6 @@ const AdminUserTab = () => {
       },
     },
   ]
-
-  const handleQueryChange = useCallback(
-    async (query) => {
-      setIsRefreshing(true)
-
-      try {
-        const params = buildAdminTableQueryParams(query, columns, organization, 'first_name', 'asc')
-
-        // Check if organization changed - if so, reset to page 0
-        if (currentQueryRef.current && currentQueryRef.current.organization !== params.organization) {
-          params.page = 0
-          query.page = 0
-        }
-
-        // Store current query for comparison
-        currentQueryRef.current = params
-        setCurrentParams(params)
-
-        // Trigger the query and await the result
-        const result = await trigger(params).unwrap()
-
-        markTableRenderedData(params, result)
-
-        return {
-          data: result.content || [],
-          page: params.page,
-          totalCount: result.totalElements || 0,
-        }
-      } catch (error) {
-        console.error('Failed to fetch users:', error)
-        toast.error('Failed to fetch Users')
-        return {
-          data: [],
-          page: query.page,
-          totalCount: 0,
-        }
-      } finally {
-        setIsRefreshing(false)
-      }
-    },
-    [columns, trigger, organization, currentQueryRef, markTableRenderedData]
-  )
 
   const onDelete = async (row: AdminUserWithId) => {
     const loadingToast = toast.loading(`Deleting User ${row.email}...`)

@@ -15,11 +15,13 @@ import { Multiselect } from 'react-widgets/cjs'
 import { Options } from '../../components/AdminDeletionOptions'
 import AdminTable from '../../components/AdminTable'
 import { selectLoadingGlobal } from '../../generalSlices/userSlice'
+import { useServerPagedAdminTable } from '../../hooks/useServerPagedAdminTable'
 import { AdminIntersection } from '../../models/Intersection'
 import {
   useGetIntersectionsNotInOrganizationQuery,
   useGetIntersectionsQuery,
   useLazyGetIntersectionQuery,
+  useLazyGetIntersectionsQuery,
 } from '../api/adminIntersectionApiSlice'
 import { usePatchOrganizationMutation } from '../api/organizationApiSlice'
 import '../css/multiselect.css'
@@ -36,7 +38,6 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
   const [patchOrganization] = usePatchOrganizationMutation()
 
   const { currentData: availableIntersectionsResponse } = useGetIntersectionsNotInOrganizationQuery(selectedOrgId)
-  const { currentData: intersectionTableData } = useGetIntersectionsQuery(selectedOrgId)
   const availableIntersectionList = availableIntersectionsResponse?.intersection_data ?? []
 
   const [selectedIntersectionList, setSelectedIntersectionList] = useState<AdminIntersection[]>([])
@@ -50,6 +51,14 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     { title: 'ID', field: 'intersection_id', id: 0, width: '45%' },
     { title: 'Name', field: 'intersection_name', id: 1, width: '45%' },
   ])
+  const { tableRef, isRefreshing, handleQueryChange } = useServerPagedAdminTable({
+    organization: selectedOrgId,
+    columns: intersectionColumns,
+    defaultSortField: 'intersection_id',
+    entityName: 'Intersections',
+    useQuery: useGetIntersectionsQuery,
+    useLazyQuery: useLazyGetIntersectionsQuery,
+  })
 
   const intersectionActions: Action<AdminIntersection>[] = [
     {
@@ -238,10 +247,12 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
           {loadingGlobal === false && [
             <div key="adminTable">
               <AdminTable
-                title={''}
-                data={intersectionTableData?.intersection_data}
+                title=""
                 columns={intersectionColumns}
                 actions={intersectionActions}
+                handleQueryChange={handleQueryChange}
+                isLoading={isRefreshing}
+                tableRef={tableRef}
               />
             </div>,
           ]}

@@ -7,7 +7,13 @@ import {
   AdminIntersectionCreationInfo,
   AdminIntersectionPatch,
 } from '../../models/Intersection'
+import { PaginatedQueryParams, PaginatedResponse } from '../../models/pagination'
 import { RootState } from '../../store'
+import { getQueryString } from './intersectionConfigSlice'
+
+export interface GetIntersectionsParams extends PaginatedQueryParams {
+  organization: number
+}
 
 // Tag type constants
 export const ADMIN_INTERSECTION_TAG = 'AdminIntersection' as const
@@ -33,10 +39,15 @@ export const adminIntersectionApiSlice = createApi({
   }),
   tagTypes: [ADMIN_INTERSECTION_TAG],
   endpoints: (builder) => ({
-    getIntersections: builder.query<{ intersection_data: AdminIntersection[] }, number>({
-      query: (organization) => {
+    getIntersections: builder.query<PaginatedResponse<AdminIntersection>, GetIntersectionsParams>({
+      query: ({ organization, page = 0, size = 25, sort = 'intersection_id,asc', search = '' }) => {
         return {
-          url: '',
+          url: getQueryString({
+            page: page.toString(),
+            size: size.toString(),
+            sort,
+            search,
+          }),
           headers: {
             Organization: organization.toString(),
           },
@@ -45,7 +56,7 @@ export const adminIntersectionApiSlice = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.intersection_data.map(({ intersection_id }) => ({
+              ...result.content.map(({ intersection_id }) => ({
                 type: ADMIN_INTERSECTION_TAG,
                 id: intersection_id,
               })),

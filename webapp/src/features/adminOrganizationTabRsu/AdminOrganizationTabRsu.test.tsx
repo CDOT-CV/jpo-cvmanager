@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   tableProps: { current: null as any },
   patch: vi.fn(),
   getRsuOrgs: vi.fn(),
+  fetchRsus: vi.fn(),
   confirmAlert: vi.fn(),
   loadingGlobal: { value: false },
   rsus: { value: [] as any[] },
@@ -25,7 +26,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('react-hot-toast', () => ({ default: mocks.toast }))
 vi.mock('react-confirm-alert', () => ({ confirmAlert: mocks.confirmAlert }))
-vi.mock('../../components/AdminTable', () => ({
+vi.mock('../../components/AdminTable', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../components/AdminTable')>()),
   default: (props: any) => {
     mocks.tableProps.current = props
     return <div data-testid="admin-table" />
@@ -44,6 +46,7 @@ vi.mock('../api/organizationApiSlice', async (importOriginal) => ({
 vi.mock('../api/rsuApiSlice', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/rsuApiSlice')>()),
   useGetAllRsusQuery: () => ({ currentData: { content: mocks.rsus.value } }),
+  useLazyGetAllRsusQuery: () => [mocks.fetchRsus],
 }))
 
 const ok = (value: any = undefined) => ({ unwrap: () => Promise.resolve(value) })
@@ -103,6 +106,7 @@ describe('AdminOrganizationTabRsu', () => {
     mocks.rsus.value = [rsu('1.1.1.1'), rsu('2.2.2.2')]
     mocks.patch.mockReturnValue(ok())
     mocks.getRsuOrgs.mockReturnValue(orgsResult(2))
+    mocks.fetchRsus.mockReturnValue(ok({ content: mocks.rsus.value, totalElements: mocks.rsus.value.length }))
     vi.spyOn(window, 'alert').mockImplementation(() => {})
   })
 
@@ -115,6 +119,27 @@ describe('AdminOrganizationTabRsu', () => {
     mocks.loadingGlobal.value = true
     renderComponent()
     expect(screen.queryByTestId('admin-table')).toBeNull()
+  })
+
+  it('uses server-side paging for the organization RSU table', async () => {
+    renderComponent()
+    const query = { page: 2, pageSize: 25, search: 'route', orderByCollection: [] }
+
+    let result: any
+    await act(async () => {
+      result = await mocks.tableProps.current.handleQueryChange(query)
+    })
+
+    expect(mocks.fetchRsus).toHaveBeenCalledWith({
+      page: 2,
+      size: 25,
+      sort: 'ip,asc',
+      search: 'route',
+      organization: 1,
+    })
+    expect(result).toEqual({ data: mocks.rsus.value, page: 2, totalCount: mocks.rsus.value.length })
+    expect(mocks.tableProps.current.tableRef).toBeTruthy()
+    expect(mocks.tableProps.current.isLoading).toBeDefined()
   })
 
   describe('TIM deposit and SNMP monitoring status', () => {
