@@ -1,5 +1,12 @@
 package us.dot.its.jpo.ode.api.services;
 
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,17 +21,10 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
-
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service("PermissionService")
@@ -74,6 +74,14 @@ public class PermissionService {
         return authToken.isSuperUser();
     }
 
+    public Organization getOrganizationById(Integer orgId) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        return authToken.getQualifiedOrgList(UserRole.USER).stream()
+                .filter(org -> org.getId().equals(orgId))
+                .findFirst()
+                .orElseThrow(() -> new AccessDeniedException("User does not belong to the specified organization"));
+    }
+
     /**
      * Runs an organization-based permission check for the current user.
      * Invalid authentication returns false. Super users are always allowed.
@@ -101,7 +109,20 @@ public class PermissionService {
 
         // Verify that organization header matches qualified orgs, if specified
         String organization = getOrganizationFromHeader();
-        if (organization != null) {
+        Integer orgId = tryGetOrgIdFromString(organization);
+        if (orgId != null) {
+            Organization matchingOrg = qualifiedOrgs.stream()
+                    .filter(org -> org.getId().equals(orgId))
+                    .findFirst()
+                    .orElse(null);
+            if (matchingOrg == null) {
+                // If an organization is specified in the header, ensure it's in the qualified
+                // orgs list
+                return false;
+            } else {
+                return qualifiedOrgCheck.test(List.of(matchingOrg));
+            }
+        } else if (organization != null) {
             Organization matchingOrg = qualifiedOrgs.stream()
                     .filter(org -> org.getName().equals(organization))
                     .findFirst()
@@ -161,6 +182,33 @@ public class PermissionService {
             return false;
         }
         return qualifiedOrgs.containsAll(organizations);
+    }
+
+    public boolean hasRoleInOrgIds(String role, List<Integer> organizations) {
+        return hasRoleInOrgIds(UserRole.fromString(role), organizations);
+    }
+
+    public boolean hasRoleInOrgIds(UserRole role, List<Integer> orgIds) {
+        if (orgIds == null || orgIds.isEmpty()) {
+            return true;
+        }
+
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
+            return true;
+        }
+
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            // No qualified organizations: deny access without hitting the repository
+            return false;
+        }
+        return qualifiedOrgs.stream().map(Organization::getId).collect(Collectors.toList())
+                .containsAll(orgIds);
+    }
+
+    public boolean hasRoleInOrgNames(String role, List<String> organizations) {
+        return hasRoleInOrgNames(UserRole.fromString(role), organizations);
     }
 
     // TODO: Remove when all are transitioned to hasRoleInOrgs
@@ -253,6 +301,10 @@ public class PermissionService {
 
     // Allow Connection if the users organization controls the specified RSU unit
     public boolean hasRsus(List<String> rsuIP, String role) {
+        if (rsuIP == null || rsuIP.isEmpty()) {
+            return true;
+        }
+
         List<InetAddress> ipv4Addresses = new ArrayList<>();
         for (String ip : rsuIP) {
             ipv4Addresses.add(RsuManagementService.toIpv4Address(ip));
@@ -261,6 +313,7 @@ public class PermissionService {
         return checkQualifiedOrgs(role, qualifiedOrgs -> rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs)
                 .containsAll(ipv4Addresses));
     }
+
 
     // Allow Connection if the user's organization owns the specified RSU unit
     public boolean isRsuOwner(String rsuIP, String role) {
@@ -299,8 +352,19 @@ public class PermissionService {
         }
 
         String organization = getOrganizationFromHeader();
+        Integer orgId = tryGetOrgIdFromString(organization);
         List<Organization> orgsToCheck = qualifiedOrgs;
-        if (organization != null) {
+
+        if (orgId != null) {
+            Organization matchingOrg = qualifiedOrgs.stream()
+                    .filter(org -> org.getId().equals(orgId))
+                    .findFirst()
+                    .orElse(null);
+            if (matchingOrg == null) {
+                return rsuIPs;
+            }
+            orgsToCheck = List.of(matchingOrg);
+        } else if (organization != null) {
             Organization matchingOrg = qualifiedOrgs.stream()
                     .filter(org -> org.getName().equals(organization))
                     .findFirst()

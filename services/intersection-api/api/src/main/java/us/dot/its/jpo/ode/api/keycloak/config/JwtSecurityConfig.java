@@ -11,8 +11,11 @@ import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
+
+import lombok.RequiredArgsConstructor;
 import us.dot.its.jpo.ode.api.keycloak.support.KeycloakGrantedAuthoritiesConverter;
 import us.dot.its.jpo.ode.api.keycloak.support.KeycloakJwtAuthenticationConverter;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,7 +26,9 @@ import java.util.Set;
  * Configures JWT handling (decoder and validator)
  */
 @Configuration
+@RequiredArgsConstructor
 class JwtSecurityConfig {
+    private final OrganizationRepository organizationRepository;
 
     /**
      * Configures a decoder with the specified validators (validation key fetched
@@ -69,7 +74,7 @@ class JwtSecurityConfig {
     @Bean
     KeycloakJwtAuthenticationConverter keycloakJwtAuthenticationConverter(
             Converter<Jwt, Collection<GrantedAuthority>> authoritiesConverter) {
-        return new KeycloakJwtAuthenticationConverter(authoritiesConverter);
+        return new KeycloakJwtAuthenticationConverter(authoritiesConverter, organizationRepository);
     }
 
     @Bean

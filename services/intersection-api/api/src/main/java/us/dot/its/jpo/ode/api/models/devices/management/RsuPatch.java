@@ -51,10 +51,10 @@ public class RsuPatch {
     String snmpVersionGroup;
 
     @JsonProperty("organizations_to_add")
-    List<String> organizationsToAdd;
+    List<Integer> organizationsToAdd;
 
     @JsonProperty("organizations_to_remove")
-    List<String> organizationsToRemove;
+    List<Integer> organizationsToRemove;
 
     @JsonProperty("tim_deposit")
     Boolean timDeposit;

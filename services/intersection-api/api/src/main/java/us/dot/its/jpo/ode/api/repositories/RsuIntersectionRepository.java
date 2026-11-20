@@ -45,7 +45,7 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
     List<InetAddress> findRsuIpsByIntersectionNumber(
             @Param("intersectionNumber") Integer intersectionNumber);
 
-
+    List<RsuIntersection> findAllByIntersection_IntersectionNumber(String intersectionNumber);
 
     boolean existsByRsuAndIntersection(Rsu rsu, Intersection intersection);
 

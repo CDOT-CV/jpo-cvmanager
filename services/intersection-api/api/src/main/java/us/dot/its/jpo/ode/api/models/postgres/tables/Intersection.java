@@ -41,10 +41,10 @@ public class Intersection {
     @Column(name = "origin_ip")
     private InetAddress originIp;
 
-    @OneToMany(mappedBy = "intersection", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "intersection", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private List<IntersectionOrganization> intersectionOrganizations;
 
-    @OneToMany(mappedBy = "intersection", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "intersection", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private List<RsuIntersection> rsuIntersections;
 
 }
