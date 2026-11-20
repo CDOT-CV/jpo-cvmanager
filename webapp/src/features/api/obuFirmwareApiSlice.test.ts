@@ -44,6 +44,24 @@ describe('obuFirmwareApiSlice', () => {
     expect(lastRequest().headers.get('Authorization')).toBe('Bearer test-token')
   })
 
+  it('checks a file name before uploading it', async () => {
+    const store = setupStore(mockUserState)
+    fetchMock.mockResponseOnce(JSON.stringify({ file_name: 'ob4.tar.sig', device_type: 'OBU' }))
+
+    const result = await store.dispatch(
+      obuFirmwareApiSlice.endpoints.checkObuFirmwareFileName.initiate({
+        manufacturer_name: 'Vendor',
+        file_name: 'ob4.tar.sig',
+      })
+    )
+
+    const url = new URL(lastRequest().url)
+    expect(`${url.origin}${url.pathname}`).toBe(`${BASE_URL}/obu-firmware/file-name-check`)
+    expect(Object.fromEntries(url.searchParams)).toEqual({ manufacturer_name: 'Vendor', file_name: 'ob4.tar.sig' })
+    expect(lastRequest().method).toBe('GET')
+    expect(result.data?.device_type).toBe('OBU')
+  })
+
   it('publishes and unpublishes firmware by catalog id', async () => {
     const store = setupStore(mockUserState)
     const replaced = [{ obu_firmware_id: 3, file_name: 'ob4-generic-rw-y20.47.0-b220000.tar.sig' }]

@@ -2,6 +2,8 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
 import { selectToken } from '../../generalSlices/userSlice'
 import {
+  ObuFirmwareFileNameCheck,
+  ObuFirmwareFileNameCheckQuery,
   ObuFirmwareObjectPage,
   ObuFirmwareObjectQuery,
   ObuFirmwarePublication,
@@ -31,6 +33,11 @@ export const obuFirmwareApiSlice = createApi({
   endpoints: (builder) => ({
     getObuFirmwareUploadOptions: builder.query<ObuFirmwareUploadOptions, void>({
       query: () => 'obu-firmware/upload-options',
+    }),
+    // Applies the upload's file name checks without reserving the name
+    checkObuFirmwareFileName: builder.query<ObuFirmwareFileNameCheck, ObuFirmwareFileNameCheckQuery>({
+      query: (params) => ({ url: 'obu-firmware/file-name-check', params }),
+      keepUnusedDataFor: 0,
     }),
     listObuFirmwareObjects: builder.query<ObuFirmwareObjectPage, ObuFirmwareObjectQuery>({
       query: (params) => ({ url: 'obu-firmware/objects', params }),
@@ -65,6 +72,7 @@ export const obuFirmwareApiSlice = createApi({
 
 export const {
   useGetObuFirmwareUploadOptionsQuery,
+  useLazyCheckObuFirmwareFileNameQuery,
   useLazyListObuFirmwareObjectsQuery,
   useCreateObuFirmwareUploadUrlMutation,
   useCompleteObuFirmwareUploadMutation,

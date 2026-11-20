@@ -35,6 +35,7 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareDeviceType;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
+import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.FileNameCheck;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.Item;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.ManufacturerOption;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.ObjectPage;
@@ -100,6 +101,8 @@ class AdminObuFirmwareControllerTest {
                 .content(REQUEST_BODY)).andExpect(status().isForbidden());
         mockMvc.perform(post("/admin/obu-firmware/uploads/" + UUID.randomUUID() + "/complete"))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(get("/admin/obu-firmware/file-name-check").param("manufacturer_name", "Commsignia")
+                .param("file_name", FILE_NAME)).andExpect(status().isForbidden());
         verifyNoInteractions(uploadService, uploadOptionsService);
     }
 
@@ -117,6 +120,40 @@ class AdminObuFirmwareControllerTest {
                 .andExpect(jsonPath("$.manufacturers[0].file_name_pattern").value("^pattern$"))
                 .andExpect(jsonPath("$.manufacturers[0].max_file_name_length").value(128))
                 .andExpect(jsonPath("$.manufacturers[0].example_file_name").value(FILE_NAME));
+    }
+
+    @Test
+    @WithMockUser
+    void checksFileNamesBeforeUploading() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        when(uploadService.checkFileName("Commsignia", FILE_NAME)).thenReturn(new FileNameCheck("Commsignia",
+                FILE_NAME, ObuFirmwareDeviceType.OBU, "ob4-generic", "y20.48.2-b228647", false, true));
+
+        mockMvc.perform(get("/admin/obu-firmware/file-name-check").param("manufacturer_name", "Commsignia")
+                .param("file_name", FILE_NAME))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.file_name").value(FILE_NAME))
+                .andExpect(jsonPath("$.device_type").value("OBU"))
+                .andExpect(jsonPath("$.release_version").value("y20.48.2-b228647"))
+                .andExpect(jsonPath("$.writable_system_partition").value(false))
+                .andExpect(jsonPath("$.secure_boot").value(true));
+
+        when(uploadService.checkFileName("Commsignia", "rs4.tar.sig"))
+                .thenThrow(new IllegalArgumentException("Only OBU firmware can be uploaded here."));
+        mockMvc.perform(get("/admin/obu-firmware/file-name-check").param("manufacturer_name", "Commsignia")
+                .param("file_name", "rs4.tar.sig"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Only OBU firmware can be uploaded here."));
+
+        when(uploadService.checkFileName("Commsignia", "taken.tar.sig"))
+                .thenThrow(new FirmwareVersionAlreadyExistsException("already exists"));
+        mockMvc.perform(get("/admin/obu-firmware/file-name-check").param("manufacturer_name", "Commsignia")
+                .param("file_name", "taken.tar.sig")).andExpect(status().isConflict());
+
+        mockMvc.perform(get("/admin/obu-firmware/file-name-check").param("manufacturer_name", "Commsignia"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/admin/obu-firmware/file-name-check").param("manufacturer_name", "Commsignia")
+                .param("file_name", "x".repeat(129))).andExpect(status().isBadRequest());
     }
 
     @Test
