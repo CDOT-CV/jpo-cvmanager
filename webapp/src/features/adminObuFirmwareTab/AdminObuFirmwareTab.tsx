@@ -18,28 +18,7 @@ import '../adminRsuTab/Admin.css'
 
 const DEFAULT_PAGE_SIZE = 25
 const HEADER_STYLE = { textTransform: 'none' as const }
-// Table columns in display order. A sortable column's field is also its API sort
-// field, and column header clicks report the column's index in this list.
-const COLUMN_LAYOUT: Column<ObuFirmwareObject>[] = [
-  { title: 'Manufacturer', field: 'manufacturer' },
-  { title: 'File Name', field: 'file_name' },
-  { title: 'Type', field: 'device_type' },
-  { title: 'Release', field: 'release_version' },
-  { title: 'Details', sorting: false },
-  { title: 'Size', field: 'content_length' },
-  { title: 'Registered', field: 'registered_at' },
-  { title: 'Verification', field: 'verification_status' },
-  { title: 'Published', field: 'published' },
-]
 type PublishedFilter = '' | 'true' | 'false'
-
-const obuFirmwareSort = (query: Query<ObuFirmwareObject>) => {
-  const sort = query.orderByCollection?.[0]
-  const orderBy = sort?.orderBy as number | Column<ObuFirmwareObject> | undefined
-  const column = typeof orderBy === 'number' ? COLUMN_LAYOUT[orderBy] : orderBy
-  const field = column?.sorting === false ? undefined : column?.field
-  return typeof field === 'string' ? `${field},${sort.orderDirection || 'asc'}` : 'manufacturer,asc'
-}
 
 const formatTimestamp = (value: string | null | undefined) => (value ? new Date(value).toLocaleString() : '')
 
@@ -120,6 +99,45 @@ const deletionMessage = (object: ObuFirmwareObject) => {
     return 'This entry is from a previously configured storage bucket. Remove its upload and catalog records? The file stays in that bucket and must be deleted there.'
   }
   return 'Delete this file and its upload and catalog records?'
+}
+
+// Table columns in display order. A sortable column's field is also its API sort
+// field, and column header clicks report the column's index in this list. The
+// Published column is rendered by the tab, since its switch depends on tab state.
+const COLUMN_LAYOUT: Column<ObuFirmwareObject>[] = [
+  { title: 'Manufacturer', field: 'manufacturer' },
+  {
+    title: 'File Name',
+    field: 'file_name',
+    render: (object) => <span style={{ overflowWrap: 'anywhere' }}>{object.file_name}</span>,
+  },
+  { title: 'Type', field: 'device_type' },
+  { title: 'Release', field: 'release_version' },
+  { title: 'Details', sorting: false, render: describeDetails },
+  {
+    title: 'Size',
+    field: 'content_length',
+    render: (object) => (object.content_length == null ? '' : formatFileSize(object.content_length)),
+  },
+  { title: 'Registered', field: 'registered_at', render: (object) => formatTimestamp(object.registered_at) },
+  {
+    title: 'Verification',
+    field: 'verification_status',
+    render: (object) => (
+      <Typography variant="body2" sx={{ color: verificationColor[object.verification_status], fontWeight: 'bold' }}>
+        {verificationLabel[object.verification_status]}
+      </Typography>
+    ),
+  },
+  { title: 'Published', field: 'published' },
+]
+
+const obuFirmwareSort = (query: Query<ObuFirmwareObject>) => {
+  const sort = query.orderByCollection?.[0]
+  const orderBy = sort?.orderBy as number | Column<ObuFirmwareObject> | undefined
+  const column = typeof orderBy === 'number' ? COLUMN_LAYOUT[orderBy] : orderBy
+  const field = column?.sorting === false ? undefined : column?.field
+  return typeof field === 'string' ? `${field},${sort.orderDirection || 'asc'}` : 'manufacturer,asc'
 }
 
 const ObuFirmwareDeleteIcon = () => <DeleteOutline sx={{ color: (theme) => theme.palette.custom.rowActionIcon }} />
@@ -251,38 +269,29 @@ const AdminObuFirmwareTab = () => {
     [listObuFirmwareObjects]
   )
 
-  const renderers: Record<string, Column<ObuFirmwareObject>['render']> = {
-    'File Name': (object) => <span style={{ overflowWrap: 'anywhere' }}>{object.file_name}</span>,
-    Details: describeDetails,
-    Size: (object) => (object.content_length == null ? '' : formatFileSize(object.content_length)),
-    Registered: (object) => formatTimestamp(object.registered_at),
-    Verification: (object) => (
-      <Typography variant="body2" sx={{ color: verificationColor[object.verification_status], fontWeight: 'bold' }}>
-        {verificationLabel[object.verification_status]}
-      </Typography>
-    ),
-    Published: (object) => {
-      const changeable = !isChanging && canChangePublication(object)
-      return (
-        <Tooltip title={publicationTooltip(object)}>
-          {/* A disabled switch cannot take focus, so the wrapper does, to reveal why */}
-          <span tabIndex={changeable ? undefined : 0}>
-            <Switch
-              size="small"
-              checked={object.published}
-              disabled={!changeable}
-              onChange={() => changePublication(object)}
-              inputProps={{ 'aria-label': `${object.published ? 'Unpublish' : 'Publish'} ${object.file_name}` }}
-            />
-          </span>
-        </Tooltip>
-      )
-    },
-  }
   const columns: Column<ObuFirmwareObject>[] = COLUMN_LAYOUT.map((column) => ({
     ...column,
     headerStyle: HEADER_STYLE,
-    render: renderers[column.title as string],
+    render:
+      column.field === 'published'
+        ? (object: ObuFirmwareObject) => {
+            const changeable = !isChanging && canChangePublication(object)
+            return (
+              <Tooltip title={publicationTooltip(object)}>
+                {/* A disabled switch cannot take focus, so the wrapper does, to reveal why */}
+                <span tabIndex={changeable ? undefined : 0}>
+                  <Switch
+                    size="small"
+                    checked={object.published}
+                    disabled={!changeable}
+                    onChange={() => changePublication(object)}
+                    inputProps={{ 'aria-label': `${object.published ? 'Unpublish' : 'Publish'} ${object.file_name}` }}
+                  />
+                </span>
+              </Tooltip>
+            )
+          }
+        : column.render,
   }))
 
   const tableActions: (Action<ObuFirmwareObject> | ((row: ObuFirmwareObject) => Action<ObuFirmwareObject>))[] = [
