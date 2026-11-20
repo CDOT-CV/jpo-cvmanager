@@ -8,6 +8,8 @@ export type RsuProperties = {
   serial_number: string
   manufacturer_name: string
   firmware_version?: string | null
+  snmp_protocol_code?: string
+  owner_organization_id?: number
   tim_deposit: boolean
 }
 
@@ -92,12 +94,17 @@ export type SnmpFwdWalkConfig = {
 }
 
 export type RsuMsgFwdConfigSingle = {
+  table?: 'RECEIVE' | 'TRANSMIT' | 'DSRC'
+  index?: number
   'Message Type': string
   IP: string
-  Port: number
+  Port: number | string
   'Start DateTime': string
   'End DateTime': string
+  'Full WSMP'?: string
   'Config Active': string
+  validationError?: string
+  deletable?: boolean
 }
 
 export type RsuDsrcFwdConfigs = {

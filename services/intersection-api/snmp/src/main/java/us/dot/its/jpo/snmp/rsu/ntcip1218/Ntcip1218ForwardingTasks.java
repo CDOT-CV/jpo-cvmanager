@@ -22,7 +22,7 @@ public final class Ntcip1218ForwardingTasks {
     /** Creates a reusable factory using the supplied clock for UTC forwarding schedules. */
     public Ntcip1218ForwardingTasks(Clock clock) { this.clock = Objects.requireNonNull(clock); }
 
-    /** Adds one forwarding row and verifies it, without reading an unrelated table afterward. */
+    /** Adds and verifies a row, or reports an active equivalent row as unchanged. */
     public SnmpTask create(Ntcip1218Device device, ForwardingRequest request) {
         return createTask(device, request, false, null);
     }

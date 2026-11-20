@@ -24,6 +24,9 @@ import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuGeoInfoDto;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuGeoInfoPropertiesDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
+import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
@@ -66,6 +69,27 @@ public class RsuGeoInfoMapperTest {
         }
 
         return rsu;
+    }
+
+    @Test
+    void mapsForwardingProtocolAndOwnershipWithoutCredentials() throws Exception {
+        var rsu = buildRsu(true);
+        var protocol = new SnmpProtocol();
+        protocol.setProtocolCode("41");
+        rsu.setSnmpProtocol(protocol);
+        var owner = new Organization();
+        owner.setId(7);
+        var credential = new RsuCredential();
+        credential.setOwnerOrganization(owner);
+        rsu.setCredential(credential);
+
+        var properties = mapper.toPropertiesDto(rsu);
+
+        assertEquals("41", properties.getSnmpProtocolCode());
+        assertEquals(7, properties.getOwnerOrganizationId());
+        var missing = mapper.toPropertiesDto(buildRsu(false));
+        assertNull(missing.getSnmpProtocolCode());
+        assertNull(missing.getOwnerOrganizationId());
     }
 
     @Nested

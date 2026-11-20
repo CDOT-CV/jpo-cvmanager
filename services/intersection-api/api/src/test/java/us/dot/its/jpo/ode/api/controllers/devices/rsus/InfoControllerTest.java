@@ -47,6 +47,8 @@ class InfoControllerTest {
                 true,
                 false,
                 "ITS RS4",
+                "1218",
+                1,
                 "Commsignia",
                 "y20.48.2");
         GeoJsonPointDto geometry = new GeoJsonPointDto(new double[] { -104.9903, 39.7392 });
@@ -93,6 +95,8 @@ class InfoControllerTest {
                 .andExpect(jsonPath("$[0].properties.tim_deposit").value(true))
                 .andExpect(jsonPath("$[0].properties.snmp_monitoring").value(false))
                 .andExpect(jsonPath("$[0].properties.model_name").value("ITS RS4"))
+                .andExpect(jsonPath("$[0].properties.snmp_protocol_code").value("1218"))
+                .andExpect(jsonPath("$[0].properties.owner_organization_id").value(1))
                 .andExpect(jsonPath("$[0].properties.manufacturer_name").value("Commsignia"));
     }
 
