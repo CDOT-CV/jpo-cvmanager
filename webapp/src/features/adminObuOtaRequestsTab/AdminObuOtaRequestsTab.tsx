@@ -10,36 +10,14 @@ import '../adminRsuTab/Admin.css'
 const DEFAULT_PAGE_SIZE = 25
 const DEFAULT_SORT = 'request_datetime,desc'
 const HEADER_STYLE = { textTransform: 'none' as const }
-// API sort fields in column order; null marks a column that cannot be sorted
-const COLUMN_SORT_FIELDS = [
-  'request_datetime',
-  'obu_sn',
-  null,
-  'obu_firmware_version',
-  'requested_firmware_version',
-  null,
-  null,
-]
 type StatusFilter = '' | 'success' | 'error'
-
-const requestSort = (query: Query<ObuOtaRequest>) => {
-  const sort = query.orderByCollection?.[0]
-  const orderBy = sort?.orderBy as number | Column<ObuOtaRequest> | undefined
-  const field = typeof orderBy === 'number' ? COLUMN_SORT_FIELDS[orderBy] : orderBy?.field
-  return typeof field === 'string' ? `${field},${sort.orderDirection || 'asc'}` : DEFAULT_SORT
-}
 
 const formatTimestamp = (value: string | null | undefined) => (value ? new Date(value).toLocaleString() : '')
 
 const RequestStatus = ({ request }: { request: ObuOtaRequest }) => {
   const success = request.status === 'success'
   const chip = (
-    <Chip
-      size="small"
-      variant="outlined"
-      color={success ? 'success' : 'error'}
-      label={success ? 'Success' : 'Error'}
-    />
+    <Chip size="small" variant="outlined" color={success ? 'success' : 'error'} label={success ? 'Success' : 'Error'} />
   )
   return success || !request.error_message ? (
     chip
@@ -48,6 +26,30 @@ const RequestStatus = ({ request }: { request: ObuOtaRequest }) => {
       <span>{chip}</span>
     </Tooltip>
   )
+}
+
+// Table columns in display order. A sortable column's field is also its API sort
+// field, and column header clicks report the column's index in this list.
+const COLUMN_LAYOUT: Column<ObuOtaRequest>[] = [
+  { title: 'Time', field: 'request_datetime', render: (request) => formatTimestamp(request.request_datetime) },
+  { title: 'Serial Number', field: 'obu_sn' },
+  { title: 'Manufacturer', field: 'manufacturer', sorting: false },
+  { title: 'Current Version', field: 'obu_firmware_version' },
+  {
+    title: 'Requested Firmware',
+    field: 'requested_firmware_version',
+    render: (request) => <span style={{ overflowWrap: 'anywhere' }}>{request.requested_firmware_version}</span>,
+  },
+  { title: 'Origin IP', field: 'origin_ip', sorting: false },
+  { title: 'Status', field: 'status', sorting: false, render: (request) => <RequestStatus request={request} /> },
+]
+
+const requestSort = (query: Query<ObuOtaRequest>) => {
+  const sort = query.orderByCollection?.[0]
+  const orderBy = sort?.orderBy as number | Column<ObuOtaRequest> | undefined
+  const column = typeof orderBy === 'number' ? COLUMN_LAYOUT[orderBy] : orderBy
+  const field = column?.sorting === false ? undefined : column?.field
+  return typeof field === 'string' ? `${field},${sort.orderDirection || 'asc'}` : DEFAULT_SORT
 }
 
 // Shows the firmware requests OBUs made to the OBU OTA server, newest first
@@ -97,31 +99,8 @@ const AdminObuOtaRequestsTab = () => {
     [listObuOtaRequests]
   )
 
-  const columns: Column<ObuOtaRequest>[] = [
-    {
-      title: 'Time',
-      field: 'request_datetime',
-      headerStyle: HEADER_STYLE,
-      render: (request) => formatTimestamp(request.request_datetime),
-    },
-    { title: 'Serial Number', field: 'obu_sn', headerStyle: HEADER_STYLE },
-    { title: 'Manufacturer', field: 'manufacturer', sorting: false, headerStyle: HEADER_STYLE },
-    { title: 'Current Version', field: 'obu_firmware_version', headerStyle: HEADER_STYLE },
-    {
-      title: 'Requested Firmware',
-      field: 'requested_firmware_version',
-      headerStyle: HEADER_STYLE,
-      render: (request) => <span style={{ overflowWrap: 'anywhere' }}>{request.requested_firmware_version}</span>,
-    },
-    { title: 'Origin IP', field: 'origin_ip', sorting: false, headerStyle: HEADER_STYLE },
-    {
-      title: 'Status',
-      field: 'status',
-      sorting: false,
-      headerStyle: HEADER_STYLE,
-      render: (request) => <RequestStatus request={request} />,
-    },
-  ]
+  // Copies, because the table records its own state on each column object
+  const columns: Column<ObuOtaRequest>[] = COLUMN_LAYOUT.map((column) => ({ ...column, headerStyle: HEADER_STYLE }))
 
   const tableActions: Action<ObuOtaRequest>[] = [
     {
