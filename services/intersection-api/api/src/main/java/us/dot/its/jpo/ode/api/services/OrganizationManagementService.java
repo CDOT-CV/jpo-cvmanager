@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
 import us.dot.its.jpo.ode.api.models.admin.organization.UserRoleAssignment;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.organizations.NewOrganizationBody;
 import us.dot.its.jpo.ode.api.models.organizations.OrganizationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
@@ -174,6 +175,34 @@ public class OrganizationManagementService {
         }
 
         return organizationMapper.toDto(savedOrg);
+    }
+
+    @Transactional
+    public Organization createOrganization(NewOrganizationBody newOrganizationBody, String userEmail) {
+        // Confirm that an organization with the same name does not already exist
+        if (organizationRepository.findByName(newOrganizationBody.getName()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Organization with name already exists: " + newOrganizationBody.getName());
+        }
+        Organization org = new Organization();
+        org.setName(newOrganizationBody.getName());
+        org.setEmail(newOrganizationBody.getEmail());
+        Organization savedOrg = organizationRepository.save(org);
+
+        // Add user association for the creator
+        if (userEmail != null && !userEmail.isEmpty()) {
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "User not found: " + userEmail));
+            UserOrganization userOrg = new UserOrganization();
+            userOrg.setUser(user);
+            userOrg.setRole(roleRepository.findByName(UserRole.ADMIN.getName())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                            "Role not found: " + UserRole.ADMIN.getName())));
+            userOrg.setOrganization(savedOrg);
+            userOrganizationRepository.save(userOrg);
+        }
+        return savedOrg;
     }
 
     /**

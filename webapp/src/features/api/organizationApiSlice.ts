@@ -112,6 +112,14 @@ export const organizationApiSlice = createApi({
             ]
           : [{ type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID }],
     }),
+    createOrganization: builder.mutation<number, Pick<OrganizationDto, 'name' | 'email'>>({
+      query: (organization) => ({
+        url: '',
+        method: 'POST',
+        body: organization,
+      }),
+      invalidatesTags: [{ type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID }],
+    }),
     patchOrganization: builder.mutation<OrganizationDto, OrganizationPatch>({
       query: (patch) => ({
         url: '',
@@ -181,6 +189,7 @@ export const {
   useLazyGetUserOrganizationsQuery,
   useGetOrganizationsQuery,
   useLazyGetOrganizationsQuery,
+  useCreateOrganizationMutation,
   usePatchOrganizationMutation,
   useDeleteOrganizationMutation,
 } = organizationApiSlice
