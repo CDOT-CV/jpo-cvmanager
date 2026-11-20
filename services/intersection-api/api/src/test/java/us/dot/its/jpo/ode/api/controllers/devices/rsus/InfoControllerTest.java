@@ -47,6 +47,8 @@ class InfoControllerTest {
                 true,
                 false,
                 "ITS RS4",
+                "1218",
+                1,
                 "Commsignia");
         GeoJsonPointDto geometry = new GeoJsonPointDto(new double[] { -104.9903, 39.7392 });
         return new RsuGeoInfoDto(rsuId, geometry, props);
