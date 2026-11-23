@@ -7,7 +7,7 @@ import { selectSignalStateLayerStyle, setSignalLayerLayout } from './map-layer-s
 
 import MapFabTab from './map-fab-tab'
 import { useEffect, useState } from 'react'
-import { SettingsOutlined } from '@mui/icons-material'
+import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import { getNumber } from './control-panel'
 
 type VisualSettingsProps = {
@@ -33,7 +33,7 @@ function VisualSettings(props: VisualSettingsProps) {
     if (getNumber(bsmTrailLengthLocal) !== null && getNumber(bsmTrailLengthLocal) !== bsmTrailLength) {
       dispatch(setBsmTrailLength(getNumber(bsmTrailLengthLocal)!))
     }
-  }, [bsmTrailLengthLocal])
+  }, [bsmTrailLengthLocal, bsmTrailLength, dispatch])
 
   const content = (
     <div>

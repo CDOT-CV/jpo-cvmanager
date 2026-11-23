@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import ConfigureRSU from './ConfigureRSU'
+import SnmpsetMenu from '../../components/SnmpsetMenu'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from '@mui/material'
 import { testTheme } from '../../styles'
@@ -10,7 +11,7 @@ import { RsuInfo } from '../../models/RsuApi'
 import { useGetRsuCountsByIpQuery } from '../api/rsuCountsApiSlice'
 
 vi.mock('../../components/SnmpwalkMenu', () => ({ default: () => null }))
-vi.mock('../../components/SnmpsetMenu', () => ({ default: () => null }))
+vi.mock('../../components/SnmpsetMenu', () => ({ default: vi.fn(() => null) }))
 vi.mock('../../components/RsuRebootMenu', () => ({ default: () => null }))
 vi.mock('../../components/RsuFirmwareMenu', () => ({ default: () => null }))
 
@@ -82,7 +83,41 @@ it('should take a snapshot', () => {
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
-it('shows counts for all configured message types, not just the selected type', () => {
+it.each(['Commsignia', 'COMMSIGNIA', 'Kapsch', 'Yunex', undefined])(
+  'shows the reboot option only for Commsignia (%s)',
+  async (manufacturer) => {
+    mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
+    render(
+      <ThemeProvider theme={testTheme}>
+        <Provider
+          store={setupStore({
+            rsu: {
+              value: {
+                selectedRsu: {
+                  ...selectedRsu,
+                  properties: { ...selectedRsu.properties, manufacturer_name: manufacturer },
+                },
+              },
+            },
+          })}
+        >
+          <ConfigureRSU />
+        </Provider>
+      </ThemeProvider>
+    )
+
+    if (manufacturer?.toLowerCase() === 'commsignia') {
+      expect(screen.getByRole('button', { name: 'Reboot' })).toBeInTheDocument()
+      await checkCommandHelp('Reboot', 'takes the RSU offline')
+    } else {
+      expect(screen.queryByRole('button', { name: 'Reboot' })).not.toBeInTheDocument()
+    }
+    expect(screen.getByRole('button', { name: 'Firmware' })).toBeInTheDocument()
+    await checkCommandHelp('Firmware', 'available for this RSU')
+  }
+)
+
+it('shows counts for all configured message types, not just the selected type', async () => {
   mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
   render(
     <ThemeProvider theme={testTheme}>
@@ -100,6 +135,7 @@ it('shows counts for all configured message types, not just the selected type', 
     </ThemeProvider>
   )
 
+  await checkCommandHelp('Message Counts', 'messages received from this RSU through message forwarding')
   expect(screen.getByText('Message Counts')).toBeInTheDocument()
   expect(screen.getByText('BSM')).toBeInTheDocument()
   expect(screen.getByText('MAP')).toBeInTheDocument()
@@ -108,6 +144,40 @@ it('shows counts for all configured message types, not just the selected type', 
   expect(screen.getByText('327,745')).toBeInTheDocument()
   expect(screen.getByText('12')).toBeInTheDocument()
   expect(screen.queryByText('BSM Input')).not.toBeInTheDocument()
+})
+
+it.each(['41', '1218'])('shows forwarding controls only for NTCIP 1218 without a duplicate notice (%s)', async (protocol) => {
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider
+        store={setupStore({
+          rsu: {
+            value: {
+              selectedRsu: {
+                ...selectedRsu,
+                properties: { ...selectedRsu.properties, snmp_protocol_code: protocol, owner_organization_id: 1 },
+              },
+            },
+          },
+          user: { value: { organization: { name: 'Test Org', organization: 1, role: 'OPERATOR' } } },
+        })}
+      >
+        <ConfigureRSU />
+      </Provider>
+    </ThemeProvider>
+  )
+
+  expect(screen.getByRole('button', { name: 'View Forwarding' })).toBeInTheDocument()
+  if (protocol === '1218') {
+    expect(screen.getByRole('button', { name: 'Configure Forwarding' })).toBeInTheDocument()
+  } else {
+    expect(screen.queryByRole('button', { name: 'Configure Forwarding' })).not.toBeInTheDocument()
+  }
+  await checkCommandHelp('View Forwarding', 'V2X messages')
+  expect(screen.getAllByRole('button', { name: 'About message forwarding' })).toHaveLength(1)
+  // SnmpwalkMenu owns the restriction notice; the surrounding menu must not repeat it.
+  expect(screen.queryByText(/Message forwarding changes and live refresh require/)).not.toBeInTheDocument()
 })
 
 it('shows the Intersection API ProblemDetail when message counts fail', () => {
@@ -144,3 +214,53 @@ it('shows the Intersection API ProblemDetail when message counts fail', () => {
     'The message counts query ran out of memory. Please select a shorter time range.'
   )
 })
+
+// Legacy omissions must not weaken authorization or hide missing inventory metadata.
+it.each([
+  ['OPERATOR', 1, '41', true],
+  ['USER', 1, '41', false],
+  ['OPERATOR', 2, '41', false],
+  ['OPERATOR', 1, undefined, false],
+])('handles mixed selection for role %s, owner %s and protocol %s', async (role, owner, protocol, allowed) => {
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
+  vi.mocked(SnmpsetMenu).mockClear()
+  const rsus = [
+    { ...selectedRsu, properties: { ...selectedRsu.properties, ipv4_address: '192.0.2.10',
+      snmp_protocol_code: '1218', owner_organization_id: owner } },
+    { ...selectedRsu, properties: { ...selectedRsu.properties, ipv4_address: '192.0.2.11', snmp_protocol_code: protocol } },
+  ]
+  render(<ThemeProvider theme={testTheme}><Provider store={setupStore({
+    rsu: { value: { selectedRsu: null, rsuData: rsus } },
+    config: { value: { configList: ['192.0.2.10', '192.0.2.11'] } },
+    user: { value: { organization: { name: 'Test Org', organization: 1, role } } },
+  })}><ConfigureRSU /></Provider></ThemeProvider>)
+  if (allowed) {
+    expect(screen.getByRole('button', { name: 'Configure Forwarding' })).toBeInTheDocument()
+    expect(vi.mocked(SnmpsetMenu).mock.calls[0][0]).toMatchObject({
+      rsuIpList: ['192.0.2.10'], skippedIps: ['192.0.2.11'],
+    })
+    await checkCommandHelp('Configure Forwarding', 'V2X messages')
+    await checkCommandHelp('Firmware', 'Devices already up to date are skipped')
+    expect(screen.getByText('2 RSUs selected')).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Selected RSUs' }).children).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selected RSUs' }))
+    expect(screen.queryByText('2 RSUs selected')).not.toBeInTheDocument()
+  } else {
+    expect(screen.queryByRole('button', { name: 'Configure Forwarding' })).not.toBeInTheDocument()
+  }
+})
+
+async function checkCommandHelp(section: string, description: string) {
+  const label = section.endsWith('Forwarding') ? 'About message forwarding' : `About ${section.toLowerCase()}`
+  const toggle = screen.getByRole('button', { name: section })
+  const info = screen.getByRole('button', { name: label })
+  expect(toggle).not.toContainElement(info)
+  expect(info).toHaveAttribute('aria-expanded', 'false')
+  const expanded = toggle.getAttribute('aria-expanded')
+  fireEvent.click(info)
+  const help = await screen.findByRole('dialog', { name: label })
+  expect(help).toHaveTextContent(description)
+  expect(toggle).toHaveAttribute('aria-expanded', expanded)
+  fireEvent.keyDown(help, { key: 'Escape' })
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+}

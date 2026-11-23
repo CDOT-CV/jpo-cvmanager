@@ -87,6 +87,10 @@ FROM nginxinc/nginx-unprivileged:1.30.5-alpine3.24-slim
 
 USER root
 
+# Upgrade nginx to 1.30.7 for CVE-2026-121810, CVE-2026-123007 and CVE-2026-123633.
+# Remove once the base image ships 1.30.7 or later.
+RUN apk add --no-cache 'nginx>=1.30.7' && rm -f /etc/nginx/nginx.conf.apk-new
+
 # Set working directory
 WORKDIR /usr/share/nginx/html
 

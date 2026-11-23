@@ -12,9 +12,8 @@ pytz==2023.3.post1
 Werkzeug==3.0.0
 python-keycloak==5.8.1
 pymongo==4.5.0
-fabric==3.2.2
 google-cloud-bigquery==3.29.0
 pandas==2.2.3
 shapely==2.0.7
 db-dtypes==1.4.0
-PyJWT==2.10.1
+PyJWT==2.15.0

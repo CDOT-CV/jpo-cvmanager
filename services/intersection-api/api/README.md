@@ -137,6 +137,85 @@ mvn clean verify
 
 Then open the following file in a browser: [index.html](./target/site/jacoco/index.html)
 
+## Health Checks
+
+The API uses Spring Boot Actuator. These endpoints are unauthenticated and honor the `BASE_ROUTE_PREFIX` context path:
+
+| Endpoint                     | Purpose                                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| `/actuator/health`           | Overall status and the status of each health component. |
+| `/actuator/health/liveness`  | Whether the application is running.                     |
+| `/actuator/health/readiness` | Whether the application is ready to accept traffic.     |
+
+Only the `health` endpoint is exposed. Component statuses are shown only when authenticated. Diagnostic details are hidden (see `management` in `application.yaml`). The Docker Compose service runs a healthcheck against the readiness endpoint using `curl`.
+
+### Unauthenticated
+
+The overall `status` aggregates the component statuses. The `groups` array identifies the configured liveness and readiness health groups.
+
+```json
+{ "groups": ["liveness", "readiness"], "status": "UP" }
+```
+
+### Authenticated
+
+Additionally includes the detailed status of each health component
+
+```json
+{
+  "components": {
+    "db": {
+      "status": "UP"
+    },
+    "diskSpace": {
+      "status": "UP"
+    },
+    "livenessState": {
+      "status": "UP"
+    },
+    "ping": {
+      "status": "UP"
+    },
+    "readinessState": {
+      "status": "UP"
+    },
+    "sendGrid": {
+      "status": "DOWN"
+    },
+    "ssl": {
+      "status": "UP"
+    }
+  },
+  "groups": ["liveness", "readiness"],
+  "status": "DOWN"
+}
+```
+
+The standard component keys report:
+
+| Key              | Health component                                          |
+| ---------------- | --------------------------------------------------------- |
+| `db`             | Relational database connection.                           |
+| `diskSpace`      | Available disk space.                                     |
+| `livenessState`  | Application liveness state.                               |
+| `ping`           | Actuator's basic ping indicator.                          |
+| `readinessState` | Application readiness state.                              |
+| `ssl`            | SSL certificate health, when SSL health checking applies. |
+
+Email health is reported separately for the configured, active provider when `enable.email` is `true`:
+
+| Response key | Provider | Check                                                 |
+| ------------ | -------- | ----------------------------------------------------- |
+| `mail`       | SMTP     | Tests the SMTP connection; it does not send an email. |
+| `postmark`   | Postmark | Calls the read-only server-information endpoint.      |
+| `sendGrid`   | SendGrid | Calls the read-only API scopes endpoint.              |
+
+Only the active provider's component is included. When email is disabled, no email-provider component is included. A `DOWN` email component indicates a provider connectivity or authentication issue and contributes to the overall health status; the component name identifies which provider is affected. Other components may appear or be absent depending on the application's configured dependencies and runtime environment.
+
+```sh
+curl http://localhost:8089/actuator/health
+```
+
 ## Swagger API
 
 The Intersection API utilizes swagger for viewing and testing api endpoints. The Swagger endpoint can be accessed here:
@@ -226,7 +305,8 @@ also available through this API and the Firmware tab.
   the required suffix in `manufacturers.firmware_file_extension`; the selected
   file must match it. Only one active/verified upload is allowed per model/version,
   and existing objects are never overwritten. The `ota/` directory is reserved
-  for OBU firmware and excluded from this feature.
+  for OBU firmware (see [OBU Firmware Management](#obu-firmware-management)) and
+  excluded from this feature, and `ota` cannot be used as an RSU vendor name.
 - New upgrade rules connect different versions of the same model and must target
   a verified, unchanged cloud file. Each source can have only one destination.
   Legacy rules remain usable, and legacy firmware can be a source. Resolve any
@@ -242,3 +322,298 @@ also available through this API and the Firmware tab.
   and upload again. Use **Clean Up Records** for entries marked **Missing file**.
   Automatic cleanup expires stale uploads and removes old failed/expired records;
   it does not delete cloud files or verified firmware.
+
+## OBU Firmware Management
+
+OBU firmware is uploaded through the same signed-URL flow as RSU firmware and is
+stored in the same bucket, beneath the reserved `ota/` directory. It is cataloged
+separately from RSU firmware, in the `obu_firmware_uploads` and
+`obu_firmware_images` tables, because the OBU OTA server serves it by file name
+instead of by RSU model and version. Routes are under `/admin/obu-firmware` and
+require an authenticated admin or superuser.
+
+### How OBUs install firmware
+
+An RSU advertises the OTA server to nearby OBUs. An OBU requests the server's
+manifest, which lists firmware files, and installs the newest file that matches
+its own **build**. A build is the combination of manufacturer, device type,
+variant, file system (read-only or read-write), and secure boot. The OBU checks
+the signature of the file before installing it.
+
+### File names
+
+OBUs choose firmware from the manifest by file name, so uploads keep the
+manufacturer's original file name. Each manufacturer has its own naming
+convention, from which the API reads the device type, variant, release version,
+and file system and secure-boot flags. The OBU OTA server parses names the same
+way; both test suites share the same cases.
+
+A manufacturer can receive OBU firmware uploads only when it exists in the
+`manufacturers` table and the API has a naming convention for it. See
+[Supported OBU manufacturers](#supported-obu-manufacturers).
+
+An upload is rejected with `400` when:
+
+- the name does not follow the manufacturer's naming convention or is longer
+  than 128 characters
+- the file is not OBU firmware, such as RSU firmware; manage RSU firmware under
+  [Firmware Management](#firmware-management)
+- the file is for a build the manufacturer does not support
+
+Files are stored as `ota/<manufacturer>/<file name>`. A file name can be used
+once per manufacturer, and existing objects are never overwritten.
+
+### Supported OBU manufacturers
+
+**Commsignia.** Names follow `<variant>-<rw|ro>[-secureboot]-<release>.tar.sig`,
+for example `ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig`, where the OBU
+variant is `ob4-generic` with an optional suffix. The supported OBU builds are:
+
+| Build | File name part |
+| --- | --- |
+| Read-only with secure boot | `-ro-secureboot-` |
+| Read-write with secure boot | `-rw-secureboot-` |
+| Read-write | `-rw-` |
+
+A read-only build without secure boot is not supported. The naming convention
+also matches RSU (`rs4-generic`) files, so untracked RSU files in `ota/` are
+still described in the listing, but they cannot be uploaded or published here.
+The naming convention is implemented by `CommsigniaObuFirmwareFileNameParser` and
+must match the OBU OTA server's `commsignia_manifest.parse_firmware_name`.
+
+### Serving uploads with the OBU OTA server
+
+The OBU OTA server does not serve firmware uploaded through this API yet. It
+offers every file in its configured storage folder, including uploads that are
+not verified or published, so **do not set `OBU_OTA_BLOB_STORAGE_PATH` to `ota/`
+or a folder beneath it**. A deployment that already serves a folder beneath
+`ota/` that is not a manufacturer upload folder, such as `ota/firmwares/`, keeps
+working: this API neither lists nor deletes files outside the upload folders. A later change makes the OTA server serve only
+published catalog entries, and uploaded firmware should be served only after
+that change is deployed. Until then, deployments keep serving their existing
+firmware folder, and uploads through this API do not reach OBUs.
+
+### Upload flow
+
+1. Get the supported manufacturers from `GET /upload-options`. Each option lists
+   the file extension, the maximum name length, an example name, and
+   `file_name_pattern`, a JavaScript-compatible regular expression clients can use
+   to check a name before uploading. The API remains the authority on whether a
+   name is accepted.
+2. Request `POST /signed-upload-url` with `manufacturer_name`, `file_name`,
+   `content_length`, `checksum_algorithm`, `checksum`, and optionally
+   `content_type` (default `application/octet-stream`). Upload the file to the
+   returned URL using its method and required headers.
+3. Call `POST /uploads/{uploadId}/complete` to verify the size and checksum. A
+   verified upload is added to the OBU firmware catalog **unpublished**, and the
+   response includes its `obu_firmware_id`. Completion can be retried with the
+   same upload ID.
+
+Abandoned and failed OBU uploads are expired and purged by the same cleanup task
+and settings as RSU uploads. An unfinished upload reserves its file name until its
+signed URL expires plus `FIRMWARE_UPLOAD_EXPIRATION_GRACE`; a new upload request
+after that point expires it immediately instead of waiting for the next cleanup
+run. A file that reached storage but was never completed must be deleted from the
+OBU firmware list before the same name can be uploaded again.
+
+### Listing
+
+`GET /objects?page&size&manufacturer&search&published&sort` merges the catalog,
+the latest upload for each file, and the files in the upload folders in storage.
+An upload folder is `ota/<manufacturer>/` for a manufacturer with a naming
+convention. Other objects beneath `ota/` belong to other services and are left
+out, unless they have upload or catalog records. Results
+are filtered, sorted, and paged as one list. `size` is 1-200, `manufacturer` is
+matched ignoring case, `search` matches part of the object name, `published` is
+`true` or `false`, and `sort` is one of `manufacturer`, `file_name`,
+`release_version`, `device_type`, `content_length`, `updated_at`,
+`registered_at`, `published`, or `verification_status`, followed by `,asc` or
+`,desc` (default `manufacturer,asc`).
+
+Each entry has a `verification_status`:
+
+| Status | Meaning |
+| --- | --- |
+| `VERIFIED` | The stored file is the exact version that was verified |
+| `CHANGED` | The catalog entry's file was replaced or modified in storage |
+| `MISSING` | A catalog entry or upload record has no file in storage |
+| `UNVERIFIED` | The file's upload has not been verified |
+| `UNTRACKED` | A file in an upload folder with no records; details are read from its name |
+| `LOCAL` | A catalog entry for a file in the OBU OTA server's local firmware folder |
+| `UNKNOWN` | The file could not be checked, because storage is unavailable or the entry uses another bucket |
+
+When storage cannot be listed, the response has `storage_available: false` and
+contains catalog entries only, so deployments that serve only local firmware can
+still manage their catalog.
+
+### Publishing
+
+`PUT /images/{obuFirmwareId}/publication` with `{"published": true}` or
+`{"published": false}` sets whether the OBU OTA server should offer the firmware
+to OBUs. Both directions are idempotent. Publishing applies the same checks as
+uploads: it returns `409` for RSU firmware, an unsupported OBU build, or a
+manufacturer without a naming convention, so catalog entries registered before
+these checks or registered locally cannot be offered to OBUs. They can still be
+unpublished and deleted. Publishing a cloud file also checks that storage still
+holds the exact version that was verified, and returns `409` if the file is missing
+or changed. Local files cannot be inspected by the API and are published as
+recorded.
+
+Because an OBU installs the newest firmware that matches its build, **only one
+release per build is published**. Publishing a release unpublishes the release of
+the same build that was published before, whichever version it is, so an older
+release can be published again to roll back. The response lists the withdrawn
+releases in `replaced`:
+
+```json
+{
+  "obu_firmware_id": 42,
+  "published": true,
+  "published_at": "2026-10-15T12:02:00Z",
+  "published_by": "admin@example.com",
+  "replaced": [{ "obu_firmware_id": 10, "file_name": "ob4-generic-ro-secureboot-y20.47.0-b220000.tar.sig" }]
+}
+```
+
+Releases of other builds stay published. The database enforces the rule with the
+`uq_obu_firmware_images_published_build` index, and two publications of the same
+build at the same moment are serialized; if one still conflicts, it returns `409`
+and can be retried.
+
+### Deleting
+
+- `DELETE /objects/{objectId}?provider_object_version=` deletes a file and its
+  upload and catalog records, using the object ID and version from the listing.
+  This also removes `UNTRACKED` and `UNVERIFIED` files, which frees their file name
+  for a new upload.
+- `DELETE /objects/{objectId}/records` removes the records of a `MISSING` file, or
+  the catalog entry of a `LOCAL` file. The file in the OTA server's local folder
+  must be removed there.
+- Object IDs include the bucket. After the configured bucket changes, entries from
+  the previous bucket are listed as `UNKNOWN`; records cleanup removes them, but
+  their files must be deleted from that bucket directly, and deleting them through
+  this API returns `409`.
+- Files beneath `ota/` outside the upload folders that have no records return
+  `400`, so files another service keeps there cannot be deleted here.
+- Published firmware must be unpublished first. Deletion is also refused while an
+  issued upload URL can still write the file. OBU OTA request history is kept.
+
+## OBU OTA Request History
+
+The OBU OTA server (`services/addons/images/obu_ota_server`) records every OBU
+firmware download attempt in the PostgreSQL `obu_ota_requests` table. The API
+exposes that history read-only at `GET /admin/obu-ota-requests` for admins and
+superusers. Requests are not tied to an organization, so admins of any
+organization can view the full history.
+
+Query parameters (all optional):
+
+<!-- prettier-ignore -->
+| Parameter | Description |
+| --- | --- |
+| `page`, `size` | Zero-based page number and page size (1-200, default 100) |
+| `serial` | Case-insensitive substring of the OBU serial number |
+| `manufacturer` | Manufacturer name (case-insensitive exact match) |
+| `status` | `success` or `error` |
+| `start`, `end` | Inclusive ISO-8601 instants, for example `2026-06-01T00:00:00Z` |
+| `sort` | `request_datetime`, `obu_sn`, `obu_firmware_version`, or `requested_firmware_version`, followed by `,asc` or `,desc` (default `request_datetime,desc`) |
+
+The response contains `items` and `total_elements`. Each item includes the
+request ID, OBU serial number, UTC request time, origin IP, the OBU's current
+firmware version, the requested firmware file, `status`, error message, and
+manufacturer name. The OTA server keeps only the newest `MAX_COUNT` successful
+requests per serial number.
+
+## RSU reboot
+
+- Supports Commsignia RSUs only.
+- Send `POST /devices/rsus/reboot/{rsuIp}` with the RSU's IPv4 address.
+- Requires operator access in the organization that owns the RSU's SSH credentials, or superuser access.
+- Uses SSH credentials stored in PostgreSQL. Non-root accounts need sudo access with the same password.
+- Returns `202` with a `requestId` and `status: ACCEPTED`. The command runs in the background; acceptance does not confirm a reboot.
+- Check logs using the request ID or RSU IP. A disconnect or `UNKNOWN` outcome does not confirm a restart. Check the device before retrying.
+- Commands are never retried automatically. Pending requests are not saved across API restarts.
+
+### Limits and SSH settings
+
+- Each API instance runs up to four commands at once, with no waiting queue. A request for a busy RSU returns `409`; full capacity returns `503`.
+- `RSU_REBOOT_CONCURRENCY` sets the command limit (default: `4`, range: 1?32).
+- `RSU_REBOOT_TIMEOUT` limits SSH setup and command execution (default: `60s`, range: 1?120 seconds). It does not wait for the RSU to restart.
+- Unknown or changed SSH host keys are accepted. No `known_hosts` file is required; SSH server identity is not verified.
+
+## Local SNMP library dependency
+
+The API uses the local [JPO SNMP library](../snmp/README.md). From the repository
+root, build both modules with:
+
+```sh
+mvn -f services/intersection-api/pom.xml -pl api -am verify
+```
+
+For IDE runs or API-only builds, first run `mvn -f services/intersection-api/snmp/pom.xml install`.
+Docker builds install the library automatically; no Net-SNMP installation is needed.
+
+## RSU message forwarding
+
+- Live reads and changes support NTCIP 1218 only. Existing RSU 4.1/DSRC rows remain
+  viewable from PostgreSQL, but new RSU protocol assignments must use NTCIP 1218.
+- Cached reads require USER access through an RSU organization association.
+  Live reads require USER access and SSH-credential ownership; changes require
+  OPERATOR access and ownership. The selected `Organization` applies; superusers
+  retain access regardless of ownership.
+- SNMP credentials come from PostgreSQL. RSU management addresses use IPv4 and port 161.
+
+Routes under `/devices/rsus/message-forwarding`:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/{rsuIp}` | Cached forwarding rows |
+| GET | `/{rsuIp}/live` | Live forwarding rows, including validation warnings |
+| POST | Base path | Create a forwarding row on each selected RSU |
+| DELETE | Base path | Delete using message-type presets |
+| DELETE | `/{rsuIp}/rows/{table}/{index}` | Delete a selected row using its actual table/index |
+
+### Requests
+
+Create requests accept 1-100 unique RSU IPv4 addresses:
+
+```json
+{
+  "rsu_ips": ["192.0.2.10"],
+  "message_type": "MAP",
+  "destination_ip": "198.51.100.3",
+  "include_security": true
+}
+```
+
+- Supported types: `BSM`, `SPAT`, `MAP`, `SSM`, `SRM`, and `TIM`. Each selects a fixed
+  table and UDP port. `include_security` controls IEEE 1609.2 security headers.
+- Creation adds a row, or returns `changed=false` if an active equivalent row already exists.
+- Preset deletion accepts the same body without `include_security` and removes the highest-index match for message type,
+  destination, and preset port. No match is a successful no-op.
+- Selected-row deletion accepts `destination_ip` and `destination_port`, which
+  must match the stored row. It can remove malformed or manually created rows,
+  including invalid ports or non-IPv4 destinations. Unreadable guards require
+  manual repair; creating new destinations still requires IPv4.
+
+### Results and limits
+
+- Changes return HTTP 200 with results keyed by RSU IP. Check `execution`,
+  `writeState`, `changed`, and `databaseSync` for each device; 200 does not mean
+  every change succeeded. Writes are verified and never retried automatically.
+  Check the device before retrying an uncertain write.
+- After a verified change, a complete read replaces the PostgreSQL snapshot.
+  Failed reads or database updates preserve the previous snapshot and the
+  response's verified device-change evidence.
+- Live refresh does not update PostgreSQL. Malformed rows include `validationError`
+  and nullable fields; failed table walks return an HTTP error. Dates use UTC.
+- Each API instance runs up to 24 tasks with 128 queued. Defaults allow 30 seconds
+  in the queue and 60 seconds for execution. Requests wait for completion; allow
+  for both budgets in upstream HTTP timeouts. Tasks for the same RSU run serially
+  within an instance; multiple replicas need separate write coordination.
+- `SNMP_REQUEST_TIMEOUT` sets the timeout per attempt (default `5s`, one read retry).
+  Set it in the deployment environment or Compose `.env`, then recreate the API
+  container. Other limits are defined in [SnmpProperties](src/main/java/us/dot/its/jpo/ode/api/config/SnmpProperties.java).
+
+See [Swagger API](#swagger-api) for request and response schemas and the
+[SNMP README](../snmp/README.md) for library behavior.

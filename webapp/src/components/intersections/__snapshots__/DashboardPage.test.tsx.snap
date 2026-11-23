@@ -1,0 +1,405 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`should take a snapshot 1`] = `
+<div>
+  <main
+    class="MuiBox-root css-nw5nzo"
+  >
+    <div
+      class="MuiGrid2-root MuiGrid2-container MuiGrid2-direction-xs-row MuiGrid2-spacing-xs-2 css-mocked-MuiGrid2-root"
+    >
+      <div
+        class="MuiGrid2-root MuiGrid2-direction-xs-row MuiGrid2-grid-xs-12 MuiGrid2-grid-sm-12 MuiGrid2-grid-md-6 MuiGrid2-grid-lg-6 MuiGrid2-grid-xl-3 css-mocked-MuiGrid2-root"
+      >
+        <div
+          class="MuiGrid2-root MuiGrid2-direction-xs-row css-mocked-MuiGrid2-root"
+        >
+          <div
+            class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation1 MuiCard-root css-mocked-MuiPaper-root-MuiCard-root"
+            style="--Paper-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12);"
+          >
+            <div
+              class="MuiCardContent-root css-mocked-MuiCardContent-root"
+            >
+              <div
+                class="MuiGrid2-root MuiGrid2-container MuiGrid2-direction-xs-row MuiGrid2-spacing-xs-1 css-mocked-MuiGrid2-root"
+              >
+                <div
+                  class="MuiGrid2-root MuiGrid2-direction-xs-row css-mocked-MuiGrid2-root"
+                >
+                  <h6
+                    class="MuiTypography-root MuiTypography-h6 MuiTypography-gutterBottom css-mocked-MuiTypography-root"
+                  >
+                    Connection of Travel Assessment
+                  </h6>
+                  <p
+                    class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
+                  >
+                    No Data
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="MuiGrid2-root MuiGrid2-direction-xs-row MuiGrid2-grid-xs-12 MuiGrid2-grid-sm-12 MuiGrid2-grid-md-6 MuiGrid2-grid-lg-6 MuiGrid2-grid-xl-3 css-mocked-MuiGrid2-root"
+      >
+        <div
+          class="MuiGrid2-root MuiGrid2-direction-xs-row css-mocked-MuiGrid2-root"
+        >
+          <div
+            class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation1 MuiCard-root css-mocked-MuiPaper-root-MuiCard-root"
+            style="--Paper-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12);"
+          >
+            <div
+              class="MuiCardContent-root css-mocked-MuiCardContent-root"
+            >
+              <div
+                class="MuiGrid2-root MuiGrid2-container MuiGrid2-direction-xs-row MuiGrid2-spacing-xs-1 css-mocked-MuiGrid2-root"
+              >
+                <div
+                  class="MuiGrid2-root MuiGrid2-direction-xs-row css-mocked-MuiGrid2-root"
+                >
+                  <h6
+                    class="MuiTypography-root MuiTypography-h6 MuiTypography-gutterBottom css-mocked-MuiTypography-root"
+                  >
+                    Stop Line Stop Assessment
+                  </h6>
+                  <p
+                    class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
+                  >
+                    No Data
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="MuiGrid2-root MuiGrid2-direction-xs-row MuiGrid2-grid-xs-12 MuiGrid2-grid-sm-12 MuiGrid2-grid-md-6 MuiGrid2-grid-lg-6 MuiGrid2-grid-xl-3 css-mocked-MuiGrid2-root"
+      >
+        <div
+          class="MuiGrid2-root MuiGrid2-direction-xs-row css-mocked-MuiGrid2-root"
+        >
+          <div
+            class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation1 MuiCard-root css-mocked-MuiPaper-root-MuiCard-root"
+            style="--Paper-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12);"
+          >
+            <div
+              class="MuiCardContent-root css-mocked-MuiCardContent-root"
+            >
+              <div
+                class="MuiGrid2-root MuiGrid2-container MuiGrid2-direction-xs-row MuiGrid2-spacing-xs-1 css-mocked-MuiGrid2-root"
+              >
+                <div
+                  class="MuiGrid2-root MuiGrid2-direction-xs-row css-mocked-MuiGrid2-root"
+                >
+                  <h6
+                    class="MuiTypography-root MuiTypography-h6 MuiTypography-gutterBottom css-mocked-MuiTypography-root"
+                  >
+                    Stop Line Passage Assessment
+                  </h6>
+                  <p
+                    class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
+                  >
+                    No Data
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="MuiGrid2-root MuiGrid2-direction-xs-row MuiGrid2-grid-xs-12 MuiGrid2-grid-sm-12 MuiGrid2-grid-md-6 MuiGrid2-grid-lg-6 MuiGrid2-grid-xl-3 css-mocked-MuiGrid2-root"
+      >
+        <div
+          class="MuiGrid2-root MuiGrid2-direction-xs-row css-mocked-MuiGrid2-root"
+        >
+          <div
+            class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation1 MuiCard-root css-mocked-MuiPaper-root-MuiCard-root"
+            style="--Paper-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12);"
+          >
+            <div
+              class="MuiCardContent-root css-mocked-MuiCardContent-root"
+            >
+              <div
+                class="MuiGrid2-root MuiGrid2-container MuiGrid2-direction-xs-row MuiGrid2-spacing-xs-1 css-mocked-MuiGrid2-root"
+              >
+                <div
+                  class="MuiGrid2-root MuiGrid2-direction-xs-row css-mocked-MuiGrid2-root"
+                >
+                  <h6
+                    class="MuiTypography-root MuiTypography-h6 MuiTypography-gutterBottom css-mocked-MuiTypography-root"
+                  >
+                    Lane Direction of Travel Assessment
+                  </h6>
+                  <p
+                    class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
+                  >
+                    No Data
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="MuiGrid2-root MuiGrid2-direction-xs-row MuiGrid2-grid-xs-12 css-mocked-MuiGrid2-root"
+      >
+        <div
+          class="MuiContainer-root MuiContainer-disableGutters css-mocked-MuiContainer-root"
+        >
+          <div
+            class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation1 MuiCard-root css-mocked-MuiPaper-root-MuiCard-root"
+            style="--Paper-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12);"
+          >
+            <div
+              class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation1 MuiCard-root css-mocked-MuiPaper-root-MuiCard-root"
+              style="--Paper-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12);"
+            >
+              <div
+                class="scrollbar-container ps"
+              >
+                <div
+                  class="MuiBox-root css-32esvd"
+                >
+                  <table
+                    class="MuiTable-root css-mocked-MuiTable-root"
+                  >
+                    <thead
+                      class="MuiTableHead-root css-mocked-MuiTableHead-root"
+                    >
+                      <tr
+                        class="MuiTableRow-root MuiTableRow-head css-mocked-MuiTableRow-root"
+                      >
+                        <th
+                          class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                          scope="col"
+                        />
+                        <th
+                          class="MuiTableCell-root MuiTableCell-head MuiTableCell-paddingCheckbox MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                          scope="col"
+                        >
+                          <span
+                            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                          >
+                            <input
+                              class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
+                              data-indeterminate="false"
+                              type="checkbox"
+                            />
+                            <svg
+                              aria-hidden="true"
+                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root"
+                              data-testid="CheckBoxOutlineBlankIcon"
+                              focusable="false"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                              />
+                            </svg>
+                          </span>
+                        </th>
+                        <th
+                          class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                          scope="col"
+                        >
+                          Notification Type
+                        </th>
+                        <th
+                          class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                          scope="col"
+                        >
+                          Date
+                        </th>
+                        <th
+                          class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                          scope="col"
+                        >
+                          Message
+                        </th>
+                        <th
+                          class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                          scope="col"
+                        >
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody
+                      class="MuiTableBody-root css-mocked-MuiTableBody-root"
+                    />
+                  </table>
+                </div>
+                <div
+                  class="ps__rail-x"
+                  style="left: 0px; top: 0px;"
+                >
+                  <div
+                    class="ps__thumb-x"
+                    style="left: 0px; width: 0px;"
+                    tabindex="0"
+                  />
+                </div>
+                <div
+                  class="ps__rail-y"
+                  style="top: 0px; left: 0px;"
+                >
+                  <div
+                    class="ps__thumb-y"
+                    style="top: 0px; height: 0px;"
+                    tabindex="0"
+                  />
+                </div>
+              </div>
+              <div
+                class="MuiTablePagination-root css-mocked-MuiTablePagination-root"
+              >
+                <div
+                  class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-mocked-MuiToolbar-root-MuiTablePagination-toolbar"
+                >
+                  <div
+                    class="MuiTablePagination-spacer css-mocked-MuiTablePagination-spacer"
+                  />
+                  <p
+                    class="MuiTablePagination-selectLabel css-mocked-MuiTablePagination-selectLabel"
+                    id="mui-5"
+                  >
+                    Rows per page:
+                  </p>
+                  <div
+                    class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-select MuiSelect-root MuiTablePagination-input css-mocked-MuiInputBase-root-MuiTablePagination-select"
+                  >
+                    <div
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      aria-labelledby="mui-5 mui-4"
+                      class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-mocked-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input"
+                      id="mui-4"
+                      role="combobox"
+                      tabindex="0"
+                    >
+                      10
+                    </div>
+                    <input
+                      aria-hidden="true"
+                      class="MuiSelect-nativeInput css-mocked-MuiSelect-nativeInput"
+                      tabindex="-1"
+                      value="10"
+                    />
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-mocked-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
+                      data-testid="ArrowDropDownIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M7 10l5 5 5-5z"
+                      />
+                    </svg>
+                  </div>
+                  <p
+                    class="MuiTablePagination-displayedRows css-mocked-MuiTablePagination-displayedRows"
+                  >
+                    0–0 of 0
+                  </p>
+                  <div
+                    class="MuiTablePagination-actions"
+                  >
+                    <button
+                      aria-label="Go to previous page"
+                      class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-mocked-MuiButtonBase-root-MuiIconButton-root"
+                      disabled=""
+                      tabindex="-1"
+                      title="Go to previous page"
+                      type="button"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root"
+                        data-testid="KeyboardArrowLeftIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      aria-label="Go to next page"
+                      class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-mocked-MuiButtonBase-root-MuiIconButton-root"
+                      disabled=""
+                      tabindex="-1"
+                      title="Go to next page"
+                      type="button"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-mocked-MuiSvgIcon-root"
+                        data-testid="KeyboardArrowRightIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="MuiBox-root css-1yjvs5a"
+          >
+            <div
+              class="MuiBox-root css-1yzsvzl"
+            >
+              <div
+                class="MuiGrid2-root MuiGrid2-container MuiGrid2-direction-xs-row MuiGrid2-spacing-xs-3 css-mocked-MuiGrid2-root"
+              >
+                <div
+                  class="MuiGrid2-root MuiGrid2-direction-xs-row css-mocked-MuiGrid2-root"
+                >
+                  <button
+                    class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorInfo Mui-disabled MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorInfo museo-slab capital-case css-mocked-MuiButtonBase-root-MuiButton-root"
+                    disabled=""
+                    tabindex="-1"
+                    type="button"
+                  >
+                    <span
+                      class="MuiButton-icon MuiButton-startIcon MuiButton-iconSizeMedium css-mocked-MuiButton-startIcon"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root"
+                        data-testid="CloseIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                        />
+                      </svg>
+                    </span>
+                    Dismiss Notifications
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+`;

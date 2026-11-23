@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+import time
 from unittest.mock import MagicMock, patch, Mock
 from common import pgquery
 import sqlalchemy
@@ -122,6 +124,24 @@ def test_init_connection_engine_target_tcp():
 
     # check that init_socket_connection_engine was not called
     pgquery.init_socket_connection_engine.assert_not_called()
+
+
+# test that a host without a port uses the default PostgreSQL port
+@patch("common.common_environment.PG_DB_USER", "user")
+@patch("common.common_environment.PG_DB_PASS", "pass")
+@patch("common.common_environment.PG_DB_NAME", "my_database")
+@patch("common.common_environment.PG_DB_HOST", "my_hostname")
+@patch("common.common_environment.INSTANCE_CONNECTION_NAME", None)
+def test_init_connection_engine_target_tcp_default_port(monkeypatch):
+    init_tcp_connection_engine = MagicMock(return_value="my_engine1")
+    monkeypatch.setattr(pgquery, "init_tcp_connection_engine", init_tcp_connection_engine)
+
+    engine_pool = pgquery.init_connection_engine()
+
+    assert engine_pool == "my_engine1"
+    init_tcp_connection_engine.assert_called_once_with(
+        "user", "pass", "my_database", "my_hostname", 5432
+    )
 
 
 # test initializing socket connection engine based on environment variables
@@ -252,3 +272,26 @@ def test_query_and_return_list(mock_query_db):
 
     mock_query_db.assert_called_with(expected_query)
     assert actual_result == expected_data
+
+
+# test that concurrent first queries create a single engine
+@patch("common.pgquery.db", new=None)
+def test_query_db_creates_one_engine_for_concurrent_callers(monkeypatch):
+    connection = MagicMock()
+    connection.execute.return_value.fetchall.return_value = "my_result"
+    engine = MagicMock()
+    engine.connect.return_value.__enter__.return_value = connection
+
+    def slow_init():
+        # Hold the first initialization open so other threads arrive while it runs
+        time.sleep(0.1)
+        return engine
+
+    init_connection_engine = MagicMock(side_effect=slow_init)
+    monkeypatch.setattr(pgquery, "init_connection_engine", init_connection_engine)
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(lambda _: pgquery.query_db("SELECT 1"), range(5)))
+
+    assert results == ["my_result"] * 5
+    init_connection_engine.assert_called_once()

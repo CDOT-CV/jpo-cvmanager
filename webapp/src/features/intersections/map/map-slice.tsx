@@ -1,12 +1,29 @@
-import React from 'react'
 import { createAction, createAsyncThunk, createSelector, createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { RootState } from '../../../store'
-import { selectToken } from '../../../generalSlices/userSlice'
-import { IMessage, Client } from '@stomp/stompjs'
-import MessageMonitorApi from '../../../apis/intersections/mm-api'
-import EventsApi from '../../../apis/intersections/events-api'
-import NotificationApi from '../../../apis/intersections/notification-api'
+import { Client, IMessage } from '@stomp/stompjs'
+import React from 'react'
 import toast from 'react-hot-toast'
+import { MapRef } from 'react-map-gl'
+import { combineUrlPaths } from '../../../apis/intersections/api-helper-cviz'
+import EventsApi from '../../../apis/intersections/events-api'
+import MessageMonitorApi from '../../../apis/intersections/mm-api'
+import NotificationApi from '../../../apis/intersections/notification-api'
+import EnvironmentVars from '../../../EnvironmentVars'
+import { selectRsuMapData } from '../../../generalSlices/rsuSlice'
+import { getAccurateTimeMillis, selectTimeOffsetMillis } from '../../../generalSlices/timeSyncSlice'
+import { selectToken } from '../../../generalSlices/userSlice'
+import { RootState } from '../../../store'
+import {
+  fetchSrmWithinTimeWindow,
+  fetchSsmWithinTimeWindow,
+  filterSrms,
+  filterSsms,
+  getTimeWindowFromRenderInterval,
+} from '../../api/intersectionMapApiSlice'
+import { getTimestamp } from './map-component'
+import { setBsmCircleColor, setBsmLegendColors } from './map-layer-style-slice'
+import { generateColorDictionary, generateMapboxStyleExpression } from './utilities/colors'
+import { downloadAllData } from './utilities/file-utilities'
+import { getTimeRangeDeciseconds } from './utilities/map-utils'
 import {
   addBsmTimestampsAndSortAscending,
   addMapTimestampsAndSortAscending,
@@ -18,24 +35,7 @@ import {
   parseMapSignalGroups,
   parseSpatSignalGroups,
 } from './utilities/message-utils'
-import { generateColorDictionary, generateMapboxStyleExpression } from './utilities/colors'
-import { setBsmCircleColor, setBsmLegendColors } from './map-layer-style-slice'
-import { getTimeRangeDeciseconds } from './utilities/map-utils'
-import { MapRef } from 'react-map-gl'
-import { selectRsuMapData } from '../../../generalSlices/rsuSlice'
-import EnvironmentVars from '../../../EnvironmentVars'
-import { downloadAllData } from './utilities/file-utilities'
-import { getTimestamp } from './map-component'
-import { getAccurateTimeMillis, selectTimeOffsetMillis } from '../../../generalSlices/timeSyncSlice'
-import { combineUrlPaths } from '../../../apis/intersections/api-helper-cviz'
 import { ThunkAbortController } from './utilities/thunk-abort-contoller'
-import {
-  fetchSrmWithinTimeWindow,
-  fetchSsmWithinTimeWindow,
-  filterSrms,
-  filterSsms,
-  getTimeWindowFromRenderInterval,
-} from '../../api/intersectionMapApiSlice'
 
 export type MAP_LAYERS =
   | 'map-message'
@@ -177,7 +177,6 @@ const initialState = {
   mapSpatTimes: { mapTime: 0, spatTime: 0 },
   showPopupOnHover: false,
   importedMessageData: undefined as IMPORTED_MAP_MESSAGE_DATA | undefined,
-  loadInitialDataTimeoutId: undefined as NodeJS.Timeout | undefined,
   wsClient: undefined as Client | undefined,
   wsSessionId: undefined as number | undefined,
   liveDataActive: false,
@@ -696,7 +695,6 @@ export const renderIterative_Map = createAsyncThunk(
     const currentState = getState() as RootState
     const queryParams = selectQueryParams(currentState)
     const currentMapData: ProcessedMap[] = selectCurrentMapData(currentState)
-    const mapRef = selectMapRef(currentState)
 
     newMapData = newMapData.map((map) => ({
       ...map,
@@ -732,29 +730,9 @@ export const renderIterative_Map = createAsyncThunk(
 
     // ######################### MAP Data #########################
     const latestMapMessage: ProcessedMap = currentMapDataLocal.at(-1)!
-    if (latestMapMessage != null) {
-      mapRef.current.flyTo({
-        center: [latestMapMessage?.properties.refPoint.longitude, latestMapMessage?.properties.refPoint.latitude],
-        zoom: 19,
-        duration: 100, //ms
-      })
-    }
-
     // ######################### SPAT Signal Groups #########################
     const mapSignalGroupsLocal = parseMapSignalGroups(latestMapMessage)
 
-    const previousMapMessage: ProcessedMap | undefined = currentMapData.at(-1)
-    if (
-      latestMapMessage != null &&
-      (latestMapMessage.properties.refPoint.latitude != previousMapMessage?.properties.refPoint.latitude ||
-        latestMapMessage.properties.refPoint.longitude != previousMapMessage?.properties.refPoint.longitude)
-    ) {
-      mapRef.current.flyTo({
-        center: [latestMapMessage?.properties.refPoint.longitude, latestMapMessage?.properties.refPoint.latitude],
-        zoom: 19,
-        duration: 100, //ms
-      })
-    }
     return {
       currentMapData: currentMapDataLocal,
       connectingLanes: latestMapMessage.connectingLanesFeatureCollection,
@@ -1525,9 +1503,6 @@ export const intersectionMapSlice = createSlice({
         state.value.liveSpatLatestLatencyMs = undefined
       }
     },
-    setLoadInitialDataTimeoutId: (state, action: PayloadAction<NodeJS.Timeout>) => {
-      state.value.loadInitialDataTimeoutId = action.payload
-    },
     setShowPopupOnHover: (state, action: PayloadAction<boolean>) => {
       state.value.showPopupOnHover = action.payload
     },
@@ -1619,15 +1594,6 @@ export const intersectionMapSlice = createSlice({
       if (!action.payload) return
       state.value.mapData = action.payload.mapData
       state.value.currentMapData = action.payload.allMapData
-      if (action.payload.mapData != null)
-        state.value.mapRef.current.flyTo({
-          center: [
-            action.payload.mapData.properties.refPoint.longitude,
-            action.payload.mapData.properties.refPoint.latitude,
-          ],
-          zoom: 19,
-          duration: 100, //ms
-        })
       state.value.connectingLanes = action.payload.connectingLanes
       state.value.mapSignalGroups = action.payload.mapSignalGroups
       state.value.mapSpatTimes = { ...state.value.mapSpatTimes, mapTime: action.payload.mapTime }
@@ -1721,20 +1687,6 @@ export const intersectionMapSlice = createSlice({
           }>
         ) => {
           state.value.currentMapData = action.payload.currentMapData
-          const previousMapMessage: ProcessedMap | undefined = action.payload.currentMapData.at(-1)
-          if (
-            state.value.mapData != null &&
-            (state.value.mapData.properties.refPoint.latitude != previousMapMessage?.properties.refPoint.latitude ||
-              state.value.mapData.properties.refPoint.longitude != previousMapMessage?.properties.refPoint.longitude)
-          )
-            state.value.mapRef.current.flyTo({
-              center: [
-                action.payload.mapData.properties.refPoint.longitude,
-                action.payload.mapData.properties.refPoint.latitude,
-              ],
-              zoom: 19,
-              duration: 100, //ms
-            })
           state.value.connectingLanes = action.payload.connectingLanes
           state.value.mapData = action.payload.mapData
           state.value.mapSignalGroups = action.payload.mapSignalGroups
@@ -1848,7 +1800,6 @@ export const selectRenderTimeInterval = (state: RootState) => state.intersection
 export const selectMapSpatTimes = (state: RootState) => state.intersectionMap.value.mapSpatTimes
 export const selectShowPopupOnHover = (state: RootState) => state.intersectionMap.value.showPopupOnHover
 export const selectImportedMessageData = (state: RootState) => state.intersectionMap.value.importedMessageData
-export const selectLoadInitialDataTimeoutId = (state: RootState) => state.intersectionMap.value.loadInitialDataTimeoutId
 export const selectWsClient = (state: RootState) => state.intersectionMap.value.wsClient
 export const selectWsSessionId = (state: RootState) => state.intersectionMap.value.wsSessionId
 export const selectLiveDataActive = (state: RootState) => state.intersectionMap.value.liveDataActive
@@ -1897,7 +1848,6 @@ export const {
   incrementSliderValue,
   updateRenderTimeInterval,
   cleanUpLiveStreaming,
-  setLoadInitialDataTimeoutId,
   setShowPopupOnHover,
   setLiveDataActive,
   setBsmTrailLength,

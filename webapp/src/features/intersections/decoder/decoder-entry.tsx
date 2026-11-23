@@ -1,15 +1,15 @@
-import React, { useEffect } from 'react'
-import { format } from 'date-fns'
-import { Box, Checkbox, IconButton, TableCell, TableRow, TextField, Typography } from '@mui/material'
-import MapRoundedIcon from '@mui/icons-material/MapRounded'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DownloadIcon from '@mui/icons-material/Download'
+import MapRoundedIcon from '@mui/icons-material/MapRounded'
+import { Box, Checkbox, IconButton, TableCell, TableRow, TextField, Typography } from '@mui/material'
 import CircularProgress from '@mui/material/CircularProgress'
-import { ThunkDispatch, AnyAction } from '@reduxjs/toolkit'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { format } from 'date-fns'
+import React, { useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { RootState } from '../../../store'
-import { onTextChanged } from './asn1-decoder-slice'
 import { centerMapOnPoint } from '../map/map-slice'
+import { onTextChanged } from './asn1-decoder-slice'
 
 type DecoderEntryProps = {
   onSelected: (id: string) => void
@@ -27,6 +27,8 @@ export const DecoderEntry = (props: DecoderDataEntry & DecoderEntryProps) => {
   useEffect(() => {
     setLocalText(text)
     setPreviouslySubmittedText('')
+    // Only trigger on ID change, not rest update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const getIntersectionId = (decodedResponse: DecoderApiResponseGeneric | undefined) => {

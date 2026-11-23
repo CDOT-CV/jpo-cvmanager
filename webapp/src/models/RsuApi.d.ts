@@ -8,6 +8,8 @@ export type RsuProperties = {
   serial_number: string
   manufacturer_name: string
   firmware_version?: string | null
+  snmp_protocol_code?: string
+  owner_organization_id?: number
   tim_deposit: boolean
 }
 
@@ -56,7 +58,7 @@ export type IssScmsStatus = {
 }
 
 export type RsuCommandPostBody = {
-  command: 'rsufwdsnmpwalk' | 'rsufwdsnmpset' | 'rsufwdsnmpset-del' | 'reboot' | 'upgrade-rsu' | 'upgrade-check'
+  command: 'rsufwdsnmpwalk' | 'rsufwdsnmpset' | 'rsufwdsnmpset-del' | 'upgrade-rsu' | 'upgrade-check'
   rsu_ip: string[]
   args: object
 }
@@ -72,6 +74,7 @@ export type RsuUpgradeCheckPostBody = {
 }
 
 export type ApiMsgResp = { message: string }
+export type RsuOperationOutcome = { ip: string; success: boolean; detail: string }
 export type ApiMsgRespWithCodes<T> = {
   body: T
   status: number
@@ -92,12 +95,17 @@ export type SnmpFwdWalkConfig = {
 }
 
 export type RsuMsgFwdConfigSingle = {
+  table?: 'RECEIVE' | 'TRANSMIT' | 'DSRC'
+  index?: number
   'Message Type': string
   IP: string
-  Port: number
+  Port: number | string
   'Start DateTime': string
   'End DateTime': string
+  'Full WSMP'?: string
   'Config Active': string
+  validationError?: string
+  deletable?: boolean
 }
 
 export type RsuDsrcFwdConfigs = {
