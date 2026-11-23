@@ -438,6 +438,10 @@ Each entry has a `verification_status`:
 | `LOCAL` | A catalog entry for a file in the OBU OTA server's local firmware folder |
 | `UNKNOWN` | The file could not be checked, because storage is unavailable or the entry uses another bucket |
 
+Each entry also has an `unsupported_reason`: why publishing would be refused,
+such as RSU firmware or an unsupported OBU build, or `null` when its build is
+supported. Clients can use it to explain why an entry cannot be published.
+
 When storage cannot be listed, the response has `storage_available: false` and
 contains catalog entries only, so deployments that serve only local firmware can
 still manage their catalog.

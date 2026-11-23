@@ -222,7 +222,8 @@ class AdminObuFirmwareControllerTest {
         var item = new Item("b2JqZWN0", "ota/Commsignia/" + FILE_NAME, "gcp", "17", "Commsignia", FILE_NAME,
                 ObuFirmwareDeviceType.OBU, "ob4-generic", "y20.48.2-b228647", false, true, 1024L,
                 Instant.parse("2026-10-15T12:00:00Z"), Instant.parse("2026-10-15T12:01:00Z"), null, "VERIFIED", 42,
-                true, Instant.parse("2026-10-15T12:02:00Z"), "admin", "VERIFIED");
+                true, Instant.parse("2026-10-15T12:02:00Z"), "admin", "VERIFIED",
+                "Read-only OBU firmware must use secure boot.");
         when(objectService.list(1, 25, "Commsignia", "y20", true, "file_name,desc"))
                 .thenReturn(new ObjectPage("gcp", true, List.of(item), 26));
 
@@ -238,7 +239,9 @@ class AdminObuFirmwareControllerTest {
                 .andExpect(jsonPath("$.objects[0].secure_boot").value(true))
                 .andExpect(jsonPath("$.objects[0].obu_firmware_id").value(42))
                 .andExpect(jsonPath("$.objects[0].published_at").value("2026-10-15T12:02:00Z"))
-                .andExpect(jsonPath("$.objects[0].verification_status").value("VERIFIED"));
+                .andExpect(jsonPath("$.objects[0].verification_status").value("VERIFIED"))
+                .andExpect(jsonPath("$.objects[0].unsupported_reason")
+                        .value("Read-only OBU firmware must use secure boot."));
 
         when(objectService.list(0, 100, null, null, null, "manufacturer,asc"))
                 .thenReturn(new ObjectPage(null, false, List.of(), 0));

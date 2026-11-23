@@ -219,6 +219,9 @@ public class ObuFirmwareObjectService {
         String manufacturer = manufacturerName(image, path);
         ObuFirmwareFileMetadata metadata = metadata(image, upload, manufacturer, fileName);
         boolean published = image != null && Boolean.TRUE.equals(image.getPublished());
+        // Publishing applies the same rule, so the webapp can say why it would be refused
+        String unsupportedReason = metadata == null ? null
+                : parsers.unsupportedFirmware(manufacturer, metadata).orElse(null);
 
         // The container keeps entries from a previously configured bucket distinct
         // from a file with the same name in the active bucket
@@ -234,7 +237,7 @@ public class ObuFirmwareObjectService {
                 upload == null ? null : upload.getId(), upload == null ? null : upload.getStatus().name(),
                 image == null ? null : image.getId(), published,
                 image == null ? null : image.getPublishedAt(), image == null ? null : image.getPublishedBy(),
-                verificationStatus);
+                verificationStatus, unsupportedReason);
     }
 
     private static String manufacturerName(ObuFirmwareImage image, String[] path) {

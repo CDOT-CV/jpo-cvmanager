@@ -118,6 +118,7 @@ class ObuFirmwareObjectServiceTest {
                 .returns(1024L, Item::contentLength);
         assertThat(byFile.get("ob4-generic-rw-y20.4.tar.sig"))
                 .returns("LOCAL", Item::verificationStatus)
+                .returns(null, Item::unsupportedReason)
                 .returns(ObjectIds.encode("local", "local", "ota/Commsignia/ob4-generic-rw-y20.4.tar.sig"),
                         Item::objectId);
         // Entries from a previous bucket keep their own identity, so cleanup removes them
@@ -140,7 +141,11 @@ class ObuFirmwareObjectServiceTest {
                 .returns(ObuFirmwareDeviceType.OBU, Item::deviceType)
                 .returns(true, Item::secureBoot)
                 .returns("y20.9", Item::releaseVersion)
-                .returns(null, Item::obuFirmwareId);
+                .returns(null, Item::obuFirmwareId)
+                .returns(null, Item::unsupportedReason);
+        // Entries the API would refuse to publish say why
+        assertThat(byFile.get("ob4-generic-ro-y20.1.tar.sig").unsupportedReason())
+                .startsWith("Read-only OBU firmware must use secure boot.");
         // An upload that can still write its file is in progress, not missing
         assertThat(byFile).doesNotContainKey("ob4-generic-ro-y20.8.tar.sig");
         assertThat(byFile).doesNotContainKeys("ob4-generic-ro-y20.10.tar.sig", "ob4-generic-ro-y20.11.tar.sig");
