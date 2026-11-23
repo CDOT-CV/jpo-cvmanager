@@ -170,6 +170,9 @@ const AdminTable = (props: AdminTableProps) => {
           pageSize: props.defaultPageSize ?? 25,
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,
+          // An empty or short page keeps only the rows it has. Otherwise an empty table
+          // reserves a full page of blank space, pushing the pager off screen.
+          emptyRowsWhenPaging: false,
           search: props.search ?? true,
           thirdSortClick: props.thirdSortClick ?? true,
           debounceInterval: 500,
