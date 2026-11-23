@@ -97,16 +97,16 @@ spec:
               'start-dev',
               '--log-level="DEBUG"',
               '--import-realm',
-              '--proxy=edge',
-              '--spi-theme-welcome-theme=custom-welcome',
+              '--proxy-headers=xforwarded',
+              '--spi-theme--static--welcome-theme=custom-welcome',
             ]
           ports:
             - containerPort: 8080
               protocol: TCP
           env:
-            - name: KEYCLOAK_ADMIN
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
               value:
-            - name: KEYCLOAK_ADMIN_PASSWORD
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
               value:
             - name: WEBAPP_ORIGIN
               value: ''
