@@ -58,6 +58,7 @@ services:
       INTERSECTION_API_ENABLE_ASN1_DECODER: ${INTERSECTION_API_ENABLE_ASN1_DECODER:-true}
 
       FIRMWARE_MANAGER_ENDPOINT: ${FIRMWARE_MANAGER_ENDPOINT:-http://firmware_manager_upgrade_scheduler:8080}
+      SNMP_REQUEST_TIMEOUT: ${SNMP_REQUEST_TIMEOUT:-5s}
       RSU_REBOOT_CONCURRENCY: ${RSU_REBOOT_CONCURRENCY:-4}
       RSU_REBOOT_TIMEOUT: ${RSU_REBOOT_TIMEOUT:-60s}
 
@@ -112,6 +113,12 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8089$${BASE_ROUTE_PREFIX%/}/actuator/health/readiness || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
     depends_on:
       cvmanager_keycloak:
         condition: service_healthy
@@ -125,7 +132,7 @@ services:
   mock_geo_message_generator:
     profiles:
       - mock_geo_messages
-    image: mongo:8
+    image: mongo:8.0.34@sha256:b9924c330a8bbc5800fe9c69f04a84e221eca7b28fd049a0354147d9908fa142
     restart: "no"
     depends_on:
       mongo-setup:

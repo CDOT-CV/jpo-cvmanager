@@ -37,11 +37,11 @@ const DecoderEntryDialog = () => {
       dispatch(updateCurrentBsms(Object.values(data)))
       dispatch(updateAllDataOnMap())
     }
-  }, [data, selectedBsms, decoderModeEnabled])
+  }, [data, selectedBsms, selectedMapMessage, decoderModeEnabled, dispatch])
 
   useEffect(() => {
     dispatch(updateAllDataOnMap())
-  }, [selectedMapMessage])
+  }, [selectedMapMessage, dispatch])
 
   return (
     <>

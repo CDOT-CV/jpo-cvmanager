@@ -16,7 +16,7 @@ const IntersectionTsMapPage = () => {
 
   useEffect(() => {
     setSelectedIntersectionId(intersectionIdInt)
-  }, [intersectionId])
+  }, [intersectionIdInt])
 
   return (
     <div className="container">
