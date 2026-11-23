@@ -218,26 +218,27 @@ public class ObuFirmwareObjectService {
         String fileName = image != null ? image.getFileName() : path[path.length - 1];
         String manufacturer = manufacturerName(image, path);
         ObuFirmwareFileMetadata metadata = metadata(image, upload, manufacturer, fileName);
+        // A file whose name cannot be parsed is listed without details
+        ObuFirmwareFileMetadata details = metadata == null ? new ObuFirmwareFileMetadata() : metadata;
         boolean published = image != null && Boolean.TRUE.equals(image.getPublished());
-        // Publishing applies the same rule, so the webapp can say why it would be refused
-        String unsupportedReason = metadata == null ? null
-                : parsers.unsupportedFirmware(manufacturer, metadata).orElse(null);
 
         // The container keeps entries from a previously configured bucket distinct
         // from a file with the same name in the active bucket
         return new Item(ObjectIds.encode(provider, container, objectName), objectName, provider,
                 object == null ? null : object.providerObjectVersion(), manufacturer, fileName,
-                metadata == null ? null : metadata.getDeviceType(),
-                metadata == null ? null : metadata.getVariant(),
-                metadata == null ? null : metadata.getReleaseVersion(),
-                metadata == null ? null : metadata.getWritableSystemPartition(),
-                metadata == null ? null : metadata.getSecureBoot(),
+                details.getDeviceType(), details.getVariant(), details.getReleaseVersion(),
+                details.getWritableSystemPartition(), details.getSecureBoot(),
                 contentLength(object, image, upload), object == null ? null : object.updatedAt(),
                 image == null ? null : image.getRegisteredAt(),
                 upload == null ? null : upload.getId(), upload == null ? null : upload.getStatus().name(),
                 image == null ? null : image.getId(), published,
                 image == null ? null : image.getPublishedAt(), image == null ? null : image.getPublishedBy(),
-                verificationStatus, unsupportedReason);
+                verificationStatus, unsupportedReason(manufacturer, metadata));
+    }
+
+    /** Why publishing would be refused, by the same rule publishing applies, or null when it is supported. */
+    private String unsupportedReason(String manufacturer, ObuFirmwareFileMetadata metadata) {
+        return metadata == null ? null : parsers.unsupportedFirmware(manufacturer, metadata).orElse(null);
     }
 
     private static String manufacturerName(ObuFirmwareImage image, String[] path) {
