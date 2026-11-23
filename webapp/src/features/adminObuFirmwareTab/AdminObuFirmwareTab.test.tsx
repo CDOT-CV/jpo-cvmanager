@@ -53,8 +53,12 @@ const firmware = (overrides: Partial<ObuFirmwareObject>): ObuFirmwareObject => (
   published_at: null,
   published_by: null,
   verification_status: 'VERIFIED',
+  unsupported_reason: null,
   ...overrides,
 })
+
+const RSU_REASON = 'Only OBU firmware can be uploaded or published here. Manage RSU firmware under RSU Firmware.'
+const READ_ONLY_REASON = 'Read-only OBU firmware must use secure boot.'
 
 const objects = [
   firmware({ object_id: 'verified', file_name: 'verified.tar.sig' }),
@@ -71,7 +75,7 @@ const objects = [
   firmware({ object_id: 'local', file_name: 'local.tar.sig', obu_firmware_id: 4, storage_provider: 'local', provider_object_version: null, verification_status: 'LOCAL' }),
   firmware({ object_id: 'missing', file_name: 'missing.tar.sig', obu_firmware_id: 5, provider_object_version: null, verification_status: 'MISSING' }),
   firmware({ object_id: 'unknown', file_name: 'unknown.tar.sig', obu_firmware_id: 6, provider_object_version: null, verification_status: 'UNKNOWN' }),
-  firmware({ object_id: 'rsu', file_name: 'rsu.tar.sig', obu_firmware_id: 7, device_type: 'RSU' }),
+  firmware({ object_id: 'rsu', file_name: 'rsu.tar.sig', obu_firmware_id: 7, device_type: 'RSU', unsupported_reason: RSU_REASON }),
   firmware({
     object_id: 'rsu-published',
     file_name: 'rsu-published.tar.sig',
@@ -79,6 +83,15 @@ const objects = [
     device_type: 'RSU',
     published: true,
     published_at: '2026-10-15T12:02:00Z',
+    unsupported_reason: RSU_REASON,
+  }),
+  // Registered before uploads were limited to the supported builds
+  firmware({
+    object_id: 'read-only',
+    file_name: 'read-only.tar.sig',
+    obu_firmware_id: 9,
+    secure_boot: false,
+    unsupported_reason: READ_ONLY_REASON,
   }),
 ]
 
@@ -155,12 +168,15 @@ describe('OBU firmware tab', () => {
     }
   })
 
-  it('does not publish RSU firmware but still allows withdrawing it', async () => {
+  it('explains why the API would refuse to publish firmware, and still allows withdrawing it', async () => {
     renderTab()
     await screen.findByText('rsu.tar.sig')
 
     expect(screen.getByRole('checkbox', { name: 'Publish rsu.tar.sig' })).toBeDisabled()
-    expect(screen.getByLabelText('RSU firmware cannot be published to OBUs')).toBeInTheDocument()
+    expect(within(row('rsu.tar.sig')).getByLabelText(RSU_REASON)).toBeInTheDocument()
+    // Verified, but in a build the API no longer accepts
+    expect(screen.getByRole('checkbox', { name: 'Publish read-only.tar.sig' })).toBeDisabled()
+    expect(within(row('read-only.tar.sig')).getByLabelText(READ_ONLY_REASON)).toHaveAttribute('tabindex', '0')
     expect(screen.getByRole('checkbox', { name: 'Unpublish rsu-published.tar.sig' })).toBeEnabled()
   })
 
@@ -173,9 +189,15 @@ describe('OBU firmware tab', () => {
     expect(within(row('verified.tar.sig')).getByLabelText('Not published')).not.toHaveAttribute('tabindex')
   })
 
-  it('confirms publication, publishes, and reloads the list', async () => {
+  it('confirms publication, publishes, and shows the reloaded publish state', async () => {
     renderTab()
     await screen.findByText('verified.tar.sig')
+    const published = objects.map((object) =>
+      object.object_id === 'verified' ? { ...object, published: true, published_by: 'admin' } : object
+    )
+    list.mockImplementation(() => ({
+      unwrap: () => Promise.resolve({ provider: 'gcp', storage_available: true, objects: published, total_elements: 26 }),
+    }))
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Publish verified.tar.sig' }))
     expect(screen.getByText(/replaces the currently published release of the same build/)).toBeInTheDocument()
@@ -184,6 +206,7 @@ describe('OBU firmware tab', () => {
     await waitFor(() => expect(setPublished).toHaveBeenCalledWith({ obuFirmwareId: 1, published: true }))
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Firmware published', { id: 'notification' }))
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2))
+    expect(await screen.findByRole('checkbox', { name: 'Unpublish verified.tar.sig' })).toBeChecked()
   })
 
   it('names the releases a publication replaced', async () => {
@@ -248,9 +271,13 @@ describe('OBU firmware tab', () => {
     expect(within(row('unknown.tar.sig')).getByRole('button', { name: /once storage is available/ })).toBeDisabled()
   })
 
-  it('deletes a stored file with its listed version', async () => {
+  it('deletes a stored file with its listed version and removes it from the list', async () => {
     renderTab()
     await screen.findByText('untracked.tar.sig')
+    const remaining = objects.filter((object) => object.object_id !== 'untracked')
+    list.mockImplementation(() => ({
+      unwrap: () => Promise.resolve({ provider: 'gcp', storage_available: true, objects: remaining, total_elements: 25 }),
+    }))
 
     fireEvent.click(within(row('untracked.tar.sig')).getByRole('button', { name: 'Delete Firmware' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
@@ -261,6 +288,8 @@ describe('OBU firmware tab', () => {
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith('Firmware deleted successfully', { id: 'notification' })
     )
+    await waitFor(() => expect(screen.queryByText('untracked.tar.sig')).not.toBeInTheDocument())
+    expect(screen.getByText('verified.tar.sig')).toBeInTheDocument()
   })
 
   it('cleans up records for missing and local files without a version', async () => {

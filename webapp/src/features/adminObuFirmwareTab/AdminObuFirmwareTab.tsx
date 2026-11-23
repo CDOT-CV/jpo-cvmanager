@@ -54,12 +54,13 @@ const describeDetails = (object: ObuFirmwareObject) =>
     .filter(Boolean)
     .join(' · ')
 
-// Only verified cloud files and local files of OBU firmware can be published.
-// Published firmware can always be withdrawn, even after its file changed or went missing.
+// Only verified cloud files and local files in a build the API accepts can be published,
+// so RSU firmware and older entries of an unsupported build cannot. Published firmware
+// can always be withdrawn, even after its file changed or went missing.
 const canChangePublication = (object: ObuFirmwareObject) =>
   object.obu_firmware_id != null &&
   (object.published ||
-    (object.device_type !== 'RSU' &&
+    (!object.unsupported_reason &&
       (object.verification_status === 'VERIFIED' || object.verification_status === 'LOCAL')))
 
 const publicationTooltip = (object: ObuFirmwareObject) => {
@@ -69,7 +70,7 @@ const publicationTooltip = (object: ObuFirmwareObject) => {
     return `Published${by}${at}`
   }
   if (canChangePublication(object)) return 'Not published'
-  if (object.device_type === 'RSU') return 'RSU firmware cannot be published to OBUs'
+  if (object.unsupported_reason) return object.unsupported_reason
   return 'Only verified or local firmware can be published'
 }
 

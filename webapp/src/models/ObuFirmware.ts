@@ -33,6 +33,8 @@ export type ObuFirmwareObject = {
   published_at: string | null
   published_by: string | null
   verification_status: ObuFirmwareVerificationStatus
+  // Why the API would refuse to publish this firmware; null when its build is supported
+  unsupported_reason: string | null
 }
 
 export type ObuFirmwareObjectPage = {
