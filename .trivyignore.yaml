@@ -7,7 +7,7 @@
 #
 # The gate currently blocks on CRITICAL only; HIGH will be added later (see
 # docs/cve-scanning.md). Rollout baseline: pre-existing fixable CRITICAL findings
-# (8 entries), expiring 2026-11-30.
+# (9 entries), expiring 2026-11-30.
 # Comments list severity, fixed version(s) and affected scan targets.
 vulnerabilities:
   # CRITICAL; no Debian 13 fix yet; firmware-upgrade-runner

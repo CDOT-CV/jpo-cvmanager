@@ -98,7 +98,7 @@ spec:
               '--log-level="DEBUG"',
               '--import-realm',
               '--proxy-headers=xforwarded',
-              '--spi-theme--static--welcome-theme=custom-welcome',
+              '--spi-theme--welcome-theme=custom-welcome',
             ]
           ports:
             - containerPort: 8080
