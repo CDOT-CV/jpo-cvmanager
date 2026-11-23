@@ -139,9 +139,10 @@ public final class Ntcip1218Client {
     }
 
     /**
-     * Adds one row using the message type's table and the requested port, then verifies every written column.
+     * Adds a row unless an active equivalent row is already within its forwarding schedule.
+     * Equivalence includes every non-schedule setting; existing rows are never updated.
      * Row allocation uses max+1 up to 127 to preserve the previous API's behavior.
-     * @return verified change and the created row; each call adds a row rather than updating one
+     * @return changed=true with the verified new row, or false with the existing equivalent row
      * @throws SnmpException if communication or verification fails; a successful SET followed by
      *         failed readback leaves the write outcome uncertain and must not be blindly replayed
      * @throws IllegalStateException if the next row exceeds the compatibility limit
@@ -151,12 +152,18 @@ public final class Ntcip1218Client {
         return exclusive(device, "FORWARDING_ADD", true, trace -> {
             ForwardingTable table = request.messageType().table();
             trace.step("read_existing_rows");
-            int index = readTable(device, table).stream().mapToInt(ForwardingRow::index).max().orElse(0) + 1;
+            var rows = readTable(device, table);
+            Map<Integer, SnmpValue> expected = createColumnValues(request);
+            LocalDateTime now = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
+            // Keep the live duplicate check and creation under the same endpoint lock.
+            var existing = rows.stream().filter(row -> equivalentActiveRow(row, expected, now)).findFirst();
+            if (existing.isPresent()) return new SnmpWriteResult<>(false, existing.get());
+
+            int index = rows.stream().mapToInt(ForwardingRow::index).max().orElse(0) + 1;
 
             trace.step("select_row");
             if (index > 127) throw new IllegalStateException("Forwarding index exceeds compatibility limit 127");
             trace.rowSelected(index);
-            Map<Integer, SnmpValue> expected = createColumnValues(request);
 
             trace.step("create_row");
             trace.writeStarting();
@@ -178,6 +185,19 @@ public final class Ntcip1218Client {
                 throw failure.withWriteOutcomeUnknown(true);
             }
         });
+    }
+
+    private static boolean equivalentActiveRow(ForwardingRow row, Map<Integer, SnmpValue> expected,
+            LocalDateTime now) {
+        var table = row.table();
+        if (row.status() != 1 || row.start().isAfter(now) || !row.stop().isAfter(now)) return false;
+
+        // Ignore generated schedule dates and createAndGo; compare protocol, security and
+        // receive filters as well as PSID/destination/port so manual configurations stay distinct.
+        return expected.entrySet().stream()
+                .filter(entry -> entry.getKey() != table.startColumn() && entry.getKey() != table.stopColumn()
+                        && entry.getKey() != table.statusColumn())
+                .allMatch(entry -> entry.getValue().equals(row.columns().get(entry.getKey())));
     }
 
     /**

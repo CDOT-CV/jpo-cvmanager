@@ -11,6 +11,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.persistence.EntityManager;
+
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.fixtures.TestFixtures;
+import us.dot.its.jpo.ode.api.mappers.RsuGeoInfoMapper;
 import us.dot.its.jpo.ode.api.models.postgres.projections.RsuOnlineStatusProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
@@ -66,6 +70,12 @@ class RsuRepositoryTest {
 
     @Autowired
     private SnmpProtocolRepository snmpProtocolRepository;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Autowired
+    private RsuGeoInfoMapper geoMapper;
 
     private final TestFixtures fixtures = new TestFixtures();
 
@@ -147,6 +157,33 @@ class RsuRepositoryTest {
         assertNull(results.get(3).getTimestamp());
         assertNull(results.get(3).getResult());
         assertEquals("offline", service.getOnlineStatuses("TestOrg").get("10.0.0.3").getCurrentStatus());
+    }
+
+    @Test
+    void mapMetadataDoesNotFetchCredentialsSeparatelyForEachRsu() throws Exception {
+        var owner = organizationRepository.save(fixtures.createOrg(null, "MetadataOrg", "review@example.test"));
+        var graph = saveSharedGraph(owner);
+        for (int i = 1; i <= 3; i++) {
+            var credential = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(owner));
+            saveRsu(new RsuGraph(graph.model, credential, graph.snmpCredential, graph.protocol), owner, "192.0.2." + i);
+        }
+        entityManager.flush();
+        entityManager.clear();
+        var statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        boolean enabled = statistics.isStatisticsEnabled();
+        try {
+            statistics.setStatisticsEnabled(true);
+            statistics.clear();
+            var devices = rsuRepository.findAllRsusByOrganizationName("MetadataOrg");
+            long fetched = statistics.getPrepareStatementCount();
+            var mapped = devices.stream().map(geoMapper::toDto).toList();
+            assertEquals(3, mapped.size());
+            assertEquals(owner.getId(), mapped.getFirst().getProperties().getOwnerOrganizationId());
+            assertEquals(graph.protocol.getProtocolCode(), mapped.getFirst().getProperties().getSnmpProtocolCode());
+            assertEquals(fetched, statistics.getPrepareStatementCount(), "Mapping metadata must not issue per-device queries");
+        } finally {
+            statistics.setStatisticsEnabled(enabled);
+        }
     }
 
     @Test

@@ -3,11 +3,6 @@
 exports[`should take a snapshot 1`] = `
 <div>
   <div>
-    <p
-      class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-    >
-      Warning: This action could result in taking the RSU offline
-    </p>
     <button
       class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorInfo MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorInfo museo-slab capital-case css-mocked-MuiButtonBase-root-MuiButton-root"
       tabindex="0"
