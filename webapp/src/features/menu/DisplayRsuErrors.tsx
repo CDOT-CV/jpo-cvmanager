@@ -112,6 +112,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   // Create RSU Errors Table Data
   const rsuTableData = rsuData.map((rsu) => {
     return {
+      id: rsu.properties.ipv4_address,
       rsu: rsu.properties.ipv4_address,
       road: rsu.properties.primary_route,
       lat: rsu.geometry.coordinates[1],

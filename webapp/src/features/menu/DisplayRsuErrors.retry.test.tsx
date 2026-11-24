@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { ThemeProvider } from '@mui/material'
 import { Provider } from 'react-redux'
 import fetchMock from 'jest-fetch-mock'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DisplayRsuErrors from './DisplayRsuErrors'
 import EnvironmentVars from '../../EnvironmentVars'
 import { setupStore } from '../../store'
@@ -42,6 +42,39 @@ describe('RSU status retry requests', () => {
     store.dispatch(rsuOnlineStatusApiSlice.util.resetApiState())
     store.dispatch(scmsApiSlice.util.resetApiState())
     fetchMock.dontMock()
+  })
+
+  it.each(['Search', 'Print Full Report', 'I-25 MILE 1'])('preserves focus on %s through a freshness tick and a completed poll', async (name) => {
+    vi.useFakeTimers()
+    try {
+      fetchMock.mockResponse(async (request) =>
+        JSON.stringify(request.url === onlineUrl ? onlineResponse : scmsResponse)
+      )
+      render(<ThemeProvider theme={testTheme}><Provider store={store}><DisplayRsuErrors /></Provider></ThemeProvider>)
+      const advance = async (ms: number) => {
+        await act(async () => { await vi.advanceTimersByTimeAsync(ms) })
+      }
+      await advance(0)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      const search = screen.getByPlaceholderText('Search')
+      const control = name === 'Search' ? search : screen.getByRole('button', { name: new RegExp(name, 'i') })
+      if (name === 'Search') fireEvent.change(search, { target: { value: ip } })
+      act(() => control.focus())
+
+      await advance(15_000)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(control).toHaveFocus()
+      if (name === 'Search') expect(search).toHaveValue(ip)
+
+      await advance(45_000)
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      expect(screen.getByRole('status')).toHaveTextContent(/^Updated /)
+      expect(control).toHaveFocus()
+      if (name === 'Search') expect(search).toHaveValue(ip)
+    } finally {
+      cleanup()
+      vi.useRealTimers()
+    }
   })
 
   it.each([

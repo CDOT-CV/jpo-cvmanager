@@ -56,6 +56,16 @@ const useStyles = makeStyles({
   },
 })
 
+// Keep the toolbar mounted when table data refreshes.
+const AdminTableToolbar = (props: React.ComponentProps<typeof MTableToolbar>) => {
+  const classes = useStyles()
+  return (
+    <div className={classes.toolbarWrapper}>
+      <MTableToolbar {...props} />
+    </div>
+  )
+}
+
 const getActionIcon = (title: string) => {
   switch (title) {
     case 'New':
@@ -110,19 +120,94 @@ export const buildAdminTableQueryParams = (
   return params
 }
 
+// Function to check if a row is missing organizations
+const isMissingOrganizations = (rowData: any) => {
+  try {
+    return Array.isArray(rowData?.organizations) && rowData?.organizations?.length === 0
+  } catch (e) {
+    console.error('Error checking if row is missing organizations:', e)
+    return false
+  }
+}
+
+const AdminTableCell = (cellProps: React.ComponentProps<typeof MTableCell>) => {
+  const theme = useTheme()
+  const rowData = cellProps.data
+  return (
+    <Tooltip title={isMissingOrganizations(rowData) ? 'Missing organizations' : ''}>
+      <MTableCell
+        sx={{
+          padding: '6px 16px',
+          textTransform: 'none !important',
+          '&.MuiTableCell-body': {
+            color: theme.palette.text.secondary + ' !important',
+          },
+          '& .MuiButtonBase-root': {
+            borderRadius: '4px !important',
+          },
+        }}
+        {...cellProps}
+      />
+    </Tooltip>
+  )
+}
+
+const AdminTableAction = (actionProps: any) => {
+  const theme = useTheme()
+  const { action } = actionProps
+  const iconProps = action?.iconProps
+
+  // Allow admin pages to place controls such as filters alongside the
+  // standard table actions without duplicating the shared toolbar
+  if (iconProps?.itemType === 'custom' && typeof iconProps?.render === 'function') {
+    return iconProps.render()
+  }
+
+  if (iconProps?.itemType === 'displayIcon') {
+    return (
+      <Box>
+        <action.icon />
+      </Box>
+    )
+  }
+
+  if (iconProps?.title !== null && iconProps?.title !== undefined) {
+    return (
+      <Button
+        variant={iconProps?.itemType}
+        color={iconProps?.color}
+        size="small"
+        startIcon={getActionIcon(iconProps?.title)}
+        sx={{ padding: '4px 8px', margin: '0px 4px' }}
+        onClick={action?.onClick}
+      >
+        <Typography className="capital-case museo-slab" fontSize="12px">
+          {iconProps?.title}
+        </Typography>
+      </Button>
+    )
+  }
+
+  return (
+    <Box
+      sx={{
+        '&:hover': {
+          backgroundColor: alpha(theme.palette.custom.rowActionIcon, 0.1),
+          borderRadius: '4px',
+        },
+        '& .MuiButtonBase-root': {
+          borderRadius: '4px',
+          color: theme.palette.custom.rowActionIcon,
+        },
+      }}
+    >
+      <MTableAction {...actionProps} />
+    </Box>
+  )
+}
+
 const AdminTable = (props: AdminTableProps) => {
   const theme = useTheme()
-  const classes = useStyles()
-
-  // Function to check if a row is missing organizations
-  const isMissingOrganizations = (rowData: any) => {
-    try {
-      return Array.isArray(rowData?.organizations) && rowData?.organizations?.length === 0
-    } catch (e) {
-      console.error('Error checking if row is missing organizations:', e)
-      return false
-    }
-  }
 
   // Determine if server-side pagination is enabled
   const isServerSidePagination = props.handleQueryChange !== undefined
@@ -175,85 +260,9 @@ const AdminTable = (props: AdminTableProps) => {
           debounceInterval: 500,
         }}
         components={{
-          Cell: (cellProps) => {
-            const rowData = cellProps.data
-            return (
-              <Tooltip title={isMissingOrganizations(rowData) ? 'Missing organizations' : ''}>
-                <MTableCell
-                  sx={{
-                    padding: '6px 16px',
-                    textTransform: 'none !important',
-                    '&.MuiTableCell-body': {
-                      color: theme.palette.text.secondary + ' !important',
-                    },
-                    '& .MuiButtonBase-root': {
-                      borderRadius: '4px !important',
-                    },
-                  }}
-                  {...cellProps}
-                />
-              </Tooltip>
-            )
-          },
-          Action: (actionProps: any) => {
-            const { action } = actionProps
-            const iconProps = action?.iconProps
-
-            // Allow admin pages to place controls such as filters alongside the
-            // standard table actions without duplicating the shared toolbar
-            if (iconProps?.itemType === 'custom' && typeof iconProps?.render === 'function') {
-              return iconProps.render()
-            }
-
-            if (iconProps?.itemType === 'displayIcon') {
-              return (
-                <Box>
-                  <action.icon />
-                </Box>
-              )
-            }
-
-            if (iconProps?.title !== null && iconProps?.title !== undefined) {
-              return (
-                <Button
-                  variant={iconProps?.itemType}
-                  color={iconProps?.color}
-                  size="small"
-                  startIcon={getActionIcon(iconProps?.title)}
-                  sx={{ padding: '4px 8px', margin: '0px 4px' }}
-                  onClick={action?.onClick}
-                >
-                  <Typography className="capital-case museo-slab" fontSize="12px">
-                    {iconProps?.title}
-                  </Typography>
-                </Button>
-              )
-            }
-
-            return (
-              <Box
-                sx={{
-                  '&:hover': {
-                    backgroundColor: alpha(theme.palette.custom.rowActionIcon, 0.1),
-                    borderRadius: '4px',
-                  },
-                  '& .MuiButtonBase-root': {
-                    borderRadius: '4px',
-                    color: theme.palette.custom.rowActionIcon,
-                  },
-                }}
-              >
-                <MTableAction {...actionProps} />
-              </Box>
-            )
-          },
-          Toolbar: (toolbarProps) => {
-            return (
-              <div className={classes.toolbarWrapper}>
-                <MTableToolbar {...toolbarProps} />
-              </div>
-            )
-          },
+          Cell: AdminTableCell,
+          Action: AdminTableAction,
+          Toolbar: AdminTableToolbar,
         }}
       />
     </Box>
