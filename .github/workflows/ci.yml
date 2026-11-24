@@ -62,11 +62,6 @@ jobs:
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: |
-          apt-get update
-          apt-get -y install python3-coverage python3-pip python3-pytest
-
       - name: Install Python Requirements
         run: python3 -m pip install -r $GITHUB_WORKSPACE/services/requirements.txt
 
@@ -74,7 +69,6 @@ jobs:
         continue-on-error: false
         run: |
           # Generate coverage paths relative to Sonar's repository-root projectBaseDir
-          export PYTHONPATH=$PYTHONPATH:/usr/lib/python3/dist-packages
           cd "$GITHUB_WORKSPACE"
 
           # Run tests and generate coverage report
