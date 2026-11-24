@@ -240,6 +240,46 @@ describe('DisplayRsuErrors snapshot', () => {
   })
 })
 
+describe('DisplayRsuErrors email readiness', () => {
+  beforeEach(() => {
+    mockRsuOnline()
+    mockUseGetScmsStatusQuery.mockReturnValue({ currentData: {} } as any)
+  })
+
+  describe.each([
+    ['online', mockUseGetRsuOnlineStatusesQuery],
+    ['SCMS', mockUseGetScmsStatusQuery],
+    ['last-online', mockUseGetRsuLastOnlineQuery],
+  ] as const)('%s query', (_name, queryHook) => {
+    it.each(['isLoading', 'isFetching', 'isUninitialized'])('disables email while %s', (flag) => {
+      const sendSummary = vi.fn()
+      vi.mocked(useSendRsuErrorSummaryEmailMutation).mockReturnValue([sendSummary] as any)
+      queryHook.mockReturnValue({ [flag]: true } as any)
+      renderComponent(rsuPreloadedState, testRsu)
+      const send = screen.getByRole('button', { name: 'Send Error Summary Email' })
+      expect(send).toBeDisabled()
+      fireEvent.click(send)
+      expect(sendSummary).not.toHaveBeenCalled()
+    })
+  })
+
+  it('enables email once all queries settle without requiring every device to have a record', () => {
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ isFetching: true } as any)
+    const store = setupStore(rsuPreloadedState)
+    const content = () => (
+      <ThemeProvider theme={testTheme}>
+        <Provider store={store}><DisplayRsuErrors initialSelectedRsu={testRsu} /></Provider>
+      </ThemeProvider>
+    )
+    const view = render(content())
+    expect(screen.getByRole('button', { name: 'Send Error Summary Email' })).toBeDisabled()
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ currentData: {} } as any)
+    mockUseGetRsuLastOnlineQuery.mockReturnValue({ currentData: { ip: TEST_IP, last_online: null } } as any)
+    view.rerender(content())
+    expect(screen.getByRole('button', { name: 'Send Error Summary Email' })).toBeEnabled()
+  })
+})
+
 describe('DisplayRsuErrors health-state regressions', () => {
   beforeEach(() => {
     mockRsuOnline()

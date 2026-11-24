@@ -49,6 +49,9 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   const lastOnlineQuery = useGetRsuLastOnlineQuery(selectedRsuIp, {
     skip: !selectedRsuIp,
   })
+  const isSummaryLoading = [onlineStatusQuery, scmsStatusQuery, lastOnlineQuery].some(
+    (query) => query.isLoading || query.isFetching || query.isUninitialized
+  )
   const contentRef = useRef(null)
   const errorRef = useRef(null)
   const userEmail = useSelector(selectEmail)
@@ -226,6 +229,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
             <Button
               variant="contained"
               style={{ margin: '1rem' }}
+              disabled={isSummaryLoading}
               onClick={() => {
                 const lastOnlineStatus =
                   getStatusLabel(getRSUOnlineStatus(selectedRSU.properties.ipv4_address)) +
