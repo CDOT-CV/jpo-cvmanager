@@ -110,6 +110,7 @@ import {
   selectCountsEndDate,
   selectCountsMsgType,
   selectCountsStartDate,
+  selectFleetFilters,
   selectMenuSelection,
   toggleMapMenuSelection,
 } from '../features/menu/menuSlice'
@@ -140,6 +141,7 @@ import {
   WZDX_POINT_LAYER_ID,
   WzdxMapLayer,
 } from '../components/map-layers/WzdxMapLayer'
+import { useFleetDevices } from '../features/rsu-health/fleet-filters'
 import { useRsuHealth } from '../features/rsu-health/useRsuHealth'
 import { RsuHealthControls } from '../features/rsu-health/RsuHealthControls'
 import { useGetGeoMsgDataMutation } from '../features/api/geoMsgApiSlice'
@@ -443,13 +445,6 @@ function MapPage() {
   const [pageOpen] = useState(true)
   const isAdminOrAbove = useSelector(selectIsAdminOrAbove)
 
-  // Vendor filter local state variable
-  const [selectedVendor, setSelectedVendor] = useState('Select Vendor')
-  const vendorArray: string[] = ['Select Vendor', 'Commsignia', 'Yunex', 'Kapsch']
-  const setVendor = (newVal) => {
-    setSelectedVendor(newVal)
-  }
-
   const mbStyle = mapStyles[theme.palette.custom.mapStyleFilePath] || mapStyles['mapbox-styles/cdot-dark.json']
 
   // useEffects for Mapbox
@@ -677,72 +672,23 @@ function MapPage() {
     }
   }, [rsuData, rsuCounts])
 
-  const {
-    currentData: onlineData,
-    isLoading: onlineLoading,
-    isFetching: onlineFetching,
-    isError: onlineError,
-    isUninitialized: onlineUninitialized,
-  } = onlineStatusQuery
-  const {
-    currentData: scmsData,
-    isLoading: scmsLoading,
-    isFetching: scmsFetching,
-    isError: scmsError,
-    isUninitialized: scmsUninitialized,
-  } = scmsStatusQuery
-
-  const rsuPointData = useMemo(
-    () =>
-      ({
-        type: 'FeatureCollection',
-        features: (rsuData ?? [])
-          .filter((rsu) => selectedVendor === 'Select Vendor' || rsu.properties.manufacturer_name === selectedVendor)
-          .map((rsu) => {
-            const ip = rsu.properties.ipv4_address
-            const status =
-              displayType === 'online'
-                ? getOnlineStatus(ip, {
-                    currentData: onlineData,
-                    isLoading: onlineLoading,
-                    isFetching: onlineFetching,
-                    isError: onlineError,
-                    isUninitialized: onlineUninitialized,
-                  })
-                : getScmsStatus(ip, {
-                    currentData: scmsData,
-                    isLoading: scmsLoading,
-                    isFetching: scmsFetching,
-                    isError: scmsError,
-                    isUninitialized: scmsUninitialized,
-                  })
-
-            return {
-              type: 'Feature' as const,
-              id: rsu.id,
-              geometry: rsu.geometry,
-              properties: {
-                ipv4_address: ip,
-                display_color: getStatusMarkerColor(status),
-              },
-            }
-          }),
-      }) as GeoJSON.FeatureCollection<GeoJSON.Point>,
-    [
-      displayType,
-      rsuData,
-      selectedVendor,
-      onlineData,
-      onlineLoading,
-      onlineFetching,
-      onlineError,
-      onlineUninitialized,
-      scmsData,
-      scmsLoading,
-      scmsFetching,
-      scmsError,
-      scmsUninitialized,
-    ]
+  const fleetFilters = useSelector(selectFleetFilters)
+  const { devices, visibleDevices } = useFleetDevices(rsuData, fleetFilters, onlineStatusQuery, scmsStatusQuery)
+  const hasFleetFilters = Boolean(fleetFilters.search.trim() || fleetFilters.vendor || fleetFilters.attention)
+  const rsuPointData = useMemo<GeoJSON.FeatureCollection<GeoJSON.Point>>(
+    () => ({
+      type: 'FeatureCollection',
+      features: visibleDevices.map(({ rsu, online, scms }) => ({
+        type: 'Feature',
+        id: rsu.id,
+        geometry: rsu.geometry,
+        properties: {
+          ipv4_address: rsu.properties.ipv4_address,
+          display_color: getStatusMarkerColor(displayType === 'online' ? online : scms),
+        },
+      })),
+    }),
+    [displayType, visibleDevices]
   )
 
   const intersectionPointData = useMemo<GeoJSON.FeatureCollection<GeoJSON.Point>>(
@@ -1092,25 +1038,11 @@ function MapPage() {
             <>
               <Divider />
               <RsuHealthControls health={health}>
-                <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
-                  <InputLabel id="rsu-vendor-label" htmlFor="vendor">Vendor</InputLabel>
-                  <Select
-                    id="vendor"
-                    labelId="rsu-vendor-label"
-                    label="Vendor"
-                    value={selectedVendor}
-                    onChange={(event) => {
-                      const vendor = event.target.value as string
-                      setVendor(vendor)
-                    }}
-                  >
-                    {vendorArray.map((vendor) => (
-                      <MenuItem key={vendor} value={vendor}>
-                        <Typography>{vendor === 'Select Vendor' ? 'All Vendors' : vendor}</Typography>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                {hasFleetFilters && (
+                  <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+                    {`${visibleDevices.length} of ${devices.length} RSUs shown`}
+                  </Typography>
+                )}
                 <FormControl component="fieldset" fullWidth>
                   <Typography component="legend" variant="body2" color="text.secondary">Status View</Typography>
                   <RadioGroup aria-label="RSU status view" value={displayType} onChange={handleRsuDisplayTypeChange}>
@@ -1196,7 +1128,7 @@ function MapPage() {
                     }}
                     disabled={!(configCoordinates.length > 2)}
                     onClick={() => {
-                      dispatch(geoRsuQuery(selectedVendor))
+                      dispatch(geoRsuQuery(fleetFilters.vendor || 'Select Vendor'))
                     }}
                   >
                     Configure RSUs

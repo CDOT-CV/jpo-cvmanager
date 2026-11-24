@@ -3,6 +3,7 @@ import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { RootState } from '../../store'
 import { MessageType } from '../../models/RsuApi'
 import dayjs from 'dayjs'
+import { emptyFleetFilters, type FleetFilters } from '../rsu-health/fleet-filters'
 
 const initialState = {
   countsMsgType: 'BSM' as MessageType,
@@ -11,6 +12,7 @@ const initialState = {
   displayCounts: false,
   displayRsuErrors: false,
   menuSelection: [],
+  fleetFilters: emptyFleetFilters,
 }
 
 export const toggleMapMenuSelection = createAsyncThunk(
@@ -55,6 +57,9 @@ export const menuSlice = createSlice({
     value: initialState,
   },
   reducers: {
+    setFleetFilters: (state, action: PayloadAction<Partial<FleetFilters>>) => {
+      state.value.fleetFilters = { ...(state.value.fleetFilters ?? emptyFleetFilters), ...action.payload }
+    },
     setCountsMsgType: (state, action: PayloadAction<MessageType>) => {
       state.value.countsMsgType = action.payload
     },
@@ -79,7 +84,9 @@ export const menuSlice = createSlice({
   },
 })
 
-export const { setCountsMsgType, setCountsStartDate, setCountsEndDate, setDisplay } = menuSlice.actions
+export const { setFleetFilters, setCountsMsgType, setCountsStartDate, setCountsEndDate, setDisplay } = menuSlice.actions
+
+export const selectFleetFilters = (state: RootState) => state.menu.value.fleetFilters ?? emptyFleetFilters
 
 export const selectLoading = (state: RootState) => state.menu.loading
 export const selectCountsMsgType = (state: RootState) => state.menu.value.countsMsgType

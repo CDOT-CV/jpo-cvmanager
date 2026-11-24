@@ -3,6 +3,7 @@ import { Provider } from 'react-redux'
 import { ThemeProvider } from '@mui/material'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MapPage from './Map'
+import Menu from '../features/menu/Menu'
 import EnvironmentVars from '../EnvironmentVars'
 import { setupStore } from '../store'
 import { testTheme } from '../styles'
@@ -59,13 +60,13 @@ const rsu: RsuInfo = {
   },
 }
 
-const renderMap = async () => {
+const renderMap = async (withMenu = false, count = 1) => {
   const store = setupStore({ user: { value: {
     authLoginData: { token: 'test-token' },
     organization: { name: 'test-org', organization: 'test-org', role: 'admin' },
   } } })
-  render(<ThemeProvider theme={testTheme}><Provider store={store}><MapPage /></Provider></ThemeProvider>)
-  await waitFor(() => expect(store.getState().rsu.value.rsuData).toHaveLength(1))
+  render(<ThemeProvider theme={testTheme}><Provider store={store}><MapPage />{withMenu && <Menu />}</Provider></ThemeProvider>)
+  await waitFor(() => expect(store.getState().rsu.value.rsuData).toHaveLength(count))
   return store
 }
 
@@ -203,18 +204,54 @@ describe('main map device health', () => {
     expect(screen.getByRole('button', { name: 'Clear configuration points' })).toBeEnabled()
   })
 
-  it('filters RSUs from the health controls without a separate filter section', async () => {
-    await renderMap()
-    const healthControls = within(screen.getByRole('region', { name: 'RSU Health' }))
-    expect(healthControls.getByText('Status View')).toBeInTheDocument()
-    expect(screen.queryByText('Filter RSUs')).not.toBeInTheDocument()
-    fireEvent.mouseDown(healthControls.getByRole('combobox', { name: 'Vendor' }))
-    fireEvent.click(screen.getByRole('option', { name: 'Yunex' }))
-    expect(JSON.parse(screen.getByTestId('rsu-source').getAttribute('data-source')!).features).toHaveLength(0)
-    fireEvent.mouseDown(healthControls.getByRole('combobox', { name: 'Vendor' }))
-    fireEvent.click(screen.getByRole('option', { name: 'All Vendors' }))
-    expect(JSON.parse(screen.getByTestId('rsu-source').getAttribute('data-source')!).features).toHaveLength(1)
-    expect(healthControls.getByRole('radio', { name: 'Online Status' })).toBeChecked()
+  it('shares RSU Status search, vendor and health filters with the map and leaves reports fleet-wide', async () => {
+    const otherIp = '10.0.0.2'
+    vi.mocked(RsuApi.getRsuInfo).mockResolvedValue({ rsuList: [rsu, {
+      ...rsu,
+      id: 2,
+      properties: { ...rsu.properties, ipv4_address: otherIp, primary_route: 'US-36', milepost: 12, manufacturer_name: 'Yunex' },
+    }] })
+    vi.mocked(useGetRsuOnlineStatusesQuery).mockReturnValue({
+      currentData: { [ip]: { current_status: 'offline' }, [otherIp]: { current_status: 'unstable' } },
+    } as any)
+
+    await renderMap(true, 2)
+    const mapIps = () => JSON.parse(screen.getByTestId('rsu-source').getAttribute('data-source')!)
+      .features.map((feature) => feature.properties.ipv4_address)
+
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'RSU Status' })) })
+    const filters = within(screen.getByRole('region', { name: 'Fleet filters' }))
+    const search = filters.getByRole('textbox', { name: 'Search RSUs' })
+    const table = within(screen.getByText('Print Full Report').closest('.admin-table') as HTMLElement)
+    const report = within(screen.getByText('RSU Summary').parentElement!)
+
+    expect(filters.getByRole('button', { name: 'Unknown (2)' })).toBeInTheDocument()
+    fireEvent.change(search, { target: { value: 'us36 milepost 12' } })
+    expect(filters.getByRole('button', { name: 'Offline (0)' })).toBeInTheDocument()
+    expect(filters.getByText('1 of 2 RSUs')).toBeInTheDocument()
+    expect(mapIps()).toEqual([otherIp])
+    expect(table.queryByText(ip)).not.toBeInTheDocument()
+    expect(table.getByText(otherIp)).toBeInTheDocument()
+    expect(report.getByText(ip)).toBeInTheDocument()
+
+    fireEvent.click(filters.getByRole('button', { name: 'Clear filters' }))
+    fireEvent.mouseDown(filters.getByRole('combobox', { name: 'Vendor' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Acme' }))
+    fireEvent.click(filters.getByRole('button', { name: 'Offline (1)' }))
+    expect(mapIps()).toEqual([ip])
+    expect(table.getByText(ip)).toBeInTheDocument()
+    fireEvent.change(search, { target: { value: otherIp } })
+    expect(filters.getByText('0 of 2 RSUs')).toBeInTheDocument()
+    expect(mapIps()).toEqual([])
+    fireEvent.click(filters.getByRole('button', { name: 'Clear filters' }))
+    expect(mapIps()).toEqual([ip, otherIp])
+
+    fireEvent.change(search, { target: { value: otherIp } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'RSU Status' })) })
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Fleet filters' })).not.toBeInTheDocument())
+    expect(mapIps()).toEqual([otherIp])
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'RSU Status' })) })
+    expect(screen.getByRole('textbox', { name: 'Search RSUs' })).toHaveValue(otherIp)
   })
 
   it('preserves polygon-selection and clear actions in the configuration controls', async () => {

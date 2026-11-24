@@ -191,10 +191,10 @@ const Help = () => {
         </ul>
 
         <p>
-          RSU Health contains data fetch times, the Online/SCMS status view, and the vendor filter. Health data updates
+          RSU Health contains data fetch times and the Online/SCMS status view. Health data updates
           automatically. RSU Health and RSU Configuration are available while the RSU Viewer layer is enabled; hiding the
           layer preserves their selections and configuration points.
-          The status view changes RSU marker colors; the vendor filter limits which RSUs are shown.
+          The status view changes RSU marker colors. Use RSU Status to search and filter the devices shown in the table and on the map.
           The RSU Configuration section allows
           Operators/Admins to select RSUs on the map and configure them in bulk.
         </p>

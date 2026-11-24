@@ -17,6 +17,7 @@ import reducer, {
   selectCountsStartDate,
   selectCountsEndDate,
 } from './menuSlice'
+import { emptyFleetFilters } from '../rsu-health/fleet-filters'
 import { RootState } from '../../store'
 import { configureStore } from '@reduxjs/toolkit'
 import { vi } from 'vitest'
@@ -55,6 +56,7 @@ describe('menu reducer', () => {
         displayCounts: false,
         displayRsuErrors: false,
         menuSelection: [],
+        fleetFilters: emptyFleetFilters,
       },
     }
 
@@ -78,6 +80,7 @@ describe('reducers', () => {
       displayCounts: false,
       displayRsuErrors: false,
       menuSelection: [],
+      fleetFilters: emptyFleetFilters,
     },
   }
 

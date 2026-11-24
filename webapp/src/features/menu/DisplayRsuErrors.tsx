@@ -7,6 +7,7 @@ import '../../components/css/SnmpwalkMenu.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import MaterialTable, { Action } from '@material-table/core'
 import { RootState } from '../../store'
+import { emptyFleetFilters, useFleetDevices } from '../rsu-health/fleet-filters'
 import { useRsuHealth } from '../rsu-health/useRsuHealth'
 import { RsuHealthSummary } from '../rsu-health/RsuHealthSummary'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
@@ -17,11 +18,11 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AdminTable from '../../components/AdminTable'
 import { StatusRetryAlert } from '../../components/StatusRetryAlert'
 import { setMapViewState } from '../../pages/mapSlice'
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Stack, Typography, useTheme } from '@mui/material'
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, MenuItem, Stack, TextField, Typography, useTheme } from '@mui/material'
 import { RsuInfo } from '../../models/RsuApi'
 import { useReactToPrint } from 'react-to-print'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import { toggleMapMenuSelection } from './menuSlice'
+import { selectFleetFilters, setFleetFilters, toggleMapMenuSelection } from './menuSlice'
 import toast from 'react-hot-toast'
 import { useSendRsuErrorSummaryEmailMutation } from '../api/emailApiSlice'
 import { selectEmail } from '../../generalSlices/userSlice'
@@ -47,6 +48,9 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   const selectedRsuIp = selectedRSU?.properties.ipv4_address ?? ''
   const health = useRsuHealth(organization, selectedRsuIp)
   const { onlineStatusQuery, scmsStatusQuery, lastOnlineQuery } = health
+  const filters = useSelector(selectFleetFilters)
+  const { devices, visibleDevices, counts, vendors } = useFleetDevices(rsuData, filters, onlineStatusQuery, scmsStatusQuery)
+  const visibleIps = new Set(visibleDevices.map(({ rsu }) => rsu.properties.ipv4_address))
   const contentRef = useRef(null)
   const errorRef = useRef(null)
   const userEmail = useSelector(selectEmail)
@@ -110,15 +114,15 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   }
 
   // Create RSU Errors Table Data
-  const rsuTableData = rsuData.map((rsu) => {
+  const rsuTableData = devices.map(({ rsu, online, scms }) => {
     return {
       id: rsu.properties.ipv4_address,
       rsu: rsu.properties.ipv4_address,
       road: rsu.properties.primary_route,
       lat: rsu.geometry.coordinates[1],
       lon: rsu.geometry.coordinates[0],
-      online_status: getRSUOnlineStatus(rsu.properties.ipv4_address),
-      scms_status: getRSUSCMSStatus(rsu.properties.ipv4_address),
+      online_status: online,
+      scms_status: scms,
       cert_expiration: getRSUSCMSExpirationDisplay(rsu.properties.ipv4_address),
       milepost: rsu.properties.milepost,
       primary_route: rsu.properties.primary_route,
@@ -249,7 +253,61 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
         <Stack direction="column" spacing={1} sx={{ pl: 1, pr: 1, '& .MuiToolbar-root': { minHeight: 48 } }}>
           {statusHeader}
           {healthErrors}
+          <Stack component="section" aria-label="Fleet filters" spacing={1} sx={{ px: 1, pt: 1 }}>
+            <Stack direction="row" gap={0.5} flexWrap="wrap" aria-label="Filter by health" role="group">
+              {counts.map(({ id, label, count }) => (
+                <Button
+                  key={id}
+                  size="small"
+                  variant={filters.attention === id ? 'contained' : 'outlined'}
+                  aria-pressed={filters.attention === id}
+                  sx={{ textTransform: 'none' }}
+                  onClick={() => dispatch(setFleetFilters({ attention: filters.attention === id ? '' : id }))}
+                >
+                  {label} ({count})
+                </Button>
+              ))}
+            </Stack>
+            <Stack direction="row" spacing={1}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Search RSUs"
+                placeholder="Search"
+                helperText="IP, route, or milepost"
+                value={filters.search}
+                onChange={(event) => dispatch(setFleetFilters({ search: event.target.value }))}
+              />
+              <TextField
+                select
+                size="small"
+                label="Vendor"
+                sx={{ minWidth: 140 }}
+                value={filters.vendor}
+                onChange={(event) => dispatch(setFleetFilters({ vendor: event.target.value }))}
+              >
+                <MenuItem value="">All Vendors</MenuItem>
+                {[...new Set([...vendors, filters.vendor].filter(Boolean))].map((vendor) => (
+                  <MenuItem key={vendor} value={vendor}>{vendor}</MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography variant="body2" aria-live="polite">
+                {`${visibleDevices.length} of ${devices.length} RSUs`}
+              </Typography>
+              <Button
+                size="small"
+                sx={{ textTransform: 'none' }}
+                disabled={!filters.search && !filters.vendor && !filters.attention}
+                onClick={() => dispatch(setFleetFilters(emptyFleetFilters))}
+              >
+                Clear filters
+              </Button>
+            </Stack>
+          </Stack>
           <AdminTable
+            search={false}
             actions={tableActions}
             columns={[
               {
@@ -326,7 +384,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
               },
               { title: 'RSU IP', field: 'rsu' },
             ]}
-            data={rsuTableData}
+            data={rsuTableData.filter(({ rsu }) => visibleIps.has(rsu))}
             title=""
             selection={false}
             defaultPageSize={5}
