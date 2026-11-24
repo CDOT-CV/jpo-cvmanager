@@ -1,5 +1,6 @@
 import reducer, {
   addOrModifyOrgAssociationByOrgName,
+  getFilteredOrganizationNameObjects,
   selectIsAdminOrAbove,
   selectIsOperatorOrAbove,
   selectIsSuperUser,
@@ -54,6 +55,30 @@ describe('user reducer', () => {
         loginMessage: '',
         routeNotFound: false,
       },
+    })
+  })
+
+  describe('organization name lookup', () => {
+    it('prefers directory names for organizations missing or stale in the JWT and falls back to the ID', () => {
+      expect(
+        getFilteredOrganizationNameObjects(
+          [7, 42],
+          [{ organization: 7, name: 'Old name', role: 'ADMIN' }],
+          [{ id: 7, name: 'Current name' }]
+        )
+      ).toEqual([
+        { id: 7, name: 'Current name' },
+        { id: 42, name: 42 },
+      ])
+    })
+
+    it('keeps JWT organization names when no directory is provided', () => {
+      expect(
+        getFilteredOrganizationNameObjects([7, 42], [{ organization: 7, name: 'JWT name', role: 'ADMIN' }])
+      ).toEqual([
+        { id: 7, name: 'JWT name' },
+        { id: 42, name: 42 },
+      ])
     })
   })
 })

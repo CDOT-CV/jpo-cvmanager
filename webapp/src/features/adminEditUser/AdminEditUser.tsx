@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
-import { selectFilteredOrganizationNameObjects, selectSuperUser } from '../../generalSlices/userSlice'
+import { selectSuperUser } from '../../generalSlices/userSlice'
+import { useOrganizationNameOptions } from '../../hooks/useOrganizationNameOptions'
 
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -24,7 +25,6 @@ import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import 'react-widgets/styles.css'
-import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../adminRsuTab/Admin.css'
@@ -47,9 +47,7 @@ const AdminEditUser = () => {
   const { data: userAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetUserAllowedSelectionsQuery()
   const [patchUser, { isLoading: isPatchingUser }] = usePatchUserMutation()
   const isSuperUser = useSelector(selectSuperUser)
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, userAllowedSelections?.organizations ?? [])
-  )
+  const allowedOrganizations = useOrganizationNameOptions(userAllowedSelections?.organizations ?? [])
 
   const [open, setOpen] = useState(true)
 

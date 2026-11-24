@@ -25,9 +25,7 @@ import { useGetRsuAllowedSelectionsQuery, useCreateRsuMutation } from '../api/rs
 
 import '../adminRsuTab/Admin.css'
 import '../../styles/fonts/museo-slab.css'
-import { useSelector } from 'react-redux'
-import { RootState } from '../../store'
-import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
+import { useOrganizationNameOptions } from '../../hooks/useOrganizationNameOptions'
 
 export type AdminAddRsuForm = {
   ip: string
@@ -82,9 +80,7 @@ const AdminAddRsu = () => {
   // RTK Query hooks
   const { data: allowedSelections, isLoading: isLoadingData } = useGetRsuAllowedSelectionsQuery()
   const [createRsu, { isLoading: isCreating }] = useCreateRsuMutation()
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
-  )
+  const allowedOrganizations = useOrganizationNameOptions(allowedSelections?.organizations ?? [])
 
   const {
     register,

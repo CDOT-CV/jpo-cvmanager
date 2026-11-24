@@ -23,9 +23,7 @@ import {
   useCreateIntersectionMutation,
   useGetIntersectionAllowedSelectionsQuery,
 } from '../api/adminIntersectionApiSlice'
-import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
-import { useSelector } from 'react-redux'
-import { RootState } from '../../store'
+import { useOrganizationNameOptions } from '../../hooks/useOrganizationNameOptions'
 
 export type AdminAddIntersectionForm = {
   intersection_id: string
@@ -57,9 +55,7 @@ const AdminAddIntersection = () => {
   // RTK Query hooks
   const { data: allowedSelections } = useGetIntersectionAllowedSelectionsQuery()
   const [createIntersection] = useCreateIntersectionMutation()
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
-  )
+  const allowedOrganizations = useOrganizationNameOptions(allowedSelections?.organizations ?? [])
 
   const {
     register,
