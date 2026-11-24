@@ -41,9 +41,6 @@ export type RsuCounts = {
 // No response used, this method does not appear to be used
 export type GetRsuUserAuthResp = object
 
-// No response used, this method does not appear to be used
-export type GetRsuCommandResp = object
-
 export type RsuMapInfo = {
   geojson: GeoJSON.FeatureCollection<GeoJSON.Geometry>
   date: string
@@ -55,12 +52,6 @@ export type IssScmsStatus = {
     health: '0' | '1'
     expiration: string
   }
-}
-
-export type RsuCommandPostBody = {
-  command: 'rsufwdsnmpwalk' | 'rsufwdsnmpset' | 'rsufwdsnmpset-del' | 'upgrade-rsu' | 'upgrade-check'
-  rsu_ip: string[]
-  args: object
 }
 
 export type RsuUpgradePostBody = {
