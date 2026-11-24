@@ -6,6 +6,7 @@ type SideBarHeaderProps = {
   onClick: () => void
   title: string
   children?: ReactNode
+  mapHeading?: boolean
 }
 
 export const SideBarHeader = (props: SideBarHeaderProps) => {
@@ -17,7 +18,14 @@ export const SideBarHeader = (props: SideBarHeaderProps) => {
   )
   return (
     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-      <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
+      <Typography variant={props.mapHeading ? 'subtitle2' : 'body1'} sx={{
+        color: theme.palette.text.primary,
+        ...(props.mapHeading && {
+          fontFamily: '"museo-slab", Arial, Helvetica, sans-serif',
+          fontSize: '1rem',
+          fontWeight: 500,
+        }),
+      }}>
         {props.title}
       </Typography>
       {props.children ? (

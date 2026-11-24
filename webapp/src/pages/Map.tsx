@@ -1232,7 +1232,7 @@ function MapPage() {
           className="museo-slab capital-case"
           onClick={() => dispatch(toggleMapMenuSelection('Display RSU Status'))}
         >
-          Display RSU Status
+          RSU Status
         </PrimaryButton>
       </ConditionalRenderRsu>
       <Container

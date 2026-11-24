@@ -157,6 +157,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
 
   const statusHeader = (
     <SideBarHeader
+      mapHeading
       onClick={() => {
         if (selectedRSU) setSelectedRSU(undefined)
         else dispatch(toggleMapMenuSelection('Display RSU Status'))
@@ -182,7 +183,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   return (
     <div style={containerStyle}>
       {selectedRSU !== undefined ? (
-        <Stack direction="column" spacing={2} sx={{ pl: 1, pr: 1, width: '100%' }}>
+        <Stack direction="column" spacing={1} sx={{ pl: 1, pr: 1, width: '100%' }}>
           {statusHeader}
           {healthErrors}
           <div className="accordion">
@@ -244,7 +245,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
           </div>
         </Stack>
       ) : (
-        <Stack direction="column" spacing={2} sx={{ pl: 1, pr: 1 }}>
+        <Stack direction="column" spacing={1} sx={{ pl: 1, pr: 1, '& .MuiToolbar-root': { minHeight: 48 } }}>
           {statusHeader}
           {healthErrors}
           <AdminTable

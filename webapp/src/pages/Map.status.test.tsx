@@ -196,7 +196,7 @@ describe('main map device health', () => {
     expect(screen.queryByText('RSU Configuration')).not.toBeInTheDocument()
     expect(screen.queryByTestId('rsu-popup')).not.toBeInTheDocument()
     expect(store.getState().config.value.configCoordinates).toEqual(coordinates)
-    expect(screen.getByRole('button', { name: 'Display RSU Status' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'RSU Status' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('checkbox', { name: 'RSU Viewer' }))
     expect(screen.getByRole('checkbox', { name: 'Add Points' })).not.toBeChecked()
     expect(screen.getByRole('radio', { name: 'SCMS Status' })).toBeChecked()

@@ -194,6 +194,7 @@ const DisplayCounts = () => {
   return (
     <Paper sx={{ pb: 1, pl: 1, pr: 1 }}>
       <SideBarHeader
+        mapHeading
         onClick={() => dispatch(toggleMapMenuSelection('Display Message Counts'))}
         title="Message Counts"
       />

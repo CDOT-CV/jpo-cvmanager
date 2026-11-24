@@ -84,6 +84,18 @@
   line-height: 1.5;
 }
 
+.menu-container .MuiAccordionSummary-root {
+  min-height: 40px;
+}
+
+.menu-container .MuiAccordionSummary-content {
+  margin: 4px 0;
+}
+
+.menu-container .MuiAccordionDetails-root {
+  padding-top: 0;
+}
+
 .menu-container .MuiFormControlLabel-root {
   min-height: 40px;
 }

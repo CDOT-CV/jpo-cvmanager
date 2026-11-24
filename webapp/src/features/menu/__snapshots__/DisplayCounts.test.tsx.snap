@@ -9,11 +9,11 @@ exports[`should take a snapshot 1`] = `
     <div
       class="MuiStack-root css-mocked-MuiStack-root"
     >
-      <p
-        class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
+      <h6
+        class="MuiTypography-root MuiTypography-subtitle2 css-mocked-MuiTypography-root"
       >
         Message Counts
-      </p>
+      </h6>
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium css-mocked-MuiButtonBase-root-MuiIconButton-root"
         tabindex="0"

@@ -338,7 +338,7 @@ exports[`snapshot bsmCoordinates wzdx 1`] = `
       tabindex="0"
       type="button"
     >
-      Display RSU Status
+      RSU Status
     </button>
     <div
       class="container-fluid"
@@ -918,7 +918,7 @@ exports[`snapshot bsmData clicked 1`] = `
       tabindex="0"
       type="button"
     >
-      Display RSU Status
+      RSU Status
     </button>
     <div
       class="container-fluid"
