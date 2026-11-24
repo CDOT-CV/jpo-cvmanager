@@ -49,6 +49,26 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
           </button>
         </div>
       </div>
+      <div
+        aria-label="Fleet reports"
+        class="MuiStack-root css-mocked-MuiStack-root"
+        role="group"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorInfo MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorInfo capital-case museo-slab css-mocked-MuiButtonBase-root-MuiButton-root"
+          tabindex="0"
+          type="button"
+        >
+          Print Full Report
+        </button>
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorInfo MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorInfo capital-case museo-slab css-mocked-MuiButtonBase-root-MuiButton-root"
+          tabindex="0"
+          type="button"
+        >
+          Print Error Report
+        </button>
+      </div>
       <section
         aria-label="Fleet filters"
         class="MuiStack-root css-mocked-MuiStack-root"
@@ -112,8 +132,8 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
             <label
               class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeSmall MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeSmall MuiInputLabel-outlined css-mocked-MuiFormLabel-root-MuiInputLabel-root"
               data-shrink="false"
-              for="mui-105"
-              id="mui-105-label"
+              for="mui-107"
+              id="mui-107-label"
             >
               Search RSUs
             </label>
@@ -121,9 +141,8 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
               class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-fullWidth MuiInputBase-formControl MuiInputBase-sizeSmall css-mocked-MuiInputBase-root-MuiOutlinedInput-root"
             >
               <input
-                aria-describedby="mui-105-helper-text"
                 class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputSizeSmall css-mocked-MuiInputBase-input-MuiOutlinedInput-input"
-                id="mui-105"
+                id="mui-107"
                 placeholder="Search"
                 type="text"
                 value=""
@@ -141,12 +160,6 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
                 </legend>
               </fieldset>
             </div>
-            <p
-              class="MuiFormHelperText-root MuiFormHelperText-sizeSmall MuiFormHelperText-contained css-mocked-MuiFormHelperText-root"
-              id="mui-105-helper-text"
-            >
-              IP, route, or milepost
-            </p>
           </div>
           <div
             class="MuiFormControl-root MuiTextField-root css-mocked-MuiFormControl-root-MuiTextField-root"
@@ -154,8 +167,8 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
             <label
               class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeSmall MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeSmall MuiInputLabel-outlined css-mocked-MuiFormLabel-root-MuiInputLabel-root"
               data-shrink="false"
-              for="mui-107"
-              id="mui-107-label"
+              for="mui-109"
+              id="mui-109-label"
             >
               Vendor
             </label>
@@ -165,9 +178,9 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
               <div
                 aria-expanded="false"
                 aria-haspopup="listbox"
-                aria-labelledby="mui-107-label mui-107"
+                aria-labelledby="mui-109-label mui-109"
                 class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputSizeSmall css-mocked-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-                id="mui-107"
+                id="mui-109"
                 role="combobox"
                 tabindex="0"
               >
@@ -213,12 +226,6 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
         <div
           class="MuiStack-root css-mocked-MuiStack-root"
         >
-          <p
-            aria-live="polite"
-            class="MuiTypography-root MuiTypography-body2 css-mocked-MuiTypography-root"
-          >
-            1 of 1 RSUs
-          </p>
           <button
             class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall MuiButton-colorPrimary Mui-disabled MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall MuiButton-colorPrimary css-mocked-MuiButtonBase-root-MuiButton-root"
             disabled=""
@@ -236,56 +243,6 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
           class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation2 css-mocked-MuiPaper-root"
           style="position: relative;"
         >
-          <div
-            class="makeStyles-toolbarWrapper-6"
-          >
-            <div
-              class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular css-mocked-MuiToolbar-root"
-            >
-              
-              <div
-                class="MuiBox-root css-15k1nh5"
-              />
-              <div
-                class="MuiBox-root css-p9qzma"
-              >
-                <div>
-                  <div
-                    style="display: flex;"
-                  >
-                    <span>
-                      <div
-                        style="display: flex;"
-                      >
-                        <button
-                          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorInfo MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorInfo css-mocked-MuiButtonBase-root-MuiButton-root"
-                          tabindex="0"
-                          type="button"
-                        >
-                          <p
-                            class="MuiTypography-root MuiTypography-body1 capital-case museo-slab css-mocked-MuiTypography-root"
-                          >
-                            Print Full Report
-                          </p>
-                        </button>
-                        <button
-                          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorInfo MuiButton-root MuiButton-outlined MuiButton-outlinedInfo MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorInfo css-mocked-MuiButtonBase-root-MuiButton-root"
-                          tabindex="0"
-                          type="button"
-                        >
-                          <p
-                            class="MuiTypography-root MuiTypography-body1 capital-case museo-slab css-mocked-MuiTypography-root"
-                          >
-                            Print Error Report
-                          </p>
-                        </button>
-                      </div>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
           <div
             class="MuiBox-root css-187halg"
           >

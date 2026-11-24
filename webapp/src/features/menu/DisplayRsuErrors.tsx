@@ -5,7 +5,7 @@ import { selectRsuData } from '../../generalSlices/rsuSlice'
 
 import '../../components/css/SnmpwalkMenu.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import MaterialTable, { Action } from '@material-table/core'
+import MaterialTable from '@material-table/core'
 import { RootState } from '../../store'
 import { emptyFleetFilters, useFleetDevices } from '../rsu-health/fleet-filters'
 import { useRsuHealth } from '../rsu-health/useRsuHealth'
@@ -36,8 +36,6 @@ import {
   getScmsExpirationDisplay,
   getLastOnlineDisplay,
   shouldIncludeInRsuErrorReport,
-  OnlineStatus,
-  ScmsStatus,
 } from '../../utils/rsu-status'
 
 const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo }) => {
@@ -59,14 +57,6 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   const [submitRsuErrorSummary] = useSendRsuErrorSummaryEmailMutation()
 
   const theme = useTheme()
-
-  type RsuErrorRowType = {
-    rsu: string
-    online_status: OnlineStatus
-    lat: number
-    lon: number
-    scms_status: ScmsStatus
-  }
 
   const getRSUOnlineStatus = (ip: string) => getOnlineStatus(ip, onlineStatusQuery)
   const getRSUSCMSStatus = (ip: string) => getScmsStatus(ip, scmsStatusQuery)
@@ -128,33 +118,6 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
       primary_route: rsu.properties.primary_route,
     }
   })
-
-  const tableActions: Action<RsuErrorRowType>[] = [
-    {
-      icon: () => null,
-      iconProps: {
-        title: 'Print Full Report',
-        color: 'info',
-        itemType: 'outlined',
-      },
-      position: 'toolbar',
-      onClick: () => {
-        handlePrint()
-      },
-    },
-    {
-      icon: () => null,
-      iconProps: {
-        title: 'Print Error Report',
-        color: 'info',
-        itemType: 'outlined',
-      },
-      position: 'toolbar',
-      onClick: () => {
-        handleErrorPrint()
-      },
-    },
-  ]
 
   const healthErrors = health.feeds.map(({ label, query }) => (
     <StatusRetryAlert key={label} statusName={label} query={query} canRetry={health.canRetry} />
@@ -250,10 +213,18 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
           </div>
         </Stack>
       ) : (
-        <Stack direction="column" spacing={1} sx={{ pl: 1, pr: 1, '& .MuiToolbar-root': { minHeight: 48 } }}>
+        <Stack direction="column" spacing={1} sx={{ px: 1 }}>
           {statusHeader}
           {healthErrors}
-          <Stack component="section" aria-label="Fleet filters" spacing={1} sx={{ px: 1, pt: 1 }}>
+          <Stack direction="row" spacing={1} justifyContent="flex-end" role="group" aria-label="Fleet reports" sx={{ px: 1 }}>
+            <Button size="small" variant="outlined" color="info" className="capital-case museo-slab" onClick={() => handlePrint()}>
+              Print Full Report
+            </Button>
+            <Button size="small" variant="outlined" color="info" className="capital-case museo-slab" onClick={() => handleErrorPrint()}>
+              Print Error Report
+            </Button>
+          </Stack>
+          <Stack component="section" aria-label="Fleet filters" spacing={0.5} sx={{ px: 1, pt: 1 }}>
             <Stack direction="row" gap={0.5} flexWrap="wrap" aria-label="Filter by health" role="group">
               {counts.map(({ id, label, count }) => (
                 <Button
@@ -268,13 +239,12 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                 </Button>
               ))}
             </Stack>
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
               <TextField
                 fullWidth
                 size="small"
                 label="Search RSUs"
                 placeholder="Search"
-                helperText="IP, route, or milepost"
                 value={filters.search}
                 onChange={(event) => dispatch(setFleetFilters({ search: event.target.value }))}
               />
@@ -292,10 +262,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                 ))}
               </TextField>
             </Stack>
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Typography variant="body2" aria-live="polite">
-                {`${visibleDevices.length} of ${devices.length} RSUs`}
-              </Typography>
+            <Stack direction="row" justifyContent="flex-end">
               <Button
                 size="small"
                 sx={{ textTransform: 'none' }}
@@ -307,8 +274,9 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
             </Stack>
           </Stack>
           <AdminTable
+            toolbar={false}
             search={false}
-            actions={tableActions}
+            actions={[]}
             columns={[
               {
                 title: 'Location',
