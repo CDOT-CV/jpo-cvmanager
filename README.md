@@ -26,6 +26,9 @@ To provide feedback, we recommend that you create an "issue" in this repository 
 
 ## Quick Start
 
+For automated dependency and built-image vulnerability reports, see
+[CVE scanning](docs/cve-scanning.md).
+
 This section is brief - for more detailed instructions, please see [Getting Started](#getting-started)
 
 ### Requirements
@@ -415,7 +418,7 @@ Note that it is recommended to work with the Python API from a [virtual environm
 <b>API Variables</b>
 
 - Processed BSM/PSM geospatial queries are served by the Java Intersection API; see its configuration in [services/intersection-api/README.md](services/intersection-api/README.md#processed-rsu-geospatial-messages).
-- FIRMWARE_MANAGER_ENDPOINT: Endpoint for the firmware manager deployment's API.
+- FIRMWARE_MANAGER_ENDPOINT: Firmware manager API endpoint used by the Intersection API.
 - IAPI_ENDPOINT: Intersection API endpoint for making REST requests to send emails
 - KC_SA_CLIENT_ID: Keycloak service account client ID for generating authenticating to the Intersection API
 - KC_SA_CLIENT_SECRET: Keycloak service account client secret for generating authenticating to the Intersection API

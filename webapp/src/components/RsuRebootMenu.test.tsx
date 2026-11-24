@@ -41,6 +41,7 @@ describe('reboot confirmation', () => {
     const notification = vi.spyOn(toast, 'error')
     try {
       const confirmation = showConfirmation()
+      expect(confirmation.message).toContain('takes the RSU offline and interrupts message forwarding')
       await act(async () => confirmation.buttons!.find((button) => button.label === 'Yes')!.onClick!())
       expect(await screen.findByRole('status')).toHaveTextContent('Reboot requested')
       expect(fetchMock).toHaveBeenCalledTimes(1)

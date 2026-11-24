@@ -1,9 +1,11 @@
 ################## Install curl to enable health checks ##################
-FROM registry.access.redhat.com/ubi9:9.2 AS ubi-micro-build
+# curl pulls in libbrotli; the pinned digest makes base updates explicit and invalidates
+# cached layers that still hold vulnerable packages (e.g. libbrotli, CVE-2026-111497).
+FROM registry.access.redhat.com/ubi9/ubi:9.8@sha256:5f08e80aa970ae77712e75e5e857ac0b396abc900823c4d041c1150a9538a13f AS ubi-micro-build
 RUN mkdir -p /mnt/rootfs
 RUN dnf install --installroot /mnt/rootfs curl jq \
-    --releasever 9 --setopt install_weak_deps=false --nodocs -y; \
-    dnf --installroot /mnt/rootfs clean all
+    --releasever 9 --setopt install_weak_deps=false --nodocs -y \
+    && dnf --installroot /mnt/rootfs clean all
 
 ################## Build custom user provider to .jar ##################
 FROM maven:3.8-eclipse-temurin-21-alpine as jarbuilder
@@ -18,7 +20,7 @@ WORKDIR /home/custom-user-provider
 RUN mvn clean package -DskipTests
 
 ################## Build custom user provider into keycloak ##################
-FROM quay.io/keycloak/keycloak:26.0.5 as builder
+FROM quay.io/keycloak/keycloak:26.8.2 as builder
 
 ARG KEYCLOAK_LOGIN_THEME_NAME
 ENV KC_DB=postgres
@@ -31,10 +33,10 @@ COPY ${KEYCLOAK_LOGIN_THEME_NAME} /opt/keycloak/providers/theme.jar
 RUN /opt/keycloak/bin/kc.sh build --health-enabled=true
 
 ################## Integrate realm and theme ##################
-FROM quay.io/keycloak/keycloak:26.0.5
+FROM quay.io/keycloak/keycloak:26.8.2
 COPY --from=ubi-micro-build /mnt/rootfs /
 COPY --from=builder /opt/keycloak/ /opt/keycloak/
 COPY realm.json /opt/keycloak/data/import/realm.json
 
 HEALTHCHECK --interval=5s --timeout=10s --start-period=30s --retries=30 \
-CMD curl --fail http://localhost:8080/health || exit 1
+CMD curl --fail http://localhost:9000/health/ready || exit 1

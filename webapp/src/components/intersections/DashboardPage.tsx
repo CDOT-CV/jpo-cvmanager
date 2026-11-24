@@ -4,7 +4,7 @@ import { ConnectionOfTravelAssessmentCard } from '../../features/intersections/a
 import { LaneDirectionOfTravelAssessmentCard } from '../../features/intersections/assessments/lane-direction-of-travel-assessment'
 import { StopLineStopAssessmentCard } from '../../features/intersections/assessments/stop-line-stop-assessment'
 import { StopLinePassageAssessmentCard } from '../../features/intersections/assessments/stop-line-passage-assessment'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AssessmentsApi from '../../apis/intersections/assessments-api'
 import { selectSelectedIntersectionId } from '../../generalSlices/intersectionSlice'
 import { selectToken } from '../../generalSlices/userSlice'
@@ -27,58 +27,59 @@ const Page = () => {
     LaneDirectionOfTravelAssessment | undefined
   >(undefined)
 
-  const getAssessments = async () => {
-    if (intersectionId) {
-      setStopLineStopAssessment(
-        (await AssessmentsApi.getLatestAssessment(
-          token,
-          'stop-line-stop-assessment',
-          intersectionId
-        )) as StopLineStopAssessment
-      )
-      setStopLinePassageAssessment(
-        (await AssessmentsApi.getLatestAssessment(
-          token,
-          'stop-line-passage-assessment',
-          intersectionId
-        )) as StopLinePassageAssessment
-      )
-      setConnectionOfTravelAssessment(
-        (await AssessmentsApi.getLatestAssessment(
-          token,
-          'connection-of-travel',
-          intersectionId
-        )) as ConnectionOfTravelAssessment
-      )
-      setLaneDirectionOfTravelAssessment(
-        (await AssessmentsApi.getLatestAssessment(
-          token,
-          'lane-direction-of-travel',
-          intersectionId
-        )) as LaneDirectionOfTravelAssessment
-      )
-    } else {
-      console.error('Did not attempt to get assessment data. Intersection ID:', intersectionId)
-    }
-  }
-
   useEffect(() => {
-    getAssessments()
-  }, [intersectionId])
+    const getAssessments = async () => {
+      if (intersectionId) {
+        setStopLineStopAssessment(
+          (await AssessmentsApi.getLatestAssessment(
+            token,
+            'stop-line-stop-assessment',
+            intersectionId
+          )) as StopLineStopAssessment
+        )
+        setStopLinePassageAssessment(
+          (await AssessmentsApi.getLatestAssessment(
+            token,
+            'stop-line-passage-assessment',
+            intersectionId
+          )) as StopLinePassageAssessment
+        )
+        setConnectionOfTravelAssessment(
+          (await AssessmentsApi.getLatestAssessment(
+            token,
+            'connection-of-travel',
+            intersectionId
+          )) as ConnectionOfTravelAssessment
+        )
+        setLaneDirectionOfTravelAssessment(
+          (await AssessmentsApi.getLatestAssessment(
+            token,
+            'lane-direction-of-travel',
+            intersectionId
+          )) as LaneDirectionOfTravelAssessment
+        )
+      } else {
+        console.error('Did not attempt to get assessment data. Intersection ID:', intersectionId)
+      }
+    }
+    void getAssessments()
+  }, [intersectionId, token])
 
   // The grid breakpoints are based on the full screen width of 1200px, and the padding offset is the difference
   // between the full screen width and rendered width of the grid area, measured 2025/05/09 as 838px.
   const paddingOffset = 362 // 1200 - 838
   const chartCardPadding = 10 // extra padding around plots, make sure breakpoint triggers before scrolling cards
-  const muiBreakpoints = {
-    xs: 0,
-    sm: 600 - paddingOffset,
-    md: 900 - paddingOffset,
-    lg: 1200 - paddingOffset,
-    xl: 1536 - paddingOffset,
-  }
+  const muiBreakpoints = useMemo(() => {
+    return {
+      xs: 0,
+      sm: 600 - paddingOffset,
+      md: 900 - paddingOffset,
+      lg: 1200 - paddingOffset,
+      xl: 1536 - paddingOffset,
+    }
+  }, [paddingOffset])
 
-  const computeWidth = (minWidth: number, totalWidth: number, gridWidth: number) => {
+  const computeWidth = useCallback((minWidth: number, totalWidth: number, gridWidth: number) => {
     const ratio = minWidth / totalWidth
     if (ratio < 0.25) {
       return gridWidth / 4
@@ -86,18 +87,21 @@ const Page = () => {
       return gridWidth / 2
     }
     return gridWidth
-  }
+  }, [])
 
-  const generateBreakpoints = (minWidth: number) => {
-    const gridWidth = 12
-    return {
-      xs: gridWidth,
-      sm: gridWidth,
-      md: computeWidth(minWidth, muiBreakpoints.md, gridWidth),
-      lg: computeWidth(minWidth, muiBreakpoints.lg, gridWidth),
-      xl: computeWidth(minWidth, muiBreakpoints.xl, gridWidth),
-    }
-  }
+  const generateBreakpoints = useCallback(
+    (minWidth: number) => {
+      const gridWidth = 12
+      return {
+        xs: gridWidth,
+        sm: gridWidth,
+        md: computeWidth(minWidth, muiBreakpoints.md, gridWidth),
+        lg: computeWidth(minWidth, muiBreakpoints.lg, gridWidth),
+        xl: computeWidth(minWidth, muiBreakpoints.xl, gridWidth),
+      }
+    },
+    [computeWidth, muiBreakpoints]
+  )
 
   const widthPerBar = 22
   const legendPadding = 100
@@ -127,19 +131,19 @@ const Page = () => {
 
   const connectionOfTravelBreakpoints = useMemo(
     () => generateBreakpoints(connectionOfTravelMinWidth + chartCardPadding),
-    [connectionOfTravelMinWidth]
+    [connectionOfTravelMinWidth, generateBreakpoints]
   )
   const stopLineStopBreakpoints = useMemo(
     () => generateBreakpoints(stopLineStopMinWidth + chartCardPadding),
-    [stopLineStopMinWidth]
+    [stopLineStopMinWidth, generateBreakpoints]
   )
   const stopLinePassageBreakpoints = useMemo(
     () => generateBreakpoints(stopLinePassageMinWidth + chartCardPadding),
-    [stopLinePassageMinWidth]
+    [stopLinePassageMinWidth, generateBreakpoints]
   )
   const laneDirectionOfTravelBreakpoints = useMemo(
     () => generateBreakpoints(laneDirectionOfTravelMinWidth + chartCardPadding),
-    [laneDirectionOfTravelMinWidth]
+    [laneDirectionOfTravelMinWidth, generateBreakpoints]
   )
 
   return (
