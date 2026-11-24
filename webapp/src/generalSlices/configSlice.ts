@@ -383,12 +383,13 @@ export const startFirmwareUpgrade = createAsyncThunk(
 
 export const geoRsuQuery = createAsyncThunk(
   'config/geoRsuQuery',
-  async (vendor: string, { getState, rejectWithValue }) => {
+  async (selection: string | { vendor: string; visibleIps: string[] }, { getState, rejectWithValue }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
     const configCoordinates = selectConfigCoordinates(currentState)
 
+    const vendor = typeof selection === 'string' ? selection : selection.vendor
     const response = await RsuApi.postRsuGeo(token, organization, {
       geometry: configCoordinates,
       vendor,
@@ -396,7 +397,10 @@ export const geoRsuQuery = createAsyncThunk(
     if (response?.status !== 200) {
       return rejectWithValue(response?.message || 'Failed to query RSUs by geometry')
     }
-    return response
+    if (typeof selection === 'string') return response
+
+    const visibleIps = new Set(selection.visibleIps)
+    return { ...response, body: (response.body ?? []).filter((ip) => visibleIps.has(ip)) }
   },
   {
     // Will guard thunk from being executed

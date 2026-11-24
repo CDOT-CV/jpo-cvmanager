@@ -1128,7 +1128,10 @@ function MapPage() {
                     }}
                     disabled={!(configCoordinates.length > 2)}
                     onClick={() => {
-                      dispatch(geoRsuQuery(fleetFilters.vendor || 'Select Vendor'))
+                      dispatch(geoRsuQuery(hasFleetFilters ? {
+                        vendor: fleetFilters.vendor,
+                        visibleIps: visibleDevices.map(({ rsu }) => rsu.properties.ipv4_address),
+                      } : 'Select Vendor'))
                     }}
                   >
                     Configure RSUs

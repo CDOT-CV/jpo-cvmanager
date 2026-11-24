@@ -215,7 +215,7 @@ describe('main map device health', () => {
       currentData: { [ip]: { current_status: 'offline' }, [otherIp]: { current_status: 'unstable' } },
     } as any)
 
-    await renderMap(true, 2)
+    const store = await renderMap(true, 2)
     const mapIps = () => JSON.parse(screen.getByTestId('rsu-source').getAttribute('data-source')!)
       .features.map((feature) => feature.properties.ipv4_address)
 
@@ -252,6 +252,11 @@ describe('main map device health', () => {
     expect(mapIps()).toEqual([otherIp])
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'RSU Status' })) })
     expect(screen.getByRole('textbox', { name: 'Search RSUs' })).toHaveValue(otherIp)
+
+    vi.spyOn(RsuApi, 'postRsuGeo').mockResolvedValue({ status: 200, body: [ip, otherIp] } as any)
+    act(() => { store.dispatch(updateConfigPoints([[-105, 39], [-104, 39], [-104, 40], [-105, 39]])) })
+    fireEvent.click(screen.getByRole('button', { name: 'Configure RSUs' }))
+    await waitFor(() => expect(store.getState().config.value.configList).toEqual([otherIp]))
   })
 
   it('preserves polygon-selection and clear actions in the configuration controls', async () => {
