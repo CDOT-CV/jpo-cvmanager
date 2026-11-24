@@ -59,8 +59,6 @@ class FirmwareUpgradeStatusServiceTest {
         assertThat(status.activeUpgrades()).isEmpty();
         assertThat(status.upgradeQueue()).containsExactly(
                 new us.dot.its.jpo.ode.api.models.devices.management.FirmwareUpgradeStatus.QueuedUpgrade("192.0.2.3", 2));
-        assertThat(status.hiddenActiveCount()).isEqualTo(1);
-        assertThat(status.hiddenQueuedCount()).isEqualTo(1);
     }
 
     @Test

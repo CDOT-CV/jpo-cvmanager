@@ -12,9 +12,7 @@ public record FirmwareUpgradeStatus(
         @JsonProperty("upgrade_queue") List<String> upgradeQueue) {
     public record VisibleStatus(
             @JsonProperty("active_upgrades") Map<String, ActiveUpgrade> activeUpgrades,
-            @JsonProperty("upgrade_queue") List<QueuedUpgrade> upgradeQueue,
-            @JsonProperty("hidden_active_count") int hiddenActiveCount,
-            @JsonProperty("hidden_queued_count") int hiddenQueuedCount) {}
+            @JsonProperty("upgrade_queue") List<QueuedUpgrade> upgradeQueue) {}
 
     public record QueuedUpgrade(String ip, int position) {}
 

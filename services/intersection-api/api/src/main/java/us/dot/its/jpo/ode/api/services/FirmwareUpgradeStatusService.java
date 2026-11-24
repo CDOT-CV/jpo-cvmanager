@@ -49,8 +49,7 @@ public class FirmwareUpgradeStatusService {
                 .mapToObj(index -> new FirmwareUpgradeStatus.QueuedUpgrade(snapshot.upgradeQueue().get(index), index + 1))
                 .filter(entry -> visible.contains(entry.ip()))
                 .toList();
-        return new FirmwareUpgradeStatus.VisibleStatus(active, queue,
-                snapshot.activeUpgrades().size() - active.size(), snapshot.upgradeQueue().size() - queue.size());
+        return new FirmwareUpgradeStatus.VisibleStatus(active, queue);
     }
 
     FirmwareUpgradeStatus getStatus() {

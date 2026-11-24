@@ -94,7 +94,7 @@ class AdminFirmwareControllerTest {
         org.mockito.Mockito.verifyNoInteractions(firmwareUpgradeStatusService);
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         when(firmwareUpgradeStatusService.getVisibleStatus()).thenReturn(
-                new FirmwareUpgradeStatus.VisibleStatus(Map.of(), List.of(new FirmwareUpgradeStatus.QueuedUpgrade("192.0.2.1", 2)), 2, 1));
+                new FirmwareUpgradeStatus.VisibleStatus(Map.of(), List.of(new FirmwareUpgradeStatus.QueuedUpgrade("192.0.2.1", 2))));
         mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.active_upgrades").isMap())
                 .andExpect(jsonPath("$.upgrade_queue[0].ip").value("192.0.2.1"));

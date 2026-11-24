@@ -129,7 +129,8 @@ public class PermissionService {
         if (token.isSuperUser()) return ips;
         var organizations = scopedOrganizations(token, role);
         if (organizations.isEmpty() || ips.isEmpty()) return Set.of();
-        return rsuRepository.findAllowedRsuIpsInOrganizations(organizations).stream()
+        var addresses = ips.stream().map(RsuManagementService::toIpv4Address).toList();
+        return rsuRepository.findOwnedRsuIpsInOrganizations(organizations, addresses).stream()
                 .map(InetAddress::getHostAddress)
                 .filter(ips::contains)
                 .collect(Collectors.toSet());
