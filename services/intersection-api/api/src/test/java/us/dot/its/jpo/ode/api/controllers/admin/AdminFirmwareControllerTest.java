@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -89,15 +90,27 @@ class AdminFirmwareControllerTest {
 
     @Test
     @WithMockUser
-    void onlyAdminsCanReadSchedulerStatusAndErrorsAreNotEmptySuccesses() throws Exception {
+    void forbidsNonAdminsFromReadingUpgradeStatus() throws Exception {
         mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isForbidden());
-        org.mockito.Mockito.verifyNoInteractions(firmwareUpgradeStatusService);
+        verifyNoInteractions(firmwareUpgradeStatusService);
+    }
+
+    @Test
+    @WithMockUser
+    void returnsUpgradeStatusForAdmins() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         when(firmwareUpgradeStatusService.getVisibleStatus()).thenReturn(
                 new FirmwareUpgradeStatus.VisibleStatus(Map.of(), List.of(new FirmwareUpgradeStatus.QueuedUpgrade("192.0.2.1", 2))));
         mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.active_upgrades").isMap())
-                .andExpect(jsonPath("$.upgrade_queue[0].ip").value("192.0.2.1"));
+                .andExpect(jsonPath("$.upgrade_queue[0].ip").value("192.0.2.1"))
+                .andExpect(jsonPath("$.upgrade_queue[0].position").value(2));
+    }
+
+    @Test
+    @WithMockUser
+    void returnsBadGatewayWhenUpgradeStatusIsUnavailable() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         when(firmwareUpgradeStatusService.getVisibleStatus()).thenThrow(new ResponseStatusException(
                 HttpStatus.BAD_GATEWAY, "Unable to retrieve firmware upgrade status"));
         mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isBadGateway());

@@ -1,10 +1,13 @@
 package us.dot.its.jpo.ode.api.services;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 import java.io.IOException;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,9 +20,11 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
+import us.dot.its.jpo.ode.api.models.UserRole;
+import us.dot.its.jpo.ode.api.models.devices.management.FirmwareUpgradeStatus.QueuedUpgrade;
 
 class FirmwareUpgradeStatusServiceTest {
-    private final PermissionService permissions = org.mockito.Mockito.mock(PermissionService.class);
+    private final PermissionService permissions = mock(PermissionService.class);
     private FirmwareUpgradeStatusService service;
     private MockRestServiceServer server;
 
@@ -47,9 +52,9 @@ class FirmwareUpgradeStatusServiceTest {
 
     @Test
     void omitsRestrictedDetailsAndPreservesSchedulerPositions() {
-        org.mockito.Mockito.when(permissions.visibleRsuIps(
-                java.util.Set.of("192.0.2.1", "192.0.2.2", "192.0.2.3"),
-                us.dot.its.jpo.ode.api.models.UserRole.ADMIN)).thenReturn(java.util.Set.of("192.0.2.3"));
+        when(permissions.visibleRsuIps(
+                Set.of("192.0.2.1", "192.0.2.2", "192.0.2.3"),
+                UserRole.ADMIN)).thenReturn(Set.of("192.0.2.3"));
         server.expect(anything()).andRespond(withSuccess("""
                 {"active_upgrades":{"192.0.2.1":{"manufacturer":"Restricted vendor"}},
                  "upgrade_queue":["192.0.2.2","192.0.2.3"]}
@@ -58,7 +63,7 @@ class FirmwareUpgradeStatusServiceTest {
         var status = service.getVisibleStatus();
         assertThat(status.activeUpgrades()).isEmpty();
         assertThat(status.upgradeQueue()).containsExactly(
-                new us.dot.its.jpo.ode.api.models.devices.management.FirmwareUpgradeStatus.QueuedUpgrade("192.0.2.3", 2));
+                new QueuedUpgrade("192.0.2.3", 2));
     }
 
     @Test
