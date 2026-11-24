@@ -10,6 +10,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public record FirmwareUpgradeStatus(
         @JsonProperty("active_upgrades") Map<String, ActiveUpgrade> activeUpgrades,
         @JsonProperty("upgrade_queue") List<String> upgradeQueue) {
+    public record VisibleStatus(
+            @JsonProperty("active_upgrades") Map<String, ActiveUpgrade> activeUpgrades,
+            @JsonProperty("upgrade_queue") List<QueuedUpgrade> upgradeQueue,
+            @JsonProperty("hidden_active_count") int hiddenActiveCount,
+            @JsonProperty("hidden_queued_count") int hiddenQueuedCount) {}
+
+    public record QueuedUpgrade(String ip, int position) {}
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ActiveUpgrade(String manufacturer, String model,
             @JsonProperty("target_firmware_version") String targetFirmwareVersion) {}

@@ -93,12 +93,12 @@ class AdminFirmwareControllerTest {
         mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isForbidden());
         org.mockito.Mockito.verifyNoInteractions(firmwareUpgradeStatusService);
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
-        when(firmwareUpgradeStatusService.getStatus()).thenReturn(
-                new FirmwareUpgradeStatus(Map.of(), List.of("192.0.2.1")));
+        when(firmwareUpgradeStatusService.getVisibleStatus()).thenReturn(
+                new FirmwareUpgradeStatus.VisibleStatus(Map.of(), List.of(new FirmwareUpgradeStatus.QueuedUpgrade("192.0.2.1", 2)), 2, 1));
         mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.active_upgrades").isMap())
-                .andExpect(jsonPath("$.upgrade_queue[0]").value("192.0.2.1"));
-        when(firmwareUpgradeStatusService.getStatus()).thenThrow(new ResponseStatusException(
+                .andExpect(jsonPath("$.upgrade_queue[0].ip").value("192.0.2.1"));
+        when(firmwareUpgradeStatusService.getVisibleStatus()).thenThrow(new ResponseStatusException(
                 HttpStatus.BAD_GATEWAY, "Unable to retrieve firmware upgrade status"));
         mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isBadGateway());
     }

@@ -59,8 +59,8 @@ public class AdminFirmwareController {
             @ApiResponse(responseCode = "502", description = "Scheduler is unavailable or returned an invalid response"),
             @ApiResponse(responseCode = "503", description = "Firmware manager is not configured")
     })
-    public FirmwareUpgradeStatus getUpgradeStatus() {
-        return firmwareUpgradeStatusService.getStatus();
+    public FirmwareUpgradeStatus.VisibleStatus getUpgradeStatus() {
+        return firmwareUpgradeStatusService.getVisibleStatus();
     }
 
     @Operation(summary = "Clean up records for a firmware file missing from storage")

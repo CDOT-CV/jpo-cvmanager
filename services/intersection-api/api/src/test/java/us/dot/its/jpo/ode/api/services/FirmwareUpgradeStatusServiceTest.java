@@ -19,12 +19,13 @@ import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
 
 class FirmwareUpgradeStatusServiceTest {
+    private final PermissionService permissions = org.mockito.Mockito.mock(PermissionService.class);
     private FirmwareUpgradeStatusService service;
     private MockRestServiceServer server;
 
     @BeforeEach
     void setUp() {
-        service = new FirmwareUpgradeStatusService(new RestTemplateBuilder());
+        service = new FirmwareUpgradeStatusService(new RestTemplateBuilder(), permissions);
         ReflectionTestUtils.setField(service, "endpoint", "http://scheduler/");
         server = MockRestServiceServer.createServer((RestTemplate) ReflectionTestUtils.getField(service, "client"));
     }
@@ -42,6 +43,24 @@ class FirmwareUpgradeStatusServiceTest {
         assertThat(status.upgradeQueue()).containsExactly("192.0.2.3", "192.0.2.2");
         assertThat(JsonMapper.builder().build().writeValueAsString(status)).doesNotContain("ssh_password", "not-for-the-webapp", "install_package");
         server.verify();
+    }
+
+    @Test
+    void omitsRestrictedDetailsAndPreservesSchedulerPositions() {
+        org.mockito.Mockito.when(permissions.visibleRsuIps(
+                java.util.Set.of("192.0.2.1", "192.0.2.2", "192.0.2.3"),
+                us.dot.its.jpo.ode.api.models.UserRole.ADMIN)).thenReturn(java.util.Set.of("192.0.2.3"));
+        server.expect(anything()).andRespond(withSuccess("""
+                {"active_upgrades":{"192.0.2.1":{"manufacturer":"Restricted vendor"}},
+                 "upgrade_queue":["192.0.2.2","192.0.2.3"]}
+                """, MediaType.APPLICATION_JSON));
+
+        var status = service.getVisibleStatus();
+        assertThat(status.activeUpgrades()).isEmpty();
+        assertThat(status.upgradeQueue()).containsExactly(
+                new us.dot.its.jpo.ode.api.models.devices.management.FirmwareUpgradeStatus.QueuedUpgrade("192.0.2.3", 2));
+        assertThat(status.hiddenActiveCount()).isEqualTo(1);
+        assertThat(status.hiddenQueuedCount()).isEqualTo(1);
     }
 
     @Test
