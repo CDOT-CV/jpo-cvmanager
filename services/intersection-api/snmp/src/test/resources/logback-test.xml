@@ -1,0 +1,4 @@
+<configuration>
+    <!-- Ordinary protocol tests should not dump expected failures or fixture traffic. -->
+    <root level="OFF"/>
+</configuration>

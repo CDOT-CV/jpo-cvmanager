@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
-import { selectFilteredOrganizationNameObjects, selectSuperUser } from '../../generalSlices/userSlice'
+import { selectSuperUser } from '../../generalSlices/userSlice'
+import { useOrganizationNameOptions } from '../../hooks/useOrganizationNameOptions'
 
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -24,7 +25,6 @@ import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import 'react-widgets/styles.css'
-import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../adminRsuTab/Admin.css'
@@ -47,9 +47,7 @@ const AdminEditUser = () => {
   const { data: userAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetUserAllowedSelectionsQuery()
   const [patchUser, { isLoading: isPatchingUser }] = usePatchUserMutation()
   const isSuperUser = useSelector(selectSuperUser)
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, userAllowedSelections?.organizations ?? [])
-  )
+  const allowedOrganizations = useOrganizationNameOptions(userAllowedSelections?.organizations ?? [])
 
   const [open, setOpen] = useState(true)
 
@@ -58,36 +56,23 @@ const AdminEditUser = () => {
     handleSubmit,
     control,
     formState: { errors },
-    reset,
   } = useForm<UserFormData>({
-    defaultValues: {
-      orig_email: '',
-      email: '',
-      first_name: '',
-      last_name: '',
-      super_user: false,
-      organizations: [],
-    },
+    values: userInfo
+      ? {
+          orig_email: userInfo.email,
+          email: userInfo.email,
+          first_name: userInfo.first_name,
+          last_name: userInfo.last_name,
+          super_user: userInfo.super_user,
+          organizations: userInfo.organizations,
+        }
+      : undefined,
   })
 
   const { fields, append, remove, update } = useFieldArray({
     control,
     name: 'organizations',
   })
-
-  // Initialize form when user data loads
-  useEffect(() => {
-    if (userInfo) {
-      reset({
-        orig_email: userInfo.email,
-        email: userInfo.email,
-        first_name: userInfo.first_name,
-        last_name: userInfo.last_name,
-        super_user: userInfo.super_user,
-        organizations: userInfo.organizations,
-      })
-    }
-  }, [userInfo, reset])
 
   const onSubmit = async (data: UserFormData) => {
     if (data.organizations.length === 0 || data.organizations.some((org) => org.organization === undefined)) {

@@ -256,11 +256,21 @@ export const selectLoadingGlobal = (state: RootState) => {
   }
   return loading
 }
-export const selectFilteredOrganizationNameObjects = (state: RootState, organizationIds: number[]) =>
+export const getFilteredOrganizationNameObjects = (
+  organizationIds: number[],
+  userOrganizations: UserAuthOrganization[],
+  organizationDirectory: Pick<OrganizationDto, 'id' | 'name'>[] = []
+) =>
   organizationIds.map((id) => ({
     id,
-    name: (state.user.value.authLoginData?.data.organizations ?? []).find((org) => org.organization === id)?.name ?? id,
+    name:
+      organizationDirectory.find((org) => org.id === id)?.name ??
+      userOrganizations.find((org) => org.organization === id)?.name ??
+      id,
   }))
+
+export const selectFilteredOrganizationNameObjects = (state: RootState, organizationIds: number[]) =>
+  getFilteredOrganizationNameObjects(organizationIds, state.user.value.authLoginData?.data.organizations ?? [])
 
 export const selectIsUserOrAbove = (state: RootState) => {
   if (selectIsSuperUser(state)) {

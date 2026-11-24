@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
@@ -24,8 +24,8 @@ import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import 'react-widgets/styles.css'
-import { selectFilteredOrganizationNameObjects, selectSuperUser } from '../../generalSlices/userSlice'
-import { RootState } from '../../store'
+import { selectSuperUser } from '../../generalSlices/userSlice'
+import { useOrganizationNameOptions } from '../../hooks/useOrganizationNameOptions'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
@@ -35,15 +35,15 @@ import { useCreateUserMutation, useGetUserAllowedSelectionsQuery } from '../api/
 const AdminAddUser = () => {
   const navigate = useNavigate()
   const isSuperUser = useSelector(selectSuperUser)
-  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganizationOptionalOrg[]>([])
+  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganizationOptionalOrg[]>([
+    { organization: undefined, role: 'USER' },
+  ])
   const [open, setOpen] = useState(true)
 
   // RTK Query hooks
   const { data: allowedSelections, isLoading: isLoadingData } = useGetUserAllowedSelectionsQuery()
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation()
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
-  )
+  const allowedOrganizations = useOrganizationNameOptions(allowedSelections?.organizations ?? [])
 
   const {
     register,
@@ -55,13 +55,6 @@ const AdminAddUser = () => {
       super_user: false,
     },
   })
-
-  // Initialize with one empty organization on mount
-  useEffect(() => {
-    if (selectedOrganizations.length === 0 && !isLoadingData) {
-      setSelectedOrganizations([{ organization: undefined, role: 'USER' }])
-    }
-  }, [isLoadingData])
 
   const handleClose = () => {
     setOpen(false)

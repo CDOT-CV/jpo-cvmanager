@@ -26,7 +26,7 @@ multidict==6.0.5
 python-keycloak==5.8.1
 paramiko==3.5.0
 scp==0.15.0
-waitress==2.1.2
+waitress==3.0.2
 fastapi==0.110.0
 pydantic==2.6.2
 uvicorn==0.27.1

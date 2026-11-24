@@ -1,34 +1,80 @@
 import { setupStore } from '../../store'
-import EnvironmentVars from '../../EnvironmentVars'
 import { organizationApiSlice } from './organizationApiSlice'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const mockUserState = {
+const makeUserState = () => ({
   user: {
+    loading: false,
     value: {
-      authLoginData: { token: 'test-token' },
-      organization: { organization: 1, role: 'ADMIN' },
+      authLoginData: {
+        data: {
+          name: 'Test User',
+          first_name: 'Test',
+          last_name: 'User',
+          email: 'test@example.com',
+          super_user: true,
+          organizations: [],
+        },
+        token: 'test-token',
+        expires_at: 0,
+      },
+      organization: null,
+      loginFailure: false,
+      loginMessage: '',
+      routeNotFound: false,
     },
   },
-}
+})
 
-describe('organizationApiSlice createOrganization', () => {
-  beforeEach(() => {
-    fetchMock.resetMocks()
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
   })
 
-  it('posts the organization to the Java API and returns its ID', async () => {
-    const store = setupStore(mockUserState)
-    const organization = { name: 'New Organization', email: 'new@example.com' }
-    fetchMock.mockResponseOnce('123', { status: 201 })
+describe('organizationApiSlice cache invalidation', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
 
-    const result = await store.dispatch(organizationApiSlice.endpoints.createOrganization.initiate(organization))
+  it('refetches the organization directory after a rename and a deletion', async () => {
+    let organizations = [{ id: 1, name: 'Original Organization', email: 'org@example.com' }]
+    const fetch = vi.fn(async (request: Request) => {
+      if (request.method === 'PATCH') {
+        const patch = (await request.clone().json()) as OrganizationPatch
+        organizations = organizations.map((organization) =>
+          organization.id === patch.id ? { ...organization, name: patch.name ?? organization.name } : organization
+        )
+        return jsonResponse(organizations[0])
+      }
 
-    expect(result).toMatchObject({ data: 123 })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    const request = fetchMock.mock.calls[0][0] as Request
-    expect(request.url).toBe(`${EnvironmentVars.CVIZ_API_SERVER_URL}/organizations`)
-    expect(request.method).toBe('POST')
-    expect(request.headers.get('Authorization')).toBe('Bearer test-token')
-    expect(await request.json()).toEqual(organization)
+      if (request.method === 'DELETE') {
+        organizations = []
+        return new Response(null, { status: 204 })
+      }
+
+      return jsonResponse(organizations)
+    })
+    vi.stubGlobal('fetch', fetch)
+    const store = setupStore(makeUserState())
+    const organizationsQuery = store.dispatch(organizationApiSlice.endpoints.getOrganizations.initiate())
+    const selectOrganizations = organizationApiSlice.endpoints.getOrganizations.select()
+
+    await organizationsQuery.unwrap()
+    await store.dispatch(organizationApiSlice.endpoints.patchOrganization.initiate({ id: 1, name: 'Renamed' })).unwrap()
+
+    await vi.waitFor(() => {
+      expect(fetch).toHaveBeenCalledTimes(3)
+      expect(selectOrganizations(store.getState()).data).toEqual([{ id: 1, name: 'Renamed', email: 'org@example.com' }])
+    })
+
+    await store.dispatch(organizationApiSlice.endpoints.deleteOrganization.initiate(1)).unwrap()
+
+    await vi.waitFor(() => {
+      expect(fetch).toHaveBeenCalledTimes(5)
+      expect(selectOrganizations(store.getState()).data).toEqual([])
+    })
+
+    organizationsQuery.unsubscribe()
   })
 })

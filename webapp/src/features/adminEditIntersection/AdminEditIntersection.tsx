@@ -16,13 +16,11 @@ import {
   Typography,
 } from '@mui/material'
 import toast from 'react-hot-toast'
-import { useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
-import { RootState } from '../../store'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
+import { useOrganizationNameOptions } from '../../hooks/useOrganizationNameOptions'
 import {
   useGetIntersectionAllowedSelectionsQuery,
   useGetIntersectionQuery,
@@ -55,9 +53,7 @@ const AdminEditIntersection = () => {
   const { data: intersectionInfo, isLoading: isLoadingIntersection } = useGetIntersectionQuery(intersectionId!)
   const { data: allowedSelections, isLoading: isLoadingAllowedSelections } = useGetIntersectionAllowedSelectionsQuery()
   const [patchIntersection, { isLoading: isPatchingIntersection }] = usePatchIntersectionMutation()
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
-  )
+  const allowedOrganizations = useOrganizationNameOptions(allowedSelections?.organizations ?? [])
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
@@ -111,15 +107,14 @@ const AdminEditIntersection = () => {
           : undefined
       const bbox =
         data.bbox &&
-        data.bbox !== intersectionInfo?.bbox &&
-        data.bbox.latitude1 &&
-        data.bbox.latitude1 != intersectionInfo?.bbox?.latitude1 &&
-        data.bbox.longitude1 &&
-        data.bbox.longitude1 != intersectionInfo?.bbox?.longitude1 &&
-        data.bbox.latitude2 &&
-        data.bbox.latitude2 != intersectionInfo?.bbox?.latitude2 &&
-        data.bbox.longitude2 &&
-        data.bbox.longitude2 != intersectionInfo?.bbox?.longitude2
+        data.bbox.latitude1 !== '' &&
+        data.bbox.longitude1 !== '' &&
+        data.bbox.latitude2 !== '' &&
+        data.bbox.longitude2 !== '' &&
+        (data.bbox.latitude1 != intersectionInfo?.bbox?.latitude1 ||
+          data.bbox.longitude1 != intersectionInfo?.bbox?.longitude1 ||
+          data.bbox.latitude2 != intersectionInfo?.bbox?.latitude2 ||
+          data.bbox.longitude2 != intersectionInfo?.bbox?.longitude2)
           ? data.bbox
           : undefined
 
