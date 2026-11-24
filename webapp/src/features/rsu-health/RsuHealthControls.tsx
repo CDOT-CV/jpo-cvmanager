@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Alert, Box, IconButton, Paper, Tooltip, Typography } from '@mui/material'
+import { Box, IconButton, Paper, Tooltip, Typography } from '@mui/material'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { RsuHealthSummary } from './RsuHealthSummary'
-import { HealthRetryButton } from './HealthRetryButton'
+import { StatusRetryAlert } from '../../components/StatusRetryAlert'
 import type { useRsuHealth } from './useRsuHealth'
 import { describeHealthFetch, isHealthDataStale } from './refresh-policy'
 
@@ -40,18 +40,7 @@ export const RsuHealthControls = ({ health, children }: { health: Health; childr
                 <Typography variant="caption" display="block">
                   {describeHealthFetch(label, query, health.now, interval, 'compact')}
                 </Typography>
-                {(query.isError || stale) && (
-                  <Alert severity="warning" aria-label={`${label} health warning`} sx={{
-                    mt: 0.5, px: 1, py: 0, alignItems: 'center', fontSize: '0.75rem',
-                    '& .MuiAlert-icon': { mr: 1, fontSize: 20 },
-                    '& .MuiAlert-message': { py: 0.5 },
-                    '& .MuiAlert-action': { alignItems: 'center', pt: 0, mr: 0 },
-                  }} action={
-                    <HealthRetryButton size="small" disabled={query.isFetching || !health.canRetry} onClick={() => query.refetch()}>Retry</HealthRetryButton>
-                  }>
-                    {query.isError ? 'Update failed' : 'Data may be outdated'}
-                  </Alert>
-                )}
+                <StatusRetryAlert statusName={label} query={query} canRetry={health.canRetry} stale={stale} compact />
               </Box>
             )
           })}

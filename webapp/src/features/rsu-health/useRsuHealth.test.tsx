@@ -20,7 +20,7 @@ let removeListeners: () => void
 
 const Probe = ({ organization = 'TestOrg', selectedIp = '', id = 'health' }) => {
   const health = useRsuHealth(organization, selectedIp)
-  return <div data-testid={id}>
+  return <div data-testid={id} aria-busy={health.isPending}>
     <span>{getOnlineStatus(ip, health.onlineStatusQuery)}</span>
     <output>{health.summary.join(' | ')}</output>
     <span role="status" aria-label="Health freshness">{getHealthOverview(health.feeds, health.now, health.networkOnline, health.refreshing).text}</span>
@@ -120,9 +120,28 @@ describe('shared RSU health refresh', () => {
     await advance(60_000)
     expect(screen.getByText('online')).toBeInTheDocument()
     expect(screen.getByText(/refresh failed; showing last known data/)).toBeInTheDocument()
+    expect(screen.getByTestId('health')).toHaveAttribute('aria-busy', 'false')
     await advance(60_000)
     expect(fetchMock).toHaveBeenCalledTimes(4)
     expect(screen.queryByText(/refresh failed/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the shared pending state active until the selected device history settles', async () => {
+    let finishHistory: (body: string) => void
+    const pending = new Promise<string>((resolve) => { finishHistory = resolve })
+    fetchMock.mockResponse(async (request) => {
+      if (request.url.endsWith(`/online-status/${ip}`)) return pending
+      if (request.url.endsWith('/online-status')) return onlineBody
+      if (request.url.endsWith('/scms/status')) return scmsBody
+      throw new Error(`Unexpected request: ${request.url}`)
+    })
+    render(<Provider store={store}><Probe selectedIp={ip} /></Provider>)
+    await advance()
+    expect(screen.getByText('online')).toBeInTheDocument()
+    expect(screen.getByTestId('health')).toHaveAttribute('aria-busy', 'true')
+    await act(async () => { finishHistory(JSON.stringify({ ip, last_online: null })) })
+    await advance()
+    expect(screen.getByTestId('health')).toHaveAttribute('aria-busy', 'false')
   })
 
   it('refreshes subscribed health data on window focus', async () => {

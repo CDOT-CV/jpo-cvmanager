@@ -9,7 +9,7 @@ import {
   getStatusMarkerColor,
   getStatusColor,
   getStatusTextColor,
-  hasConfirmedRsuError,
+  shouldIncludeInRsuErrorReport,
 } from './rsu-status'
 
 const ip = '10.0.0.1'
@@ -75,13 +75,17 @@ describe('RSU status interpretation', () => {
     expect(getScmsStatus(ip, { currentData: {} })).toBe('unknown')
   })
 
-  it('includes confirmed problems in error reports without treating unknown states as failures', () => {
-    expect(hasConfirmedRsuError('offline', 'healthy')).toBe(true)
-    expect(hasConfirmedRsuError('unstable', 'unknown')).toBe(true)
-    expect(hasConfirmedRsuError('unavailable', 'unhealthy')).toBe(true)
-    expect(hasConfirmedRsuError('online', 'healthy')).toBe(false)
-    expect(hasConfirmedRsuError('unknown', 'unknown')).toBe(false)
-    expect(hasConfirmedRsuError('loading', 'unavailable')).toBe(false)
+  it('includes confirmed problems and unknown health in error reports', () => {
+    expect(shouldIncludeInRsuErrorReport('offline', 'healthy')).toBe(true)
+    expect(shouldIncludeInRsuErrorReport('unstable', 'unknown')).toBe(true)
+    expect(shouldIncludeInRsuErrorReport('unavailable', 'unhealthy')).toBe(true)
+    expect(shouldIncludeInRsuErrorReport('online', 'healthy')).toBe(false)
+    expect(shouldIncludeInRsuErrorReport('unknown', 'unknown')).toBe(true)
+    expect(shouldIncludeInRsuErrorReport('unknown', 'healthy')).toBe(true)
+    expect(shouldIncludeInRsuErrorReport('online', 'unknown')).toBe(true)
+    expect(shouldIncludeInRsuErrorReport('unavailable', 'healthy')).toBe(false)
+    expect(shouldIncludeInRsuErrorReport('online', 'unavailable')).toBe(false)
+    expect(shouldIncludeInRsuErrorReport('loading', 'unavailable')).toBe(false)
   })
 
   it('does not infer enrollment or certificate download history from missing expiration data', () => {

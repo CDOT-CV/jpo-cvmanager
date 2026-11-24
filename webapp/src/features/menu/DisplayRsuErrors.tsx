@@ -8,7 +8,6 @@ import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import MaterialTable, { Action } from '@material-table/core'
 import { RootState } from '../../store'
 import { useRsuHealth } from '../rsu-health/useRsuHealth'
-import { HealthRetryButton } from '../rsu-health/HealthRetryButton'
 import { RsuHealthSummary } from '../rsu-health/RsuHealthSummary'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
 
@@ -16,8 +15,9 @@ import GpsFixedSharp from '@mui/icons-material/GpsFixedSharp'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
 import AdminTable from '../../components/AdminTable'
+import { StatusRetryAlert } from '../../components/StatusRetryAlert'
 import { setMapViewState } from '../../pages/mapSlice'
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Stack, Typography, useTheme } from '@mui/material'
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Stack, Typography, useTheme } from '@mui/material'
 import { RsuInfo } from '../../models/RsuApi'
 import { useReactToPrint } from 'react-to-print'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
@@ -34,7 +34,7 @@ import {
   getStatusTextColor,
   getScmsExpirationDisplay,
   getLastOnlineDisplay,
-  hasConfirmedRsuError,
+  shouldIncludeInRsuErrorReport,
   OnlineStatus,
   ScmsStatus,
 } from '../../utils/rsu-status'
@@ -151,13 +151,21 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
     },
   ]
 
-  const healthErrors = health.feeds.filter(({ query }) => query.isError).map(({ label, query }) => (
-    <Alert key={label} severity="warning" action={
-      <HealthRetryButton size="small" disabled={query.isFetching || !health.canRetry} onClick={() => query.refetch()}>Retry</HealthRetryButton>
-    }>
-      {`${label} update failed`}
-    </Alert>
+  const healthErrors = health.feeds.map(({ label, query }) => (
+    <StatusRetryAlert key={label} statusName={label} query={query} canRetry={health.canRetry} />
   ))
+
+  const statusHeader = (
+    <SideBarHeader
+      onClick={() => {
+        if (selectedRSU) setSelectedRSU(undefined)
+        else dispatch(toggleMapMenuSelection('Display RSU Status'))
+      }}
+      title={selectedRSU ? `${selectedRSU.properties.ipv4_address} Status` : 'RSU Status'}
+    >
+      <RsuHealthSummary health={health} />
+    </SideBarHeader>
+  )
 
   const containerStyle = {
     display: 'flex',
@@ -175,14 +183,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
     <div style={containerStyle}>
       {selectedRSU !== undefined ? (
         <Stack direction="column" spacing={2} sx={{ pl: 1, pr: 1, width: '100%' }}>
-          <SideBarHeader
-            onClick={() => {
-              setSelectedRSU(undefined)
-            }}
-            title={selectedRSU.properties.ipv4_address + ' Status'}
-          >
-            <RsuHealthSummary health={health} />
-          </SideBarHeader>
+          {statusHeader}
           {healthErrors}
           <div className="accordion">
             <Accordion elevation={0}>
@@ -224,6 +225,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
             <Button
               variant="contained"
               style={{ margin: '1rem' }}
+              disabled={health.isPending}
               onClick={() => {
                 const lastOnlineStatus =
                   getStatusLabel(getRSUOnlineStatus(selectedRSU.properties.ipv4_address)) +
@@ -243,9 +245,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
         </Stack>
       ) : (
         <Stack direction="column" spacing={2} sx={{ pl: 1, pr: 1 }}>
-          <SideBarHeader onClick={() => dispatch(toggleMapMenuSelection('Display RSU Status'))} title="RSU Status">
-            <RsuHealthSummary health={health} />
-          </SideBarHeader>
+          {statusHeader}
           {healthErrors}
           <AdminTable
             actions={tableActions}
@@ -436,8 +436,8 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
           <br />
           <p style={{ color: 'black' }}>
             {`Below is the generated RSU Error summary report at ${new Date().toISOString()} UTC. ` +
-              'Only confirmed offline, unstable, or SCMS unhealthy devices are included. ' +
-              'Loading, unknown, and unavailable statuses alone do not qualify as device errors; ' +
+              'Devices with offline, unstable, SCMS unhealthy, or unknown health statuses are included. ' +
+              'Unknown indicates missing health information, not a confirmed device failure. Loading and unavailable statuses alone do not qualify; ' +
               'see the full report for all devices.'}
           </p>
           <div style={{ marginTop: '25px' }}>
@@ -497,7 +497,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
               actions={[]}
               data={
                 rsuTableData !== undefined
-                  ? rsuTableData.filter((row) => hasConfirmedRsuError(row.online_status, row.scms_status))
+                  ? rsuTableData.filter((row) => shouldIncludeInRsuErrorReport(row.online_status, row.scms_status))
                   : []
               }
               title=""

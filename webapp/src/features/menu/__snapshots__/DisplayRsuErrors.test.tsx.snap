@@ -931,7 +931,7 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
         <p
           style="color: black;"
         >
-          Below is the generated RSU Error summary report at 2026-04-20T00:00:00.000Z UTC. Only confirmed offline, unstable, or SCMS unhealthy devices are included. Loading, unknown, and unavailable statuses alone do not qualify as device errors; see the full report for all devices.
+          Below is the generated RSU Error summary report at 2026-04-20T00:00:00.000Z UTC. Devices with offline, unstable, SCMS unhealthy, or unknown health statuses are included. Unknown indicates missing health information, not a confirmed device failure. Loading and unavailable statuses alone do not qualify; see the full report for all devices.
         </p>
         <div
           style="margin-top: 25px;"
