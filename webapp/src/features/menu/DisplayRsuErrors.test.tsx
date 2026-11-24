@@ -263,6 +263,23 @@ describe('DisplayRsuErrors email readiness', () => {
     })
   })
 
+  it('sends the last received results during a background poll', async () => {
+    const sendSummary = vi.fn(() => ({ unwrap: () => Promise.resolve() }))
+    vi.mocked(useSendRsuErrorSummaryEmailMutation).mockReturnValue([sendSummary] as any)
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({
+      currentData: { [TEST_IP]: { current_status: 'online' } },
+      isFetching: true,
+    } as any)
+    renderComponent(rsuPreloadedState, testRsu)
+
+    const send = screen.getByRole('button', { name: 'Send Error Summary Email' })
+    expect(send).toBeEnabled()
+    fireEvent.click(send)
+    await waitFor(() => expect(sendSummary).toHaveBeenCalledWith(expect.objectContaining({
+      message: expect.stringContaining('RSU Online'),
+    })))
+  })
+
   it('enables email once all queries settle without requiring every device to have a record', () => {
     mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ isFetching: true } as any)
     const store = setupStore(rsuPreloadedState)

@@ -52,7 +52,9 @@ export const useRsuHealth = (organization: string, ip = '') => {
     ...(ip ? [{ label: 'Last online', query: lastOnlineQuery, interval: RSU_HEALTH_REFRESH.lastOnline }] : []),
   ]
   const refreshing = feeds.some(({ query }) => query.isFetching)
-  const isPending = refreshing || feeds.some(({ query }) => query.isLoading || query.isUninitialized)
+  const isPending = feeds.some(({ query }) =>
+    query.isUninitialized || (query.currentData === undefined && (query.isLoading || query.isFetching))
+  )
   const summary = feeds.map(({ label, query, interval }) => describeHealthFetch(label, query, activity.now, interval))
   return {
     onlineStatusQuery, scmsStatusQuery, lastOnlineQuery, feeds, refreshing, isPending, summary,
