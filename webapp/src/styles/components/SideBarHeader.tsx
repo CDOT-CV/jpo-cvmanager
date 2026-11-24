@@ -7,12 +7,13 @@ type SideBarHeaderProps = {
   title: string
   children?: ReactNode
   mapHeading?: boolean
+  closeButtonLabel?: string
 }
 
 export const SideBarHeader = (props: SideBarHeaderProps) => {
   const theme = useTheme()
   const closeButton = (
-    <IconButton onClick={props.onClick} sx={{ color: theme.palette.text.primary }}>
+    <IconButton onClick={props.onClick} aria-label={props.closeButtonLabel} sx={{ color: theme.palette.text.primary }}>
       <CloseIcon />
     </IconButton>
   )
