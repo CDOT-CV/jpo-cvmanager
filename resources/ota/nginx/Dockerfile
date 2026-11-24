@@ -1,4 +1,4 @@
-FROM nginx:1.25.4-alpine
+FROM nginx:1.30.7-alpine3.24
 
 RUN apk update && apk add \
     apache2-utils \
