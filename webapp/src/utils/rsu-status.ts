@@ -70,8 +70,9 @@ export const getStatusMarkerColor = (status: RsuHealthStatus): string => {
   return '#B0B0B0'
 }
 
-export const hasConfirmedRsuError = (onlineStatus: OnlineStatus, scmsStatus: ScmsStatus): boolean =>
-  onlineStatus === 'offline' || onlineStatus === 'unstable' || scmsStatus === 'unhealthy'
+export const shouldIncludeInRsuErrorReport = (onlineStatus: OnlineStatus, scmsStatus: ScmsStatus): boolean =>
+  onlineStatus === 'offline' || onlineStatus === 'unstable' || scmsStatus === 'unhealthy' ||
+  onlineStatus === 'unknown' || scmsStatus === 'unknown'
 
 export const getScmsExpirationDisplay = (ip: string, query: StatusQuery<ScmsHealthStatus>): string => {
   const queryStatus = getQueryStatus(query)

@@ -328,14 +328,16 @@ describe('DisplayRsuErrors health-state regressions', () => {
     expect(message).not.toMatch(/Never Online|Never downloaded|Unhealthy|expired/)
   })
 
-  it('prints lowercase offline, unstable, and unhealthy devices, excluding healthy and unknown-only devices', () => {
-    const ips = ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5']
+  it('prints confirmed problems and unknown health while excluding healthy devices', () => {
+    const ips = ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5', '10.0.0.6', '10.0.0.7']
     mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ currentData: {
       [ips[0]]: { current_status: 'offline' },
       [ips[1]]: { current_status: 'unstable' },
       [ips[2]]: { current_status: 'online' },
       [ips[3]]: { current_status: 'online' },
       [ips[4]]: { current_status: 'unknown' },
+      [ips[5]]: { current_status: 'unknown' },
+      [ips[6]]: { current_status: 'online' },
     } } as any)
     mockUseGetScmsStatusQuery.mockReturnValue({ currentData: {
       [ips[0]]: { health: true, expiration: VALID_EXPIRATION_ISO },
@@ -343,6 +345,8 @@ describe('DisplayRsuErrors health-state regressions', () => {
       [ips[2]]: { health: false, expiration: null },
       [ips[3]]: { health: true, expiration: VALID_EXPIRATION_ISO },
       [ips[4]]: null,
+      [ips[5]]: { health: true, expiration: VALID_EXPIRATION_ISO },
+      [ips[6]]: null,
     } } as any)
     renderComponent({ ...rsuPreloadedState, rsu: { value: {
       ...rsuPreloadedState.rsu.value,
@@ -350,9 +354,17 @@ describe('DisplayRsuErrors health-state regressions', () => {
     } } })
     const errorReport = within(screen.getByText('RSU Error Summary').parentElement!)
     const fullReport = within(screen.getByText('RSU Summary').parentElement!)
-    for (const ip of ips.slice(0, 3)) expect(errorReport.getByText(ip)).toBeInTheDocument()
-    for (const ip of ips.slice(3)) expect(errorReport.queryByText(ip)).not.toBeInTheDocument()
+    for (const ip of ips.filter((_ip, index) => index !== 3)) expect(errorReport.getByText(ip)).toBeInTheDocument()
+    expect(errorReport.queryByText(ips[3])).not.toBeInTheDocument()
     for (const ip of ips) expect(fullReport.getByText(ip)).toBeInTheDocument()
-    expect(errorReport.getByText(/Only confirmed offline/)).toBeInTheDocument()
+    expect(errorReport.getByText(/Unknown indicates missing health information/)).toBeInTheDocument()
   })
+  it.each([{ isLoading: true, isFetching: true }, { isError: true }])('excludes request-level states alone from the error report (%j)', (query) => {
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue(query as any)
+    mockUseGetScmsStatusQuery.mockReturnValue(query as any)
+    renderComponent()
+    const errorReport = within(screen.getByText('RSU Error Summary').parentElement!)
+    expect(errorReport.queryByText(TEST_IP)).not.toBeInTheDocument()
+  })
+
 })

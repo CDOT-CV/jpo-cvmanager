@@ -34,7 +34,7 @@ import {
   getStatusTextColor,
   getScmsExpirationDisplay,
   getLastOnlineDisplay,
-  hasConfirmedRsuError,
+  shouldIncludeInRsuErrorReport,
   OnlineStatus,
   ScmsStatus,
 } from '../../utils/rsu-status'
@@ -428,8 +428,8 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
           <br />
           <p style={{ color: 'black' }}>
             {`Below is the generated RSU Error summary report at ${new Date().toISOString()} UTC. ` +
-              'Only confirmed offline, unstable, or SCMS unhealthy devices are included. ' +
-              'Loading, unknown, and unavailable statuses alone do not qualify as device errors; ' +
+              'Devices with offline, unstable, SCMS unhealthy, or unknown health statuses are included. ' +
+              'Unknown indicates missing health information, not a confirmed device failure. Loading and unavailable statuses alone do not qualify; ' +
               'see the full report for all devices.'}
           </p>
           <div style={{ marginTop: '25px' }}>
@@ -489,7 +489,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
               actions={[]}
               data={
                 rsuTableData !== undefined
-                  ? rsuTableData.filter((row) => hasConfirmedRsuError(row.online_status, row.scms_status))
+                  ? rsuTableData.filter((row) => shouldIncludeInRsuErrorReport(row.online_status, row.scms_status))
                   : []
               }
               title=""
