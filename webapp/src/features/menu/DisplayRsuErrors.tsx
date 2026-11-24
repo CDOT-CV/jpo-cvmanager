@@ -15,8 +15,9 @@ import GpsFixedSharp from '@mui/icons-material/GpsFixedSharp'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
 import AdminTable from '../../components/AdminTable'
+import { StatusRetryAlert } from '../../components/StatusRetryAlert'
 import { setMapViewState } from '../../pages/mapSlice'
-import { Alert, Accordion, AccordionDetails, AccordionSummary, Box, Button, Stack, Typography, useTheme } from '@mui/material'
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Stack, Typography, useTheme } from '@mui/material'
 import { RsuInfo } from '../../models/RsuApi'
 import { useReactToPrint } from 'react-to-print'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
@@ -169,18 +170,8 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
 
   return (
     <div style={containerStyle}>
-      <div>
-        {onlineStatusQuery.isError && (
-          <Alert severity="warning" action={<Button disabled={onlineStatusQuery.isFetching} onClick={() => onlineStatusQuery.refetch()}>Retry</Button>}>
-            Online status unavailable.
-          </Alert>
-        )}
-        {scmsStatusQuery.isError && (
-          <Alert severity="warning" action={<Button disabled={scmsStatusQuery.isFetching} onClick={() => scmsStatusQuery.refetch()}>Retry</Button>}>
-            SCMS status unavailable.
-          </Alert>
-        )}
-      </div>
+      <StatusRetryAlert statusName="Online" query={onlineStatusQuery} />
+      <StatusRetryAlert statusName="SCMS" query={scmsStatusQuery} />
       {selectedRSU !== undefined ? (
         <Stack direction="column" spacing={2} sx={{ pl: 1, pr: 1, width: '100%' }}>
           <SideBarHeader

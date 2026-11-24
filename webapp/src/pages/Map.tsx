@@ -60,7 +60,6 @@ import {
 import ClearIcon from '@mui/icons-material/Clear'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
-  Alert,
   Button,
   FormGroup,
   IconButton,
@@ -130,6 +129,7 @@ import { selectToken } from '../generalSlices/userSlice'
 import { MessageType } from '../models/MessageTypes'
 import { useGetRsuCountsQuery } from '../features/api/rsuCountsApiSlice'
 import { useGetScmsStatusQuery } from '../features/api/scmsApiSlice'
+import { StatusRetryAlert } from '../components/StatusRetryAlert'
 import { RSU_POINT_LAYER_ID, RsuMapLayer } from '../components/map-layers/RsuMapLayer'
 import {
   INTERSECTION_ICON_ID,
@@ -1083,16 +1083,8 @@ function MapPage() {
     <div className="container">
       <div className="menu-container map-control-container">
         <ConditionalRenderRsu>
-          {onlineStatusQuery.isError && (
-            <Alert severity="warning" action={<Button disabled={onlineStatusQuery.isFetching} onClick={() => onlineStatusQuery.refetch()}>Retry</Button>}>
-              Online status unavailable.
-            </Alert>
-          )}
-          {scmsStatusQuery.isError && (
-            <Alert severity="warning" action={<Button disabled={scmsStatusQuery.isFetching} onClick={() => scmsStatusQuery.refetch()}>Retry</Button>}>
-              SCMS status unavailable.
-            </Alert>
-          )}
+          <StatusRetryAlert statusName="Online" query={onlineStatusQuery} />
+          <StatusRetryAlert statusName="SCMS" query={scmsStatusQuery} />
         </ConditionalRenderRsu>
         <Accordion
           style={{ backgroundColor: theme.palette.background.paper }}
