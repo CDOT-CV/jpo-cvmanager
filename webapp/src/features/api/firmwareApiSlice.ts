@@ -3,6 +3,7 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { selectToken } from '../../generalSlices/userSlice'
 import {
   FirmwareObjectPage,
+  FirmwareUpgradeStatus,
   FirmwareRule,
   FirmwareRuleOptions,
   FirmwareUploadOptions,
@@ -27,6 +28,9 @@ export const firmwareApiSlice = createApi({
     },
   }),
   endpoints: (builder) => ({
+    getFirmwareUpgradeStatus: builder.query<FirmwareUpgradeStatus, void>({
+      query: () => 'upgrade-status',
+    }),
     listFirmwareRules: builder.query<FirmwareRule[], void>({
       query: () => 'upgrade-rules',
     }),
@@ -82,6 +86,7 @@ export const firmwareApiSlice = createApi({
 })
 
 export const {
+  useGetFirmwareUpgradeStatusQuery,
   useListFirmwareRulesQuery,
   useGetFirmwareRuleOptionsQuery,
   useAssignFirmwareRulesMutation,
