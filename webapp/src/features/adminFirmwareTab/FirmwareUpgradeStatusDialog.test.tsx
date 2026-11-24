@@ -10,7 +10,9 @@ import { FirmwareUpgradeStatus } from '../../models/Firmware'
 
 const snapshot: FirmwareUpgradeStatus = {
   active_upgrades: { '192.0.2.1': { manufacturer: 'Commsignia', model: 'ITS-RS4-M', target_firmware_version: 'v2' } },
-  upgrade_queue: ['192.0.2.3', '192.0.2.2'],
+  upgrade_queue: [{ ip: '192.0.2.3', position: 2 }, { ip: '192.0.2.2', position: 5 }],
+  hidden_active_count: 2,
+  hidden_queued_count: 3,
 }
 beforeEach(() => fetchMock.resetMocks())
 
@@ -30,15 +32,28 @@ it('loads on open and displays active details separately from queue order', asyn
   expect(within(active).getByText('v2')).toBeVisible()
   const queue = screen.getByRole('table', { name: 'Queued upgrades' })
   const rows = within(queue).getAllByRole('row')
-  expect(within(rows[1]).getByRole('cell', { name: '1' })).toBeVisible()
+  expect(within(rows[1]).getByRole('cell', { name: '2' })).toBeVisible()
   expect(within(rows[1]).getByRole('cell', { name: '192.0.2.3' })).toBeVisible()
-  expect(within(rows[2]).getByRole('cell', { name: '2' })).toBeVisible()
+  expect(within(rows[2]).getByRole('cell', { name: '5' })).toBeVisible()
   expect(within(rows[2]).getByRole('cell', { name: '192.0.2.2' })).toBeVisible()
   expect(screen.getByText('Active (1)')).toBeVisible()
   expect(screen.getByText('Queued (2)')).toBeVisible()
+  expect(screen.getByText('Other active upgrades: 2')).toBeVisible()
+  expect(screen.getByText('Other queued upgrades: 3')).toBeVisible()
   expect(screen.queryByText('Close')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Close' }))
   expect(close).toHaveBeenCalledOnce()
+})
+
+it('shows scheduler activity when the caller cannot view any of the RSUs', async () => {
+  fetchMock.mockResponseOnce(JSON.stringify({
+    active_upgrades: {}, upgrade_queue: [], hidden_active_count: 2, hidden_queued_count: 4,
+  }))
+  renderDialog()
+  expect(await screen.findByText('Other active upgrades: 2')).toBeVisible()
+  expect(screen.getByText('Other queued upgrades: 4')).toBeVisible()
+  expect(screen.getByText('No queued upgrades you can view.')).toBeVisible()
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
 })
 
 it('refreshes from the API and replaces the previous snapshot with an idle state', async () => {

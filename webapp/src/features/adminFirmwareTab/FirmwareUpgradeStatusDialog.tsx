@@ -38,7 +38,11 @@ const FirmwareUpgradeStatusDialog = ({ onClose }: { onClose: () => void }) => {
           <Stack spacing={2}>
             <Box component="section" aria-label="Active upgrades">
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>Active ({active.length})</Typography>
-              {active.length === 0 ? <Typography>No active firmware upgrades.</Typography> : (
+              {data.hidden_active_count > 0 && (
+                <Typography variant="body2">Other active upgrades: {data.hidden_active_count}</Typography>
+              )}
+              {active.length === 0 ? <Typography>{data.hidden_active_count > 0
+                ? 'No active upgrades you can view.' : 'No active firmware upgrades.'}</Typography> : (
                 <TableContainer sx={{ bgcolor: 'action.hover', border: 1, borderColor: 'divider', borderRadius: 1 }}>
                   <Table size="small" aria-label="Active upgrades" sx={{
                     '& th': { textTransform: 'none !important', bgcolor: 'custom.tableHeaderBackground' },
@@ -68,7 +72,11 @@ const FirmwareUpgradeStatusDialog = ({ onClose }: { onClose: () => void }) => {
             </Box>
             <Box component="section" aria-label="Queued upgrades">
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>Queued ({data.upgrade_queue.length})</Typography>
-              {data.upgrade_queue.length === 0 ? <Typography>No queued firmware upgrades.</Typography> : (
+              {data.hidden_queued_count > 0 && (
+                <Typography variant="body2">Other queued upgrades: {data.hidden_queued_count}</Typography>
+              )}
+              {data.upgrade_queue.length === 0 ? <Typography>{data.hidden_queued_count > 0
+                ? 'No queued upgrades you can view.' : 'No queued firmware upgrades.'}</Typography> : (
                 <TableContainer sx={{ bgcolor: 'action.hover', border: 1, borderColor: 'divider', borderRadius: 1 }}>
                   <Table size="small" aria-label="Queued upgrades" sx={{
                     '& th': { textTransform: 'none !important', bgcolor: 'custom.tableHeaderBackground' },
@@ -77,9 +85,9 @@ const FirmwareUpgradeStatusDialog = ({ onClose }: { onClose: () => void }) => {
                       <TableRow><TableCell>Queue Position</TableCell><TableCell>RSU IP</TableCell></TableRow>
                     </TableHead>
                     <TableBody>
-                      {data.upgrade_queue.map((ip, index) => (
+                      {data.upgrade_queue.map(({ ip, position }) => (
                         <TableRow key={ip}>
-                          <TableCell>{index + 1}</TableCell><TableCell>{ip}</TableCell>
+                          <TableCell>{position}</TableCell><TableCell>{ip}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
