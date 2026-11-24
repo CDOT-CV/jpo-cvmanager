@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareRuleModels.*;
-import us.dot.its.jpo.ode.api.services.FirmwareRuleService;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService;
 
 @RestController
 @RequiredArgsConstructor

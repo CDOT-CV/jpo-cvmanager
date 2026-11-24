@@ -27,8 +27,6 @@ LOGS_LINK = get_env_var("LOGS_LINK")
 WZDX_ENDPOINT = get_env_var("WZDX_ENDPOINT", error=ENABLE_WZDX_FEATURES)
 WZDX_API_KEY = get_env_var("WZDX_API_KEY", error=ENABLE_WZDX_FEATURES)
 
-FIRMWARE_MANAGER_ENDPOINT = get_env_var("FIRMWARE_MANAGER_ENDPOINT", warn=False)
-
 ENABLE_ERROR_EMAILS = get_env_var("ENABLE_ERROR_EMAILS", "false").lower() != "false"
 IAPI_ENDPOINT = get_env_var("IAPI_ENDPOINT", error=ENABLE_ERROR_EMAILS)
 KC_SA_CLIENT_ID = get_env_var(

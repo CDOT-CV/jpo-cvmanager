@@ -21,6 +21,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -329,6 +331,19 @@ public class UnsubscribeTokenGeneratorTest {
 
         // Assert
         assertNull(token, "Should return null when secret key is too short");
+    }
+
+    @Test
+    void testParseAndValidateToken_DeeplyNestedClaimsAreRejected() throws Exception {
+        // Sign raw JSON so token construction does not parse the payload before validation.
+        String claims = "{\"iss\":\"" + ISSUER_URI + "\",\"sub\":\"" + TEST_EMAIL
+                + "\",\"purpose\":\"unsubscribe\",\"nested\":"
+                + "[".repeat(2048) + "0" + "]".repeat(2048) + "}";
+        var token = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(claims));
+        token.sign(new MACSigner(SECRET_KEY));
+
+        assertNull(tokenGenerator.parseAndValidateToken(token.serialize()),
+                "Excessive JSON nesting must be rejected without overflowing the stack");
     }
 
     @Test

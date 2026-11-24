@@ -2,6 +2,10 @@ FROM maven:3.9.6-eclipse-temurin-22-jammy AS builder
 
 WORKDIR /home/intersection-api
 
+COPY ./intersection-api/snmp/pom.xml /home/snmp/pom.xml
+COPY ./intersection-api/snmp/src/main /home/snmp/src/main
+RUN mvn -f /home/snmp/pom.xml install -Dmaven.test.skip=true
+
 COPY ./intersection-api/api/pom.xml .
 COPY ./intersection-api/api/settings.xml .
 
@@ -22,7 +26,18 @@ RUN mvn -s settings.xml install -DskipTests
 # Create a new stage for runtime
 FROM eclipse-temurin:22-jre-noble
 
+# JDK 22 is EOL, so this base image is no longer rebuilt upstream (last published 2024-08).
+# Apply current Ubuntu security updates (e.g. libbrotli1, CVE-2026-111497). Build with
+# --pull/--no-cache so a cached layer does not keep stale packages.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /home
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV EMAIL_RATE_LIMIT_PER_USER=12
 ENV EMAIL_RATE_LIMIT_PER_INSTANCE=120

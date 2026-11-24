@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { ReportListFilters } from './report-list-filters'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from '@mui/material'
@@ -55,8 +55,6 @@ it('should take a snapshot', () => {
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore({})}>
         <ReportListFilters
-          open={true}
-          onClose={() => {}}
           filters={{
             startDate: new Date('2025-04-07T00:00:00Z'),
             endDate: new Date('2025-04-08T00:00:00Z'),
@@ -71,4 +69,52 @@ it('should take a snapshot', () => {
   )
 
   expect(replaceChaoticIds(container)).toMatchSnapshot()
+})
+
+it('syncs external filters without notifying the parent again', () => {
+  const onChange = vi.fn()
+  const initialFilters = {
+    startDate: new Date('2025-04-07T00:00:00Z'),
+    endDate: new Date('2025-04-08T00:00:00Z'),
+  }
+  const props = {
+    filters: initialFilters,
+    onChange,
+    loading: false,
+    containerRef: createRef<Element>(),
+    setOpenReportGenerationDialog: vi.fn(),
+  }
+  const { rerender } = render(<ReportListFilters {...props} />)
+
+  expect(onChange).not.toHaveBeenCalled()
+  rerender(<ReportListFilters {...props} filters={{ ...initialFilters, endDate: undefined }} />)
+  expect(screen.getByText('Invalid filters: Start Date and End Date must be set')).toBeInTheDocument()
+  expect(onChange).not.toHaveBeenCalled()
+
+  rerender(<ReportListFilters {...props} filters={initialFilters} />)
+  expect(screen.queryByText(/Invalid filters:/)).not.toBeInTheDocument()
+  expect(onChange).not.toHaveBeenCalled()
+})
+
+it('keeps invalid edits local and notifies the parent after a valid edit', () => {
+  const onChange = vi.fn()
+  render(
+    <ReportListFilters
+      filters={{
+        startDate: new Date('2025-04-07T00:00:00Z'),
+        endDate: new Date('2025-04-08T00:00:00Z'),
+      }}
+      onChange={onChange}
+      loading={false}
+      containerRef={createRef<Element>()}
+      setOpenReportGenerationDialog={() => {}}
+    />
+  )
+
+  fireEvent.change(screen.getByLabelText('From'), { target: { value: '04/09/2025 06:00 PM' } })
+  expect(onChange).not.toHaveBeenCalled()
+  expect(screen.getByText('Invalid filters: Start Date must be before End Date')).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('To'), { target: { value: '04/10/2025 06:00 PM' } })
+  expect(onChange).toHaveBeenCalledTimes(1)
+  expect(screen.queryByText(/Invalid filters:/)).not.toBeInTheDocument()
 })

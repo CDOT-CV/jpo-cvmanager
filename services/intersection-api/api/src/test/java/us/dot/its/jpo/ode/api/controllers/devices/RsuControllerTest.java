@@ -83,6 +83,7 @@ class RsuControllerTest {
             Pageable pageable = PageRequest.of(0, 100);
 
             RsuInfoDto rsu1 = new RsuInfoDto(
+                    null,
                     "192.168.1.100",
                     new SimplePosition(39.7392, -105.0844),
                     123.4,
@@ -98,6 +99,7 @@ class RsuControllerTest {
                     Boolean.TRUE);
 
             RsuInfoDto rsu2 = new RsuInfoDto(
+                    null,
                     "192.168.1.101",
                     new SimplePosition(39.7400, -105.0850),
                     124.5,
@@ -191,6 +193,7 @@ class RsuControllerTest {
             Pageable pageable = PageRequest.of(0, 50);
 
             RsuInfoDto rsu1 = new RsuInfoDto(
+                    null,
                     "192.168.1.100",
                     new SimplePosition(39.7392, -105.0844),
                     123.4,
@@ -227,6 +230,7 @@ class RsuControllerTest {
             String rsuIp = "192.168.1.100";
 
             RsuInfoDto rsuInfo = new RsuInfoDto(
+                    null,
                     rsuIp,
                     new SimplePosition(39.7392, -105.0844),
                     123.4,
@@ -597,6 +601,7 @@ class RsuControllerTest {
                 UserRole role = UserRole.OPERATOR;
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                        5,
                         "192.168.1.100",
                         new SimplePosition(39.7392, -105.0844),
                         123.4,
@@ -632,6 +637,7 @@ class RsuControllerTest {
                 UserRole role = UserRole.OPERATOR;
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                        5,
                         "192.168.1.100",
                         new SimplePosition(39.7392, -105.0844),
                         123.4,
@@ -664,6 +670,7 @@ class RsuControllerTest {
                 UserRole role = UserRole.OPERATOR;
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                        5,
                         "192.168.1.100",
                         new SimplePosition(39.7392, -105.0844),
                         123.4,
@@ -697,6 +704,7 @@ class RsuControllerTest {
             List<String> orgsToAdd = Arrays.asList("TestOrg");
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                    5,
                     "192.168.1.100",
                     new SimplePosition(39.7392, -105.0844),
                     123.4,
@@ -721,6 +729,7 @@ class RsuControllerTest {
             List<String> orgsToAdd = Arrays.asList("TestOrg");
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                    5,
                     "192.168.1.100",
                     new SimplePosition(39.7392, -105.0844),
                     123.4,
@@ -743,6 +752,7 @@ class RsuControllerTest {
         @Test
         void testCreateRsu_NullOrganizationsList() {
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                    5,
                     "192.168.1.100",
                     new SimplePosition(39.7392, -105.0844),
                     123.4,

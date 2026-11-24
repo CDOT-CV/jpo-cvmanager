@@ -76,7 +76,7 @@ The following environmental variables must be set:
 
 <b>BLOB_STORAGE_BUCKET:</b> Cloud blob storage bucket for firmware storage.
 
-<b>BLOB_STORAGE_PATH:</b> Path to firmware files directory within the storage bucket.
+<b>BLOB_STORAGE_PATH:</b> Path to firmware files directory within the storage bucket. Every file directly inside this folder is offered to OBUs. Do not set this to `ota/` or a folder beneath it: the Intersection API stores OBU firmware uploads there before they are verified or published, and this server does not yet check publish state.
 
 <b>GCP_PROJECT:</b> GCP project for the firmware cloud storage bucket.
 

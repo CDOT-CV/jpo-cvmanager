@@ -1,13 +1,17 @@
 package us.dot.its.jpo.ode.api.emails;
 
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.HttpClients;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import com.postmarkapp.postmark.Postmark;
 import com.postmarkapp.postmark.client.ApiClient;
+import com.sendgrid.Client;
 import com.sendgrid.SendGrid;
 
 import lombok.Data;
@@ -20,6 +24,9 @@ import us.dot.its.jpo.ode.api.models.emails.EmailBrokerType;
 @ConfigurationProperties(prefix = "email")
 @Data
 public class EmailProperties {
+    private static final int SENDGRID_HEALTH_CHECK_TIMEOUT_MILLIS = 5_000;
+    private static final int POSTMARK_HEALTH_CHECK_TIMEOUT_SECONDS = 5;
+
     private EmailBrokerType broker;
     private String senderAddress;
     private String unsubscribeSecretKey;
@@ -34,15 +41,40 @@ public class EmailProperties {
     private PostmarkProperties postmark;
 
     @Bean
+    @Primary
     @ConditionalOnProperty(name = "email.broker", havingValue = "SENDGRID")
     SendGrid sendGrid() {
         return new SendGrid(sendgrid.getApiKey());
     }
 
+    @Bean("sendGridHealthCheck")
+    @ConditionalOnProperty(name = "email.broker", havingValue = "SENDGRID")
+    SendGrid sendGridHealthCheck() {
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectionRequestTimeout(SENDGRID_HEALTH_CHECK_TIMEOUT_MILLIS)
+                .setConnectTimeout(SENDGRID_HEALTH_CHECK_TIMEOUT_MILLIS)
+                .setSocketTimeout(SENDGRID_HEALTH_CHECK_TIMEOUT_MILLIS)
+                .build();
+        Client client = new Client(HttpClients.custom()
+                .setDefaultRequestConfig(requestConfig)
+                .build());
+        return new SendGrid(sendgrid.getApiKey(), client);
+    }
+
     @Bean
+    @Primary
     @ConditionalOnProperty(name = "email.broker", havingValue = "POSTMARK")
     ApiClient apiClient() {
         return Postmark.getApiClient(postmark.getApiKey());
+    }
+
+    @Bean("postmarkHealthCheck")
+    @ConditionalOnProperty(name = "email.broker", havingValue = "POSTMARK")
+    ApiClient postmarkHealthCheck() {
+        ApiClient client = Postmark.getApiClient(postmark.getApiKey());
+        client.setConnectTimeoutSeconds(POSTMARK_HEALTH_CHECK_TIMEOUT_SECONDS);
+        client.setReadTimeoutSeconds(POSTMARK_HEALTH_CHECK_TIMEOUT_SECONDS);
+        return client;
     }
 
     public void setCvmgrFrontEndUri(String cvmgrFrontEndUri) {

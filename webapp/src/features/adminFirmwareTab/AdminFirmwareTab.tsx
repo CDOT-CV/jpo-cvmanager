@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { Action, Column, Query } from '@material-table/core'
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, Typography } from '@mui/material'
-import { DeleteOutline } from '@mui/icons-material'
+import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import toast from 'react-hot-toast'
@@ -15,6 +15,7 @@ import {
 } from '../api/firmwareApiSlice'
 import FirmwareUploadForm from './FirmwareUploadForm'
 import FirmwareRulesDialog from './FirmwareRulesDialog'
+import FirmwareUpgradeStatusDialog from './FirmwareUpgradeStatusDialog'
 import { formatFileSize } from './firmwareUpload'
 import '../adminRsuTab/Admin.css'
 
@@ -66,6 +67,7 @@ const AdminFirmwareTab = () => {
   const manufacturerRef = useRef('')
   const [manufacturer, setManufacturer] = useState('')
   const [showUpload, setShowUpload] = useState(false)
+  const [showUpgradeStatus, setShowUpgradeStatus] = useState(false)
   const [rulesFirmwareId, setRulesFirmwareId] = useState<number>()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -213,6 +215,13 @@ const AdminFirmwareTab = () => {
   })
 
   const tableActions: (Action<FirmwareObject> | ((row: FirmwareObject) => Action<FirmwareObject>))[] = [
+    {
+      position: 'toolbar',
+      icon: () => null,
+      tooltip: 'View firmware upgrade status',
+      iconProps: { itemType: 'outlined', color: 'info', title: 'Upgrade Status' },
+      onClick: () => setShowUpgradeStatus(true),
+    },
     (object) => ({
       position: 'row',
       icon: FirmwareDeleteIcon,
@@ -310,6 +319,7 @@ const AdminFirmwareTab = () => {
         title=""
       />
 
+      {showUpgradeStatus && <FirmwareUpgradeStatusDialog onClose={() => setShowUpgradeStatus(false)} />}
       {showUpload && (
         <FirmwareUploadForm
           open
