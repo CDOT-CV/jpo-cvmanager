@@ -20,7 +20,7 @@ const DEFAULT_SUB_TAB = firmwareSubTabs[0].path
 
 const FirmwareTabs = () => {
   const theme = useTheme()
-  // The admin tab route is firmware/*, so the splat names the selected sub-tab
+  // The admin tab route is firmware/*, so the rest of the path names the selected sub-tab
   const subPath = useParams()['*']?.split('/')[0]
   const selected = firmwareSubTabs.some((tab) => tab.path === subPath) ? subPath : DEFAULT_SUB_TAB
 

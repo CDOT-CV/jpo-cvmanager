@@ -85,6 +85,17 @@ const objects = [
     published_at: '2026-10-15T12:02:00Z',
     unsupported_reason: RSU_REASON,
   }),
+  firmware({
+    object_id: 'unparsed',
+    file_name: 'notes.txt',
+    obu_firmware_id: null,
+    device_type: null,
+    variant: null,
+    release_version: null,
+    writable_system_partition: null,
+    secure_boot: null,
+    verification_status: 'UNTRACKED',
+  }),
   // Registered before uploads were limited to the supported builds
   firmware({
     object_id: 'read-only',
@@ -107,7 +118,8 @@ describe('OBU firmware tab', () => {
         <AdminObuFirmwareTab />
       </ThemeProvider>
     )
-  const row = (fileName: string) => screen.getByText(fileName).closest('tr') as HTMLElement
+  // The release cell's tooltip names the file
+  const row = (fileName: string) => screen.getByLabelText(fileName).closest('tr') as HTMLElement
 
   beforeEach(() => {
     vi.resetAllMocks()
@@ -130,8 +142,19 @@ describe('OBU firmware tab', () => {
   it('lists firmware details and explains that publish state is not applied yet', async () => {
     renderTab()
 
-    expect(await screen.findByText('verified.tar.sig')).toBeInTheDocument()
-    expect(within(row('verified.tar.sig')).getByText('ob4-generic · Read-only · Secure boot')).toBeInTheDocument()
+    expect(await screen.findByLabelText('verified.tar.sig')).toBeInTheDocument()
+    for (const detail of ['ob4-generic', 'Read-only', 'Secure boot']) {
+      expect(within(row('verified.tar.sig')).getByText(detail)).toBeInTheDocument()
+    }
+    expect(within(row('verified.tar.sig')).getByText('y20.48.2')).toBeInTheDocument()
+    expect(within(row('verified.tar.sig')).queryByText('OBU firmware')).not.toBeInTheDocument()
+    expect(within(row('rsu.tar.sig')).getByText('RSU firmware')).toBeInTheDocument()
+    expect(within(row('read-only.tar.sig')).getByText('No secure boot')).toBeInTheDocument()
+    // Date and time on their own lines
+    const registered = new Date('2026-10-15T12:01:00Z')
+    expect(within(row('verified.tar.sig')).getByText(registered.toLocaleDateString())).toBeInTheDocument()
+    // A file whose name could not be parsed shows its name
+    expect(within(screen.getByText('notes.txt').closest('tr') as HTMLElement).getByText('Untracked')).toBeInTheDocument()
     expect(within(row('verified.tar.sig')).getByText('1 KB')).toBeInTheDocument()
     expect(within(row('local.tar.sig')).getByText('Local file')).toBeInTheDocument()
     expect(within(row('published.tar.sig')).getByText('File changed')).toBeInTheDocument()
@@ -156,7 +179,7 @@ describe('OBU firmware tab', () => {
 
   it('allows publishing verified and local firmware, and unpublishing published firmware', async () => {
     renderTab()
-    await screen.findByText('verified.tar.sig')
+    await screen.findByLabelText('verified.tar.sig')
 
     expect(screen.getByRole('checkbox', { name: 'Publish verified.tar.sig' })).toBeEnabled()
     expect(screen.getByRole('checkbox', { name: 'Publish local.tar.sig' })).toBeEnabled()
@@ -170,7 +193,7 @@ describe('OBU firmware tab', () => {
 
   it('explains why the API would refuse to publish firmware, and still allows withdrawing it', async () => {
     renderTab()
-    await screen.findByText('rsu.tar.sig')
+    await screen.findByLabelText('rsu.tar.sig')
 
     expect(screen.getByRole('checkbox', { name: 'Publish rsu.tar.sig' })).toBeDisabled()
     expect(within(row('rsu.tar.sig')).getByLabelText(RSU_REASON)).toBeInTheDocument()
@@ -182,7 +205,7 @@ describe('OBU firmware tab', () => {
 
   it('lets keyboard users reach the reason a switch is disabled', async () => {
     renderTab()
-    await screen.findByText('missing.tar.sig')
+    await screen.findByLabelText('missing.tar.sig')
 
     const reason = within(row('missing.tar.sig')).getByLabelText('Only verified or local firmware can be published')
     expect(reason).toHaveAttribute('tabindex', '0')
@@ -191,7 +214,7 @@ describe('OBU firmware tab', () => {
 
   it('confirms publication, publishes, and shows the reloaded publish state', async () => {
     renderTab()
-    await screen.findByText('verified.tar.sig')
+    await screen.findByLabelText('verified.tar.sig')
     const published = objects.map((object) =>
       object.object_id === 'verified' ? { ...object, published: true, published_by: 'admin' } : object
     )
@@ -200,8 +223,8 @@ describe('OBU firmware tab', () => {
     }))
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Publish verified.tar.sig' }))
-    expect(screen.getByText(/replaces the currently published release of the same build/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    expect(screen.getByText(/If another release of this build is published, this release replaces it/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
 
     await waitFor(() => expect(setPublished).toHaveBeenCalledWith({ obuFirmwareId: 1, published: true }))
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Firmware published', { id: 'notification' }))
@@ -214,10 +237,10 @@ describe('OBU firmware tab', () => {
       unwrap: () => Promise.resolve(publication([{ obu_firmware_id: 2, file_name: 'published.tar.sig' }])),
     }))
     renderTab()
-    await screen.findByText('verified.tar.sig')
+    await screen.findByLabelText('verified.tar.sig')
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Publish verified.tar.sig' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
 
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith('Firmware published. It replaces published.tar.sig.', {
@@ -231,11 +254,11 @@ describe('OBU firmware tab', () => {
       unwrap: () => Promise.reject({ data: { detail: 'OBU firmware was not found' } }),
     }))
     renderTab()
-    await screen.findByText('published.tar.sig')
+    await screen.findByLabelText('published.tar.sig')
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Unpublish published.tar.sig' }))
     expect(screen.getByText(/Stop offering this firmware/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Unpublish' }))
 
     await waitFor(() => expect(setPublished).toHaveBeenCalledWith({ obuFirmwareId: 2, published: false }))
     await waitFor(() =>
@@ -245,7 +268,7 @@ describe('OBU firmware tab', () => {
 
   it('blocks deletion of published firmware', async () => {
     renderTab()
-    await screen.findByText('published.tar.sig')
+    await screen.findByLabelText('published.tar.sig')
 
     expect(within(row('published.tar.sig')).getByRole('button', { name: 'Unpublish before deleting' })).toBeDisabled()
     expect(within(row('verified.tar.sig')).getByRole('button', { name: 'Delete Firmware' })).toBeEnabled()
@@ -254,11 +277,11 @@ describe('OBU firmware tab', () => {
 
   it('cleans up entries from a previous bucket while storage is available', async () => {
     renderTab()
-    await screen.findByText('unknown.tar.sig')
+    await screen.findByLabelText('unknown.tar.sig')
 
     fireEvent.click(within(row('unknown.tar.sig')).getByRole('button', { name: 'Clean Up Records' }))
     expect(screen.getByText(/previously configured storage bucket/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clean Up' }))
 
     await waitFor(() => expect(deleteObject).toHaveBeenCalledWith({ object_id: 'unknown', provider_object_version: null }))
   })
@@ -266,21 +289,21 @@ describe('OBU firmware tab', () => {
   it('blocks deleting entries that cannot be checked while storage is unavailable', async () => {
     storageAvailable = false
     renderTab()
-    await screen.findByText('unknown.tar.sig')
+    await screen.findByLabelText('unknown.tar.sig')
 
     expect(within(row('unknown.tar.sig')).getByRole('button', { name: /once storage is available/ })).toBeDisabled()
   })
 
   it('deletes a stored file with its listed version and removes it from the list', async () => {
     renderTab()
-    await screen.findByText('untracked.tar.sig')
+    await screen.findByLabelText('untracked.tar.sig')
     const remaining = objects.filter((object) => object.object_id !== 'untracked')
     list.mockImplementation(() => ({
       unwrap: () => Promise.resolve({ provider: 'gcp', storage_available: true, objects: remaining, total_elements: 25 }),
     }))
 
     fireEvent.click(within(row('untracked.tar.sig')).getByRole('button', { name: 'Delete Firmware' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() =>
       expect(deleteObject).toHaveBeenCalledWith({ object_id: 'untracked', provider_object_version: '17' })
@@ -288,28 +311,28 @@ describe('OBU firmware tab', () => {
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith('Firmware deleted successfully', { id: 'notification' })
     )
-    await waitFor(() => expect(screen.queryByText('untracked.tar.sig')).not.toBeInTheDocument())
-    expect(screen.getByText('verified.tar.sig')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByLabelText('untracked.tar.sig')).not.toBeInTheDocument())
+    expect(screen.getByLabelText('verified.tar.sig')).toBeInTheDocument()
   })
 
   it('cleans up records for missing and local files without a version', async () => {
     renderTab()
-    await screen.findByText('local.tar.sig')
+    await screen.findByLabelText('local.tar.sig')
 
     fireEvent.click(within(row('local.tar.sig')).getByRole('button', { name: 'Clean Up Records' }))
     expect(screen.getByText(/must be removed there/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clean Up' }))
     await waitFor(() => expect(deleteObject).toHaveBeenCalledWith({ object_id: 'local', provider_object_version: null }))
 
     fireEvent.click(within(row('missing.tar.sig')).getByRole('button', { name: 'Clean Up Records' }))
     expect(screen.getByText(/missing from storage/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clean Up' }))
     await waitFor(() => expect(deleteObject).toHaveBeenCalledWith({ object_id: 'missing', provider_object_version: null }))
   })
 
   it('filters by manufacturer and publish state, and sorts by API fields', async () => {
     renderTab()
-    await screen.findByText('verified.tar.sig')
+    await screen.findByLabelText('verified.tar.sig')
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
     fireEvent.click(screen.getByRole('option', { name: 'Commsignia' }))
@@ -324,7 +347,7 @@ describe('OBU firmware tab', () => {
     fireEvent.click(screen.getByRole('columnheader', { name: 'Published' }))
     await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ sort: 'published,asc' })))
     // Unsortable columns fall back to the default order
-    fireEvent.click(screen.getByRole('columnheader', { name: 'Details' }))
+    fireEvent.click(screen.getByRole('columnheader', { name: 'Build' }))
     await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ sort: 'manufacturer,asc' })))
 
     fireEvent.click(screen.getByRole('button', { name: 'Next Page' }))

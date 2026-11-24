@@ -22,6 +22,18 @@ type PublishedFilter = '' | 'true' | 'false'
 
 const formatTimestamp = (value: string | null | undefined) => (value ? new Date(value).toLocaleString() : '')
 
+// The date and time on their own lines, so a narrow column never breaks inside either
+const Timestamp = ({ value }: { value: string | null }) => {
+  if (!value) return null
+  const date = new Date(value)
+  return (
+    <Box component="span" sx={{ display: 'flex', flexDirection: 'column', whiteSpace: 'nowrap' }}>
+      <span>{date.toLocaleDateString()}</span>
+      <span>{date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+    </Box>
+  )
+}
+
 const verificationLabel: Record<ObuFirmwareVerificationStatus, string> = {
   VERIFIED: 'Verified',
   CHANGED: 'File changed',
@@ -49,10 +61,41 @@ const describeFileSystem = (writable: boolean | null | undefined) => {
   return writable ? 'Read-write' : 'Read-only'
 }
 
-const describeDetails = (object: ObuFirmwareObject) =>
-  [object.variant, describeFileSystem(object.writable_system_partition), object.secure_boot ? 'Secure boot' : null]
-    .filter(Boolean)
-    .join(' · ')
+const describeSecureBoot = (secureBoot: boolean | null | undefined) => {
+  if (secureBoot == null) {
+    return null
+  }
+  return secureBoot ? 'Secure boot' : 'No secure boot'
+}
+
+// The build, one fact per line. The tab lists OBU firmware, so only another device
+// type, such as RSU firmware left in an upload folder, is named.
+const buildDetails = (object: ObuFirmwareObject) =>
+  [
+    object.device_type && object.device_type !== 'OBU' ? `${object.device_type} firmware` : null,
+    object.variant,
+    describeFileSystem(object.writable_system_partition),
+    describeSecureBoot(object.secure_boot),
+  ].filter((detail): detail is string => Boolean(detail))
+
+const BuildDetails = ({ object }: { object: ObuFirmwareObject }) => (
+  <Box component="span" sx={{ display: 'flex', flexDirection: 'column' }}>
+    {buildDetails(object).map((detail) => (
+      <span key={detail}>{detail}</span>
+    ))}
+  </Box>
+)
+
+// The release identifies the firmware with its build, so the long file name is kept
+// for the tooltip. A file whose name could not be parsed shows its name instead.
+const ReleaseName = ({ object }: { object: ObuFirmwareObject }) =>
+  object.release_version ? (
+    <Tooltip title={object.file_name}>
+      <span>{object.release_version}</span>
+    </Tooltip>
+  ) : (
+    <span style={{ overflowWrap: 'anywhere' }}>{object.file_name}</span>
+  )
 
 // Only verified cloud files and local files in a build the API accepts can be published,
 // so RSU firmware and older entries of an unsupported build cannot. Published firmware
@@ -107,20 +150,14 @@ const deletionMessage = (object: ObuFirmwareObject) => {
 // Published column is rendered by the tab, since its switch depends on tab state.
 const COLUMN_LAYOUT: Column<ObuFirmwareObject>[] = [
   { title: 'Manufacturer', field: 'manufacturer' },
-  {
-    title: 'File Name',
-    field: 'file_name',
-    render: (object) => <span style={{ overflowWrap: 'anywhere' }}>{object.file_name}</span>,
-  },
-  { title: 'Type', field: 'device_type' },
-  { title: 'Release', field: 'release_version' },
-  { title: 'Details', sorting: false, render: describeDetails },
+  { title: 'Release', field: 'release_version', render: (object) => <ReleaseName object={object} /> },
+  { title: 'Build', sorting: false, render: (object) => <BuildDetails object={object} /> },
   {
     title: 'Size',
     field: 'content_length',
     render: (object) => (object.content_length == null ? '' : formatFileSize(object.content_length)),
   },
-  { title: 'Registered', field: 'registered_at', render: (object) => formatTimestamp(object.registered_at) },
+  { title: 'Registered', field: 'registered_at', render: (object) => <Timestamp value={object.registered_at} /> },
   {
     title: 'Verification',
     field: 'verification_status',
@@ -211,11 +248,11 @@ const AdminObuFirmwareTab = () => {
       ...Options(
         publish ? 'Publish OBU Firmware' : 'Unpublish OBU Firmware',
         publish
-          ? 'Publish this firmware? It replaces the currently published release of the same build. OBUs install the newest published firmware that matches their build.'
+          ? 'Publish this firmware? OBUs install the newest published firmware that matches their build. If another release of this build is published, this release replaces it.'
           : 'Stop offering this firmware to OBUs? OBUs that already downloaded it are not affected.',
         [
           {
-            label: 'Yes',
+            label: publish ? 'Publish' : 'Unpublish',
             onClick: () =>
               void runChange(
                 publish ? 'Publishing firmware...' : 'Unpublishing firmware...',
@@ -224,7 +261,7 @@ const AdminObuFirmwareTab = () => {
                 () => setObuFirmwarePublished({ obuFirmwareId: object.obu_firmware_id!, published: publish }).unwrap()
               ),
           },
-          { label: 'No', onClick: () => {} },
+          { label: 'Cancel', onClick: () => {} },
         ]
       ),
       childrenElement: ObuFirmwareDetails.bind(null, { object }),
@@ -306,10 +343,11 @@ const AdminObuFirmwareTab = () => {
         object.published ||
         (!isRecordsCleanup(object, storageAvailable) && !object.provider_object_version),
       onClick: (_event, row: ObuFirmwareObject) => {
+        const cleanup = isRecordsCleanup(row, storageAvailable)
         confirmAlert({
-          ...Options(isRecordsCleanup(row, storageAvailable) ? 'Clean Up OBU Firmware Records' : 'Delete OBU Firmware', deletionMessage(row), [
-            { label: 'Yes', onClick: () => deleteFirmware(row) },
-            { label: 'No', onClick: () => {} },
+          ...Options(cleanup ? 'Clean Up OBU Firmware Records' : 'Delete OBU Firmware', deletionMessage(row), [
+            { label: cleanup ? 'Clean Up' : 'Delete', onClick: () => deleteFirmware(row) },
+            { label: 'Cancel', onClick: () => {} },
           ]),
           childrenElement: ObuFirmwareDetails.bind(null, { object: row }),
         })
