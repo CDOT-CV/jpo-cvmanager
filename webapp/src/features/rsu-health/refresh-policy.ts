@@ -29,10 +29,13 @@ export const describeHealthFetch = (
   if (query.isUninitialized || query.currentData === undefined) {
     return `${label}: ${query.isFetching ? 'Loading' : query.isError ? 'Unavailable' : 'Not loaded'}`
   }
+
   const fetched = query.fulfilledTimeStamp === undefined
     ? 'Fetch time unavailable'
     : `${format === 'full' ? 'Fetched at ' : ''}${new Date(query.fulfilledTimeStamp).toLocaleString()}`
+
   if (format === 'compact') return `${label}: ${fetched}`
+
   const warning = query.isError ? ' - refresh failed; showing last known data'
     : isHealthDataStale(query, now, interval) ? ' - stale; showing last known data' : ''
   return `${label}: ${fetched}${warning}${query.isFetching ? ' - refreshing' : ''}`
@@ -51,29 +54,38 @@ export const getHealthOverview = (
   refreshing: boolean
 ): { text: string; warning: boolean } => {
   if (!networkOnline) return { text: 'Network disconnected', warning: true }
+
   const failed = feeds.filter(({ query }) => query.isError)
+
   if (failed.length) {
     const missing = failed.some(({ query }) => query.currentData === undefined)
     if (missing) return { text: 'Some data unavailable', warning: true }
+
     const times = failed.map(({ query }) => query.fulfilledTimeStamp).filter((time): time is number => time !== undefined)
     if (times.length !== failed.length) {
       return { text: 'Last received time unavailable', warning: true }
     }
+
     // Use the oldest failed feed so a more recent success cannot mask its age.
     const time = formatOverviewTime(Math.min(...times), now)
     return { text: `Last received ${time}`, warning: true }
   }
+
   if (feeds.some(({ query, interval }) => isHealthDataStale(query, now, interval))) {
     return { text: 'Showing stale data', warning: true }
   }
+
   if (refreshing) return { text: 'Refreshing...', warning: false }
+
   if (feeds.some(({ query }) => query.isUninitialized || query.currentData === undefined)) {
     return { text: 'Waiting for data', warning: false }
   }
+
   const times = feeds.map(({ query }) => query.fulfilledTimeStamp).filter((time): time is number => time !== undefined)
   if (!times.length || times.length !== feeds.length) {
     return { text: 'Update time unavailable', warning: false }
   }
+
   // Freshness warnings above cover each feed; Updated reflects the latest successful fetch.
   const time = formatOverviewTime(Math.max(...times), now)
   return { text: `Updated ${time}`, warning: false }

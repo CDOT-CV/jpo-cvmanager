@@ -12,7 +12,10 @@ const makeHealth = (queryOverrides = {}) => {
   return {
     feeds: [{ label: 'Online', query, interval: 60_000 }],
     summary: ['Online: Fetched at 11/17/2026, 1:59:30 PM'],
-    now, networkOnline: true, refreshing: false, canRetry: true,
+    now,
+    networkOnline: true,
+    refreshing: false,
+    canRetry: true,
   } as unknown as Health
 }
 
@@ -73,11 +76,13 @@ describe('RSU health controls', () => {
     const view = render(<ThemeProvider theme={THEMES.dark}><RsuHealthControls health={makeHealth()} /></ThemeProvider>)
     try {
       fireEvent.click(screen.getByRole('button', { name: 'Show health data details' }))
+
       const explanation = 'Fetch times show when data was received, not when the device was checked.'
       expect(screen.queryByText(explanation)).not.toBeInTheDocument()
       fireEvent.mouseOver(screen.getByRole('button', { name: 'Hide health data details' }))
       act(() => { vi.advanceTimersByTime(200) })
       expect(screen.getByRole('tooltip')).toHaveTextContent(explanation)
+
       const info = screen.getByRole('button', { name: 'Hide health data details' })
       fireEvent.mouseLeave(info)
       act(() => { vi.advanceTimersByTime(1000) })

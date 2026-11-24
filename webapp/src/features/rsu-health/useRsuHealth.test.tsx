@@ -26,9 +26,11 @@ const Probe = ({ organization = 'TestOrg', selectedIp = '', id = 'health' }) => 
     <span role="status" aria-label="Health freshness">{getHealthOverview(health.feeds, health.now, health.networkOnline, health.refreshing).text}</span>
   </div>
 }
+
 const advance = async (milliseconds = 0) => {
   await act(async () => { await vi.advanceTimersByTimeAsync(milliseconds) })
 }
+
 const requestCount = (path: string) => fetchMock.mock.calls.filter(([request]) => (request as Request).url.endsWith(path)).length
 
 describe('shared RSU health refresh', () => {
@@ -107,6 +109,9 @@ describe('shared RSU health refresh', () => {
     await advance(300_000)
     expect(fetchMock).toHaveBeenCalledTimes(4)
     expect(screen.getByText(/stale; showing last known data/)).toBeInTheDocument()
+    fireEvent(window, new Event('focus'))
+    await advance()
+    expect(fetchMock).toHaveBeenCalledTimes(4)
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
     fireEvent(window, new Event('online'))
     await advance()
@@ -121,6 +126,9 @@ describe('shared RSU health refresh', () => {
     expect(screen.getByText('online')).toBeInTheDocument()
     expect(screen.getByText(/refresh failed; showing last known data/)).toBeInTheDocument()
     expect(screen.getByTestId('health')).toHaveAttribute('aria-busy', 'false')
+    fireEvent(window, new Event('focus'))
+    await advance()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
     await advance(60_000)
     expect(fetchMock).toHaveBeenCalledTimes(4)
     expect(screen.queryByText(/refresh failed/)).not.toBeInTheDocument()
@@ -144,12 +152,23 @@ describe('shared RSU health refresh', () => {
     expect(screen.getByTestId('health')).toHaveAttribute('aria-busy', 'false')
   })
 
-  it('refreshes subscribed health data on window focus', async () => {
+  it('refreshes only due feeds on return and ignores repeat focus events', async () => {
     render(<Provider store={store}><Probe /></Provider>)
     await advance()
     fireEvent(window, new Event('focus'))
     await advance()
-    expect(fetchMock).toHaveBeenCalledTimes(4)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+    fireEvent(document, new Event('visibilitychange'))
+    await advance(60_000)
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    fireEvent(document, new Event('visibilitychange'))
+    await advance()
+    fireEvent(window, new Event('focus'))
+    await advance()
+    expect(requestCount('/online-status')).toBe(2)
+    expect(requestCount('/scms/status')).toBe(1)
   })
 
   it('bounds a stalled health request with the shared timeout', async () => {

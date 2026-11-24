@@ -23,6 +23,7 @@ describe('health fetch freshness', () => {
       .toBe('SCMS: Loading')
     expect(isHealthDataStale({ fulfilledTimeStamp: fetchedAt }, fetchedAt + 1_000_000, 60_000)).toBe(false)
   })
+
   it('uses the failed feed timestamp rather than a newer successful feed', () => {
     const feeds = [
       { query: { ...query, isError: true }, interval: 60_000 },
@@ -50,6 +51,7 @@ describe('health fetch freshness', () => {
     expect(describeHealthFetch('Online', query, fetchedAt + 120_000, 60_000, 'compact'))
       .toBe(`Online: ${new Date(fetchedAt).toLocaleString()}`)
   })
+
   it('includes the date when a failed feed was last received on a previous day', () => {
     const timestamp = new Date(2026, 10, 16, 16, 30).getTime()
     const now = new Date(2026, 10, 17, 16, 30).getTime()
