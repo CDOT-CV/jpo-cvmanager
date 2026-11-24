@@ -38,11 +38,7 @@ const FirmwareUpgradeStatusDialog = ({ onClose }: { onClose: () => void }) => {
           <Stack spacing={2}>
             <Box component="section" aria-label="Active upgrades">
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>Active ({active.length})</Typography>
-              {data.hidden_active_count > 0 && (
-                <Typography variant="body2">Other active upgrades: {data.hidden_active_count}</Typography>
-              )}
-              {active.length === 0 ? <Typography>{data.hidden_active_count > 0
-                ? 'No active upgrades you can view.' : 'No active firmware upgrades.'}</Typography> : (
+              {active.length === 0 ? <Typography>No active upgrades you can view.</Typography> : (
                 <TableContainer sx={{ bgcolor: 'action.hover', border: 1, borderColor: 'divider', borderRadius: 1 }}>
                   <Table size="small" aria-label="Active upgrades" sx={{
                     '& th': { textTransform: 'none !important', bgcolor: 'custom.tableHeaderBackground' },
@@ -72,11 +68,7 @@ const FirmwareUpgradeStatusDialog = ({ onClose }: { onClose: () => void }) => {
             </Box>
             <Box component="section" aria-label="Queued upgrades">
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>Queued ({data.upgrade_queue.length})</Typography>
-              {data.hidden_queued_count > 0 && (
-                <Typography variant="body2">Other queued upgrades: {data.hidden_queued_count}</Typography>
-              )}
-              {data.upgrade_queue.length === 0 ? <Typography>{data.hidden_queued_count > 0
-                ? 'No queued upgrades you can view.' : 'No queued firmware upgrades.'}</Typography> : (
+              {data.upgrade_queue.length === 0 ? <Typography>No queued upgrades you can view.</Typography> : (
                 <TableContainer sx={{ bgcolor: 'action.hover', border: 1, borderColor: 'divider', borderRadius: 1 }}>
                   <Table size="small" aria-label="Queued upgrades" sx={{
                     '& th': { textTransform: 'none !important', bgcolor: 'custom.tableHeaderBackground' },

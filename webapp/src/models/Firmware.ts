@@ -1,8 +1,6 @@
 export type FirmwareUpgradeStatus = {
   active_upgrades: Record<string, { manufacturer: string; model: string; target_firmware_version: string }>
   upgrade_queue: { ip: string; position: number }[]
-  hidden_active_count: number
-  hidden_queued_count: number
 }
 
 export type FirmwareObject = {
