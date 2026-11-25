@@ -56,7 +56,12 @@ vi.mock('../api/userApiSlice', async (importOriginal) => ({
   useGetUsersQuery: () => ({
     currentData: {
       content: [
-        { email: 'me@test.com', first_name: 'Me', last_name: 'X', organizations: [{ organization: 'Org', role: 'ADMIN' }] },
+        {
+          email: 'me@test.com',
+          first_name: 'Me',
+          last_name: 'X',
+          organizations: [{ organization: 1, role: 'ADMIN' }],
+        },
         { email: 'b@test.com', first_name: 'B', last_name: 'B', organizations: [] },
       ],
     },
@@ -123,6 +128,7 @@ describe('AdminOrganizationTabUser', () => {
   it('maps roles to lowercase and falls back to empty string', () => {
     renderComponent()
     const data = mocks.tableProps.current.data
+    console.error('ERROR: data', data)
     expect(data.map((d: any) => d.role)).toEqual(['admin', ''])
   })
 
@@ -341,7 +347,9 @@ describe('AdminOrganizationTabUser', () => {
     it('patches modified users and shows success', async () => {
       renderComponent()
       bulk({ 0: { oldData: row('b@test.com', 'user'), newData: row('b@test.com', 'admin') } })
-      await waitFor(() => expect(mocks.toast.success).toHaveBeenCalledWith('User(s) updated successfully', { id: 'toast-id' }))
+      await waitFor(() =>
+        expect(mocks.toast.success).toHaveBeenCalledWith('User(s) updated successfully', { id: 'toast-id' })
+      )
       expect(mocks.patch).toHaveBeenCalledWith({
         id: 1,
         users_to_modify: [{ email: 'b@test.com', role: 'admin' }],
@@ -380,7 +388,7 @@ describe('AdminOrganizationTabUser', () => {
     rerender(
       <ThemeProvider theme={testTheme}>
         <Provider store={setupStore({})}>
-          <AdminOrganizationTabUser selectedOrgId={1} selectedOrgName="Other" />
+          <AdminOrganizationTabUser selectedOrgId={2} selectedOrgName="Other" />
         </Provider>
       </ThemeProvider>
     )

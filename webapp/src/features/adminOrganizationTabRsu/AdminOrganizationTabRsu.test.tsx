@@ -380,7 +380,7 @@ describe('AdminOrganizationTabRsu', () => {
     rerender(
       <ThemeProvider theme={testTheme}>
         <Provider store={setupStore({})}>
-          <AdminOrganizationTabRsu selectedOrgId={1} selectedOrgName="Other" />
+          <AdminOrganizationTabRsu selectedOrgId={2} selectedOrgName="Other" />
         </Provider>
       </ThemeProvider>
     )

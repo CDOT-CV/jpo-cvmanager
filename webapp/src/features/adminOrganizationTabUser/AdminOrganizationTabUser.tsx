@@ -81,7 +81,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   const userData = useMemo(() => {
     return userTableData?.content.map((user) => {
       // TODO: After UserOrganization gets updated to use org id number, change this comparison to use selectedOrgId instead of selectedOrgName
-      const orgInfo = user.organizations.find((org) => org.organization === selectedOrgName)
+      const orgInfo = user.organizations.find((org) => org.organization === selectedOrgId)
       return {
         ...user,
         role: orgInfo ? orgInfo.role.toLowerCase() : '',
@@ -127,7 +127,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     },
     {
       tooltip: 'Remove All Selected From Organization',
-      icon: 'delete',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       position: 'toolbarOnSelect',
       iconProps: {
         itemType: 'rowAction',
@@ -216,7 +216,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
 
   useEffect(() => {
     setSelectedUserList([])
-  }, [selectedOrgName])
+  }, [selectedOrgId])
 
   const handleUserRoleChange = (email: string, role: UserRole) => {
     setSelectedUserList((prev) => prev.map((u) => (u.email === email ? { ...u, role } : u)))

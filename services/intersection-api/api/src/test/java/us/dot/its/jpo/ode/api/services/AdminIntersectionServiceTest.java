@@ -419,11 +419,11 @@ class AdminIntersectionServiceTest {
             intersectionRepository.save(fixtures.createIntersection("1000"));
 
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1001, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
+                    1001, new RefPt(40.0, -105.0), null, null, null,
+                            Collections.emptyList(), Collections.emptyList(),
                             Collections.emptyList(), Collections.emptyList());
 
-            adminIntersectionService.patchIntersection(patch, List.of());
+            adminIntersectionService.patchIntersection(1000, patch, List.of());
 
             assertTrue(intersectionRepository.findByIntersectionNumber("1001").isPresent());
             assertFalse(intersectionRepository.findByIntersectionNumber("1000").isPresent());
@@ -435,11 +435,11 @@ class AdminIntersectionServiceTest {
 
             Bbox bbox = new Bbox(39.9, -105.2, 40.1, -105.0);
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1000, new RefPt(40.0, -105.0), bbox, "Main St", null,
-                    Collections.emptyList(), Collections.emptyList(),
+                    1000, new RefPt(40.0, -105.0), bbox, "Main St", null,
+                            Collections.emptyList(), Collections.emptyList(),
                             Collections.emptyList(), Collections.emptyList());
 
-            adminIntersectionService.patchIntersection(patch, List.of());
+            adminIntersectionService.patchIntersection(1000, patch, List.of());
 
             Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
             assertEquals("Main St", updated.getIntersectionName());
@@ -453,11 +453,11 @@ class AdminIntersectionServiceTest {
             intersectionRepository.save(existing);
 
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
+                    1000, new RefPt(40.0, -105.0), null, null, null,
+                            Collections.emptyList(), Collections.emptyList(),
                             Collections.emptyList(), Collections.emptyList());
 
-            adminIntersectionService.patchIntersection(patch, List.of());
+            adminIntersectionService.patchIntersection(1000, patch, List.of());
 
             Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
             assertEquals("Existing Name", updated.getIntersectionName());
@@ -470,11 +470,11 @@ class AdminIntersectionServiceTest {
             intersectionRepository.save(fixtures.createIntersection("1000"));
 
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    List.of(org.getId()), Collections.emptyList(),
+                    1000, new RefPt(40.0, -105.0), null, null, null,
+                            List.of(org.getId()), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
-            adminIntersectionService.patchIntersection(patch, List.of(org));
+            adminIntersectionService.patchIntersection(1000, patch, List.of(org));
 
             List<Intersection> result = intersectionRepository.findAllByOrganization(org);
             assertEquals(1, result.size());
@@ -489,11 +489,11 @@ class AdminIntersectionServiceTest {
             intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
 
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), List.of(org.getId()),
+                    1000, new RefPt(40.0, -105.0), null, null, null,
+                            Collections.emptyList(), List.of(org.getId()),
                             Collections.emptyList(), Collections.emptyList());
 
-            adminIntersectionService.patchIntersection(patch, List.of(org));
+            adminIntersectionService.patchIntersection(1000, patch, List.of(org));
 
             assertTrue(intersectionRepository.findAllByOrganization(org).isEmpty());
         }
@@ -505,11 +505,11 @@ class AdminIntersectionServiceTest {
             saveRsu("192.168.1.1", org);
 
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
+                    1000, new RefPt(40.0, -105.0), null, null, null,
+                            Collections.emptyList(), Collections.emptyList(),
                     List.of("192.168.1.1"), Collections.emptyList());
 
-            adminIntersectionService.patchIntersection(patch, List.of());
+            adminIntersectionService.patchIntersection(1000, patch, List.of());
 
             assertEquals(1, rsuIntersectionRepository.findRsuIpsByIntersectionNumber(1000).size());
         }
@@ -522,11 +522,11 @@ class AdminIntersectionServiceTest {
             rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, intersection));
 
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
+                    1000, new RefPt(40.0, -105.0), null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), List.of("192.168.1.1"));
 
-            adminIntersectionService.patchIntersection(patch, List.of());
+            adminIntersectionService.patchIntersection(1000, patch, List.of());
 
             assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber(1000).isEmpty());
         }
@@ -534,12 +534,12 @@ class AdminIntersectionServiceTest {
         @Test
         void intersectionNotFound_throws404() {
             IntersectionPatch patch = new IntersectionPatch(
-                    9999, 9999, new RefPt(40.0, -105.0), null, null, null,
+                    9999, new RefPt(40.0, -105.0), null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                    () -> adminIntersectionService.patchIntersection(patch, List.of()));
+                    () -> adminIntersectionService.patchIntersection(9999, patch, List.of()));
             assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
         }
 
@@ -551,11 +551,11 @@ class AdminIntersectionServiceTest {
             rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, intersection));
 
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
+                    1000, new RefPt(40.0, -105.0), null, null, null,
+                            Collections.emptyList(), Collections.emptyList(),
                     List.of("192.168.1.1"), Collections.emptyList());
 
-            adminIntersectionService.patchIntersection(patch, List.of());
+            adminIntersectionService.patchIntersection(1000, patch, List.of());
 
             assertEquals(1, rsuIntersectionRepository.findAll().size());
         }
@@ -565,11 +565,11 @@ class AdminIntersectionServiceTest {
             intersectionRepository.save(fixtures.createIntersection("1000"));
 
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
+                    1000, new RefPt(40.0, -105.0), null, null, null,
+                            Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
-            adminIntersectionService.patchIntersection(patch, List.of());
+            adminIntersectionService.patchIntersection(1000, patch, List.of());
 
             assertTrue(intersectionOrganizationRepository.findAll().isEmpty());
             assertTrue(rsuIntersectionRepository.findAll().isEmpty());

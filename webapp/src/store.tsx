@@ -1,10 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
-import adminAddIntersectionReducer from './features/adminAddIntersection/adminAddIntersectionSlice'
 import adminAddOrganizationReducer from './features/adminAddOrganization/adminAddOrganizationSlice'
-import adminEditIntersectionReducer from './features/adminEditIntersection/adminEditIntersectionSlice'
-import adminIntersectionTabReducer from './features/adminIntersectionTab/adminIntersectionTabSlice'
 import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
-import { organizationPatchInvalidationMiddleware } from './features/api/organizationPatchInvalidation'
 import { emailApiSlice } from './features/api/emailApiSlice'
 import { firmwareApiSlice } from './features/api/firmwareApiSlice'
 import { geoMsgApiSlice } from './features/api/geoMsgApiSlice'
@@ -12,6 +8,7 @@ import { intersectionMapApiMiddleware } from './features/api/intersection-map-ap
 import { intersectionConfigSlice } from './features/api/intersectionConfigSlice'
 import { intersectionMapApiSlice } from './features/api/intersectionMapApiSlice'
 import { organizationApiSlice } from './features/api/organizationApiSlice'
+import { organizationPatchInvalidationMiddleware } from './features/api/organizationPatchInvalidation'
 import { rsuApiSlice } from './features/api/rsuApiSlice'
 import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
 import { rsuOnlineStatusApiSlice } from './features/api/rsuOnlineStatusApiSlice'
@@ -42,9 +39,6 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       config: configReducer,
       intersection: intersectionReducer,
       adminAddOrganization: adminAddOrganizationReducer,
-      adminAddIntersection: adminAddIntersectionReducer,
-      adminEditIntersection: adminEditIntersectionReducer,
-      adminIntersectionTab: adminIntersectionTabReducer,
       menu: menuReducer,
       intersectionMap: intersectionMapReducer,
       intersectionMapLayerStyle: intersectionMapLayerStyleReducer,

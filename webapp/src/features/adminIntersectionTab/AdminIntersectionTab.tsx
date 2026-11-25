@@ -1,27 +1,22 @@
 import { useMemo } from 'react'
 import { confirmAlert } from 'react-confirm-alert'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { Options } from '../../components/AdminDeletionOptions'
 import AdminTable from '../../components/AdminTable'
 import { selectOrganizationId } from '../../generalSlices/userSlice'
 import AdminAddIntersection from '../adminAddIntersection/AdminAddIntersection'
 import AdminEditIntersection, { AdminEditIntersectionFormType } from '../adminEditIntersection/AdminEditIntersection'
-import { clear } from '../adminEditIntersection/adminEditIntersectionSlice'
 import { useDeleteIntersectionMutation, useGetIntersectionsQuery } from '../api/adminIntersectionApiSlice'
-import { selectColumns, setEditIntersectionRowData } from './adminIntersectionTabSlice'
 
 import { Action } from '@material-table/core'
 import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import ModeEditOutline from '@mui/icons-material/ModeEditOutline'
 import { useTheme } from '@mui/material'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import toast from 'react-hot-toast'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
-import { RootState } from '../../store'
 
 const AdminIntersectionTab = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const navigate = useNavigate()
   const theme = useTheme()
 
@@ -31,7 +26,12 @@ const AdminIntersectionTab = () => {
   })
   const [deleteIntersectionMutation] = useDeleteIntersectionMutation()
 
-  const columns = useSelector(selectColumns)
+  const columns = [
+    { title: 'Intersection ID', field: 'intersection_id', id: 0 },
+    { title: 'Intersection Name', field: 'intersection_name', id: 1 },
+    { title: 'Origin IP', field: 'origin_ip', id: 2 },
+    { title: 'Linked RSUs', field: 'rsus', id: 3 },
+  ]
 
   const tableData = useMemo(
     () =>
@@ -73,7 +73,7 @@ const AdminIntersectionTab = () => {
     },
     {
       tooltip: 'Remove All Selected From Organization',
-      icon: 'delete',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       position: 'toolbarOnSelect',
       iconProps: {
         itemType: 'rowAction',
@@ -118,8 +118,6 @@ const AdminIntersectionTab = () => {
   ]
 
   const onEdit = (row: AdminEditIntersectionFormType) => {
-    dispatch(clear())
-    dispatch(setEditIntersectionRowData(row))
     navigate('editIntersection/' + row.intersection_id)
   }
 
