@@ -1,10 +1,16 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
-import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 import { AdminIntersection } from '../../models/Intersection'
-import { AdminIntersectionCreationInfo, AdminIntersectionCreationBody } from '../adminAddIntersection/adminAddIntersectionSlice'
-import { AdminEditIntersectionBody, adminEditIntersectionData } from '../adminEditIntersection/adminEditIntersectionSlice'
+import { RootState } from '../../store'
+import {
+    AdminIntersectionCreationBody,
+    AdminIntersectionCreationInfo,
+} from '../adminAddIntersection/adminAddIntersectionSlice'
+import {
+    AdminEditIntersectionBody,
+    adminEditIntersectionData,
+} from '../adminEditIntersection/adminEditIntersectionSlice'
 
 // Tag type constants
 export const ADMIN_INTERSECTION_TAG = 'AdminIntersection' as const
@@ -30,12 +36,12 @@ export const adminIntersectionApiSlice = createApi({
   }),
   tagTypes: [ADMIN_INTERSECTION_TAG],
   endpoints: (builder) => ({
-    getIntersections: builder.query<{ intersection_data: AdminIntersection[] }, string>({
+    getIntersections: builder.query<{ intersection_data: AdminIntersection[] }, number>({
       query: (organization) => {
         return {
           url: '',
           headers: {
-            Organization: organization,
+            Organization: organization.toString(),
           },
         }
       },
@@ -50,12 +56,12 @@ export const adminIntersectionApiSlice = createApi({
             ]
           : [{ type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_LIST_ID }],
     }),
-    getIntersectionsNotInOrganization: builder.query<{ intersection_data: AdminIntersection[] }, string>({
+    getIntersectionsNotInOrganization: builder.query<{ intersection_data: AdminIntersection[] }, number>({
       query: (organization) => {
         return {
           url: 'available',
           headers: {
-            Organization: organization,
+            Organization: organization?.toString(),
           },
         }
       },

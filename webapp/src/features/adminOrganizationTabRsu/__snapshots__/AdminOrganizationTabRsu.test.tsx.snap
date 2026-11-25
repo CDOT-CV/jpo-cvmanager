@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`should take a snapshot 1`] = `
+exports[`AdminOrganizationTabRsu > should take a snapshot 1`] = `
 <div>
   <div
     class="accordion"
@@ -35,13 +35,13 @@ exports[`should take a snapshot 1`] = `
                 class="MuiTypography-root MuiTypography-subtitle1 css-mocked-MuiTypography-root"
               >
                 TIM Deposit: 
-                Disabled
+                Enabled
               </h6>
               <h6
                 class="MuiTypography-root MuiTypography-subtitle1 css-mocked-MuiTypography-root"
               >
                 SNMP Monitoring: 
-                Disabled
+                Enabled
               </h6>
             </div>
             <div
@@ -112,7 +112,13 @@ exports[`should take a snapshot 1`] = `
             >
               <div
                 class="MuiAccordionDetails-root css-mocked-MuiAccordionDetails-root"
-              />
+              >
+                <div>
+                  <div
+                    data-testid="admin-table"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
