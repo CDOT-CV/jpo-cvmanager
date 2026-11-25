@@ -33,6 +33,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
@@ -83,18 +84,34 @@ class RsuManagementServiceTest {
     }
 
     @Test
+    void organizationListIsRequiredForCreation() {
+        var request = new RsuInfoDto();
+        request.setFirmwareId(5);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> rsuManagementService.createRsu(request, List.of()));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(rsuRepository, never()).save(any());
+    }
+
+    @Test
     void createsRsuWithLegacyOrOriginallyVerifiedFirmwareWithoutSettingATarget() {
         for (boolean legacy : List.of(true, false)) {
             var image = installedImage(1, legacy);
             var request = new RsuInfoDto();
             request.setFirmwareId(5);
+            request.setOrganizations(List.of(1));
+            var organization = new Organization();
+            organization.setId(1);
             var rsu = new Rsu();
             rsu.setModel(image.getModel());
             when(rsuMapper.toEntity(request)).thenReturn(rsu);
             when(firmwareImages.findById(5)).thenReturn(Optional.of(image));
             when(rsuRepository.save(rsu)).thenReturn(rsu);
 
-            var result = rsuManagementService.createRsu(request, List.of());
+            var result = rsuManagementService.createRsu(request, List.of(organization));
 
             assertEquals(image, result.getFirmwareVersion());
             assertNull(result.getTargetFirmwareVersion());
@@ -105,6 +122,7 @@ class RsuManagementServiceTest {
     void rejectsMissingWrongModelAndUnverifiedInstalledFirmware() {
         var request = new RsuInfoDto();
         request.setFirmwareId(5);
+        request.setOrganizations(List.of(1));
         var rsu = new Rsu();
         rsu.setModel(installedImage(1, true).getModel());
         when(rsuMapper.toEntity(request)).thenReturn(rsu);
@@ -299,6 +317,7 @@ class RsuManagementServiceTest {
     void createRsuRejectsLegacyProtocol() {
         var dto = new RsuInfoDto();
         dto.setFirmwareId(5);
+        dto.setOrganizations(List.of(1));
         dto.setSnmpVersionGroup("RSU 4.1");
         var legacy = new SnmpProtocol();
         legacy.setProtocolCode("41");
@@ -546,8 +565,13 @@ class RsuManagementServiceTest {
         RsuCredential sshCredential = new RsuCredential();
         SnmpCredential snmpCredential = new SnmpCredential();
         SnmpProtocol snmpProtocol = new SnmpProtocol();
+        snmpProtocol.setProtocolCode("1218");
+        model.setId(1);
+        var firmware = installedImage(1, true);
+        firmware.setId(1);
 
         when(rsuMapper.toEntity(rsuInfoDto)).thenReturn(rsu);
+        when(firmwareImages.findById(1)).thenReturn(Optional.of(firmware));
         when(rsuModelRepository.findByNameAndManufacturerName("RSU-2X", "Yunex"))
                 .thenReturn(Optional.of(model));
         when(rsuCredentialRepository.findByNickname("ssh-group")).thenReturn(Optional.of(sshCredential));

@@ -93,6 +93,9 @@ public class RsuManagementService {
         if (rsuInfoDto.getFirmwareId() == null) {
             throw new IllegalArgumentException("Installed firmware is required");
         }
+        if (rsuInfoDto.getOrganizations() == null || rsuInfoDto.getOrganizations().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one organization is required");
+        }
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
         var firmware = firmwareImages.findById(rsuInfoDto.getFirmwareId())

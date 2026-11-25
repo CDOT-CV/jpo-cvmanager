@@ -121,6 +121,10 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
     })
     public ResponseEntity<Void> createRsu(@Validated(RsuInfoDto.Creation.class) @RequestBody RsuInfoDto body) {
+        if (body.getOrganizations() == null || body.getOrganizations().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one organization is required");
+        }
+
         CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
         List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
 

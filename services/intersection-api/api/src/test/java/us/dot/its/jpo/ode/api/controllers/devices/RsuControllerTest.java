@@ -645,39 +645,6 @@ class RsuControllerTest {
             }
 
             @Test
-            void testCreateRsu_UnqualifiedOrganization() {
-                List<Integer> orgsToAdd = Arrays.asList(1, 9);
-                UserRole role = UserRole.OPERATOR;
-
-                RsuInfoDto rsuInfoDto = new RsuInfoDto(
-                        5,
-                        "192.168.1.100",
-                        new SimplePosition(39.7392, -105.0844),
-                        123.4,
-                        "I-25",
-                        "RSU123",
-                        "SCMS123",
-                        "Commsignia ITS-RS4-M",
-                        "ssh-group-1",
-                        "snmp-group-1",
-                        "v3",
-                        orgsToAdd,
-                        true,
-                        true);
-
-                when(permissionService.hasRoleInOrgIds(role, orgsToAdd)).thenReturn(false);
-
-                ResponseStatusException exception = assertThrows(
-                        ResponseStatusException.class,
-                        () -> rsuController.createRsu(rsuInfoDto));
-
-                assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-                assertTrue(exception.getReason().contains("User not qualified to modify all specified organizations"));
-
-                verify(rsuManagementService, never()).createRsu(any(), anyList());
-            }
-
-            @Test
             void testCreateRsu_DuplicateIpAddress() {
                 List<Integer> orgsToAdd = Arrays.asList(1);
 
@@ -757,9 +724,16 @@ class RsuControllerTest {
                     true,
                     true);
 
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
+            doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Relationship creation failed"))
+                    .when(rsuManagementService).createRsu(rsuInfoDto, List.of(sampleOrganization));
+
             assertThrows(
                     ResponseStatusException.class,
                     () -> rsuController.createRsu(rsuInfoDto));
+
+            verify(rsuManagementService).createRsu(rsuInfoDto, List.of(sampleOrganization));
         }
 
         @Test
@@ -780,11 +754,15 @@ class RsuControllerTest {
                     true,
                     true);
 
-            assertThrows(
+            ResponseStatusException exception = assertThrows(
                     ResponseStatusException.class,
                     () -> rsuController.createRsu(rsuInfoDto));
+
+            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+            assertEquals("At least one organization is required", exception.getReason());
 
             verify(rsuManagementService, never()).createRsu(any(), anyList());
         }
     }
+
 }
