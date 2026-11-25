@@ -32,15 +32,6 @@ Returns all basic data for RSUs in the GCP Cloud SQL database. It performs a bas
 
 Returns the message counts for a single, selected RSU from a BigQuery table. It performs a basic select query on a table specified by the environments variable. Returns single JSON object.
 
-### <b>/rsu-command</b> <b>(GET, POST)</b>
-
-1. Verifies the command and calls the corresponding function.
-2. Provided RSU data is plugged into the appropriate data structure depending upon the RSU REST endpoint.
-   - HTTP GET URL arguments
-   - HTTP POST body data
-3. Directly hit RSUs with SNMP commands or trigger the RSU REST endpoint for SSH commands.
-4. Return response, varies depending upon request.
-
 ### <b>/rsu-map-info</b> <b>(GET)</b>
 
 Returns the list of all ipv4 addresses with MAP message data in the PostgreSQL database when argument ip_list is true. Returns the MAP message geoJSON data for the RSU specified in the ip_address argument as a single JSON object when ip_list is false.
@@ -176,7 +167,6 @@ HTTP URL Arguments:
 - KEYCLOAK_REALM: Keycloak Realm name.
 - KEYCLOAK_API_CLIENT_ID: Keycloak API client name.
 - KEYCLOAK_API_CLIENT_SECRET_KEY: Keycloak API secret for the given client name.
-- FIRMWARE_MANAGER_ENDPOINT: Endpoint for the firmware manager deployment's API.
 - LOGGING_LEVEL: The level of which the application will log. (DEBUG, INFO, WARNING, ERROR)
 - CSM_EMAIL_TO_SEND_FROM: Origin email address for the API.
 - CSM_EMAIL_APP_USERNAME: Username for the SMTP server.

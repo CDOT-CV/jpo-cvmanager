@@ -18,6 +18,9 @@ import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import { Button, Typography, useTheme } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import { useState } from 'react'
+import { RsuOperationOutcome } from '../models/RsuApi'
+import RsuOperationResults from './RsuOperationResults'
 
 interface RsuFirmwareMenuProps {
   type: string
@@ -31,6 +34,28 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
   const firmwareUpgradeName = useSelector(selectFirmwareUpgradeName)
   const firmwareUpgradeMsg = useSelector(selectFirmwareUpgradeMsg)
   const firmwareUpgradeErr = useSelector(selectFirmwareUpgradeErr)
+  const [results, setResults] = useState<RsuOperationOutcome[] | null>(null)
+  const [pending, setPending] = useState(false)
+
+  const runUpgrade = async () => {
+    setResults(null)
+    setPending(true)
+    try {
+      const action = await dispatch(startFirmwareUpgrade(props.rsuIpList))
+      if (props.type !== 'multi_rsu') return
+      if (startFirmwareUpgrade.fulfilled.match(action)) {
+        setResults(action.payload.results)
+      } else {
+        setResults(props.rsuIpList.map((ip) => ({
+          ip, success: false,
+          detail: typeof action.payload === 'string' ? action.payload
+            : 'No response; check upgrade status before retrying',
+        })))
+      }
+    } finally {
+      setPending(false)
+    }
+  }
 
   const options = {
     title: 'RSU Firmware Upgrade',
@@ -39,7 +64,7 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
     buttons: [
       {
         label: 'Yes',
-        onClick: () => dispatch(startFirmwareUpgrade(props.rsuIpList)),
+        onClick: runUpgrade,
       },
       {
         label: 'No',
@@ -80,8 +105,7 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
             </div>
           ) : (
             <div>
-              <div id="firmwarediv" style={{ marginBottom: '15px' }}>
-                <p id="firmwaretext">Check for the latest available RSU firmware upgrades and install them</p>
+              <div id="firmwarediv" style={{ marginBottom: firmwareUpgradeMsg ? '15px' : 0 }}>
                 {firmwareUpgradeMsg && (
                   <div
                     style={{
@@ -121,37 +145,13 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
 
       {props.type === 'multi_rsu' && (
         <div>
-          <div id="firmwarediv">
-            <p id="firmwaretext">
-              Submit all selected RSUs to have their firmware upgraded if available. RSUs that are already up to date
-              will be skipped. If the RSU is offline, it will be marked for an upgrade and will be upgraded when it
-              comes back online.
-            </p>
-            {firmwareUpgradeMsg && (
-              <div
-                style={{
-                  marginTop: '10px',
-                  fontWeight: 500,
-                }}
-              >
-                {firmwareUpgradeErr ? (
-                  <Typography color={theme.palette.error.light} role="alert" variant="subtitle1">
-                    {firmwareUpgradeMsg}
-                  </Typography>
-                ) : (
-                  <Typography color={theme.palette.success.light} role="status">
-                    {firmwareUpgradeMsg}
-                  </Typography>
-                )}
-              </div>
-            )}
-          </div>
           <Button
             className="museo-slab capital-case"
             variant="outlined"
             startIcon={<RefreshIcon />}
             size="medium"
             id="refreshbtn"
+            disabled={pending || props.rsuIpList.length === 0}
             color="info"
             onClick={() => confirmAlert(options)}
             style={{
@@ -161,6 +161,11 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
           >
             Check For Upgrade Availability
           </Button>
+          {pending && <Typography variant="caption" component="div" role="status" sx={{ mt: 1 }}>
+            Requesting firmware upgrades...
+          </Typography>}
+          {results && <RsuOperationResults title="Firmware upgrade starts" label="Firmware upgrade results"
+            results={results} onDismiss={() => setResults(null)} />}
         </div>
       )}
     </div>

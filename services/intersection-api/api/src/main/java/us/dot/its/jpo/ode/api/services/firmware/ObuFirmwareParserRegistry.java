@@ -9,6 +9,9 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
+import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareDeviceType;
+import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareFileMetadata;
+
 import us.dot.its.jpo.ode.api.storage.ObuFirmwareStorageLayout;
 
 /** Indexes OBU firmware naming conventions by manufacturer name. */
@@ -37,6 +40,31 @@ public class ObuFirmwareParserRegistry {
     public Optional<ObuFirmwareFileNameParser> find(String manufacturerName) {
         return manufacturerName == null ? Optional.empty()
                 : Optional.ofNullable(parsers.get(normalize(manufacturerName)));
+    }
+
+    /**
+     * Returns why firmware cannot be uploaded or published for a manufacturer, or
+     * empty when it can. The OBU OTA server serves only OBU firmware, and only the
+     * builds the manufacturer's OBUs install.
+     */
+    public Optional<String> unsupportedFirmware(String manufacturerName, ObuFirmwareFileMetadata metadata) {
+        if (metadata == null || metadata.getDeviceType() != ObuFirmwareDeviceType.OBU) {
+            return Optional.of("Only OBU firmware can be uploaded or published here. "
+                    + "Manage RSU firmware under RSU Firmware.");
+        }
+        return find(manufacturerName)
+                .map(parser -> parser.unsupportedBuild(metadata))
+                .orElseGet(() -> Optional.of(
+                        "OBU firmware is not supported for manufacturer '" + manufacturerName + "'"));
+    }
+
+    /**
+     * Whether an object is in a folder CV Manager uploads OBU firmware to:
+     * {@code ota/<manufacturer>/<file name>} for a manufacturer with a naming
+     * convention. Other objects beneath {@code ota/} belong to other services.
+     */
+    public boolean isUploadFolder(String objectName) {
+        return ObuFirmwareStorageLayout.manufacturerFolder(objectName).flatMap(this::find).isPresent();
     }
 
     private static String normalize(String name) {

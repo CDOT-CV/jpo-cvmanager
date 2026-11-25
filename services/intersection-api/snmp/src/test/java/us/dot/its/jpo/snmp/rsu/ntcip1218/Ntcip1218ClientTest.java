@@ -100,12 +100,75 @@ class Ntcip1218ClientTest {
         var agent = new MemoryAgent(); var client = client(agent);
         var request = new ForwardingRequest(MessageType.BSM, "198.51.100.20", true);
         assertEquals(1, client.addForwarding(DEVICE, request).value().index());
-        assertEquals(2, client.addForwarding(DEVICE, request).value().index());
+        // Another tool may already have created a duplicate; deletion still selects the highest row.
+        agent.set(DEVICE.target(), client.createBindings(request, 2));
         assertTrue(client.deleteForwarding(DEVICE, MessageType.BSM, request.destination()).changed());
         assertEquals(1, client.readForwarding(DEVICE).size());
         assertEquals(1, client.readForwarding(DEVICE).getFirst().index());
         assertFalse(client.deleteForwarding(DEVICE, MessageType.MAP, request.destination()).changed());
         assertEquals(3, agent.writes.size());
+    }
+
+    @ParameterizedTest
+    @EnumSource(MessageType.class)
+    void equivalentActiveRowIsUnchangedAcrossDifferentRequestDates(MessageType message) {
+        var agent = new MemoryAgent();
+        var request = new ForwardingRequest(message, "198.51.100.20", true);
+        var created = client(agent).addForwarding(DEVICE, request);
+        // Generated dates differ on a later request, but an active schedule still qualifies.
+        var later = new Ntcip1218Client(agent, Clock.offset(CLOCK, java.time.Duration.ofDays(1)));
+        var duplicate = later.addForwarding(DEVICE, request);
+
+        assertTrue(created.changed());
+        assertFalse(duplicate.changed());
+        assertEquals(created.value(), duplicate.value());
+        assertEquals(1, agent.writes.size());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"inactive", "future", "expired", "security", "port", "destination", "psid",
+            "protocol", "rssi", "interval", "authInterval"})
+    void differentOrInactiveRowsDoNotSuppressCreation(String difference) {
+        var agent = new MemoryAgent();
+        var helper = client(agent);
+        var request = new ForwardingRequest(MessageType.BSM, "198.51.100.20", true);
+        helper.addForwarding(DEVICE, request);
+        var table = ForwardingTable.RECEIVE;
+        var now = LocalDateTime.ofInstant(CLOCK.instant(), ZoneOffset.UTC);
+        switch (difference) {
+            case "inactive" -> agent.data.put(table.cell(table.statusColumn(), 1), new SnmpValue.IntegerValue(2));
+            case "future" -> agent.data.put(table.cell(table.startColumn(), 1), NtcipDateAndTime.encode(now.plusSeconds(1)));
+            case "expired" -> agent.data.put(table.cell(table.stopColumn(), 1), NtcipDateAndTime.encode(now));
+            case "security" -> agent.data.put(table.cell(table.securityColumn(), 1), new SnmpValue.IntegerValue(0));
+            case "port" -> agent.data.put(table.cell(4, 1), new SnmpValue.IntegerValue(50000));
+            case "destination" -> agent.data.put(table.cell(3, 1), SnmpValue.Octets.text("198.51.100.21"));
+            case "psid" -> agent.data.put(table.cell(2, 1), MessageType.SPAT.psid());
+            case "protocol" -> agent.data.put(table.cell(5, 1), new SnmpValue.IntegerValue(1));
+            case "rssi" -> agent.data.put(table.cell(6, 1), new SnmpValue.IntegerValue(-90));
+            case "interval" -> agent.data.put(table.cell(7, 1), new SnmpValue.IntegerValue(2));
+            case "authInterval" -> agent.data.put(table.cell(12, 1), new SnmpValue.IntegerValue(1));
+            default -> throw new AssertionError(difference);
+        }
+        var existing = Map.copyOf(agent.data);
+        var added = helper.addForwarding(DEVICE, request);
+
+        assertTrue(added.changed());
+        assertEquals(2, added.value().index());
+        existing.forEach((oid, value) -> assertEquals(value, agent.data.get(oid)));
+        assertEquals(2, agent.writes.size());
+    }
+
+    @Test void equivalentRowDoesNotNeedAnAvailableCreationIndex() {
+        var agent = new MemoryAgent();
+        var helper = client(agent);
+        var request = new ForwardingRequest(MessageType.MAP, "198.51.100.20", true);
+        agent.set(DEVICE.target(), helper.createBindings(request, 127));
+
+        var result = helper.addForwarding(DEVICE, request);
+
+        assertFalse(result.changed());
+        assertEquals(127, result.value().index());
+        assertEquals(1, agent.writes.size());
     }
 
     @Test void targetedReadbackValidatesCompleteRowWithoutASecondWalk() {
@@ -123,10 +186,14 @@ class Ntcip1218ClientTest {
             }
         };
         var client = client(agent);
-        client.addForwarding(DEVICE, new ForwardingRequest(MessageType.BSM, "198.51.100.20", true));
+        var request = new ForwardingRequest(MessageType.BSM, "198.51.100.20", true);
+        client.addForwarding(DEVICE, request);
         assertEquals(1, walks.get()); assertEquals(1, gets.get());
-        assertTrue(client.deleteForwarding(DEVICE, MessageType.BSM, "198.51.100.20").changed());
-        assertEquals(2, walks.get()); assertEquals(2, gets.get());
+        assertFalse(client.addForwarding(DEVICE, request).changed());
+        assertEquals(2, walks.get()); assertEquals(1, gets.get());
+        assertEquals(1, agent.writes.size());
+        assertTrue(client.deleteForwarding(DEVICE, MessageType.BSM, request.destination()).changed());
+        assertEquals(3, walks.get()); assertEquals(2, gets.get());
     }
 
     @ParameterizedTest
@@ -158,7 +225,8 @@ class Ntcip1218ClientTest {
         assertThrows(SnmpException.class, () -> client.addForwarding(DEVICE, request));
         assertEquals(1, agent.writes.size());
         agent.omitColumn = false; agent.lostReply = true;
-        var failure = assertThrows(SnmpException.class, () -> client.addForwarding(DEVICE, request));
+        var different = new ForwardingRequest(MessageType.BSM, "198.51.100.21", false);
+        var failure = assertThrows(SnmpException.class, () -> client.addForwarding(DEVICE, different));
         assertTrue(failure.writeOutcomeUnknown());
         assertEquals(2, agent.writes.size());
         assertEquals(2, client.readForwarding(DEVICE).size());
@@ -377,13 +445,16 @@ class Ntcip1218ClientTest {
                 assertTrue(secondStarted.await(5, TimeUnit.SECONDS));
                 assertFalse(secondRead.await(150, TimeUnit.MILLISECONDS));
                 releaseRead.countDown();
-                assertEquals(1, first.get(5, TimeUnit.SECONDS).value().index());
-                assertEquals(2, second.get(5, TimeUnit.SECONDS).value().index());
+                var created = first.get(5, TimeUnit.SECONDS);
+                var duplicate = second.get(5, TimeUnit.SECONDS);
+                assertTrue(created.changed());
+                assertFalse(duplicate.changed());
+                assertEquals(created.value(), duplicate.value());
             } finally {
                 releaseRead.countDown();
             }
         }
-        assertEquals(2, agent.writes.size());
+        assertEquals(1, agent.writes.size());
     }
 
     @ParameterizedTest
@@ -424,7 +495,7 @@ class Ntcip1218ClientTest {
         var agent = new MemoryAgent(); var client = client(agent);
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             var tasks = java.util.stream.IntStream.range(0, 20).mapToObj(i -> executor.submit(() -> client.addForwarding(DEVICE,
-                    new ForwardingRequest(MessageType.MAP, "198.51.100.20", false)))).toList();
+                    new ForwardingRequest(MessageType.MAP, "198.51.100." + (i + 1), false)))).toList();
             var indices = new java.util.HashSet<Integer>();
             for (var task : tasks) assertTrue(indices.add(task.get(10, TimeUnit.SECONDS).value().index()));
         }
@@ -439,7 +510,8 @@ class Ntcip1218ClientTest {
         assertEquals(46800, preset.port());
         assertEquals(44990, client.addForwarding(DEVICE, custom).value().port());
         client.addForwarding(DEVICE, preset);
-        client.addForwarding(DEVICE, custom);
+        // Preserve coverage for duplicates created outside this library.
+        agent.set(DEVICE.target(), client.createBindings(custom, 3));
         assertTrue(client.deleteForwarding(DEVICE, MessageType.BSM, preset.destination()).changed());
         assertEquals(List.of(1, 3), client.readForwarding(DEVICE).stream().map(ForwardingRow::index).toList());
         assertFalse(client.deleteForwarding(DEVICE, MessageType.BSM, preset.destination()).changed());
