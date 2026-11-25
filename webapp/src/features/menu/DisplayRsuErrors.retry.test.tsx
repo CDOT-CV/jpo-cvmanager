@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { ThemeProvider } from '@mui/material'
 import { Provider } from 'react-redux'
 import fetchMock from 'jest-fetch-mock'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DisplayRsuErrors from './DisplayRsuErrors'
 import EnvironmentVars from '../../EnvironmentVars'
 import { setupStore } from '../../store'
@@ -44,6 +44,39 @@ describe('RSU status retry requests', () => {
     fetchMock.dontMock()
   })
 
+  it.each(['Search', 'Print Full Report', 'I-25 MILE 1'])('preserves focus on %s through a freshness tick and a completed poll', async (name) => {
+    vi.useFakeTimers()
+    try {
+      fetchMock.mockResponse(async (request) =>
+        JSON.stringify(request.url === onlineUrl ? onlineResponse : scmsResponse)
+      )
+      render(<ThemeProvider theme={testTheme}><Provider store={store}><DisplayRsuErrors /></Provider></ThemeProvider>)
+      const advance = async (ms: number) => {
+        await act(async () => { await vi.advanceTimersByTimeAsync(ms) })
+      }
+      await advance(0)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      const search = screen.getByPlaceholderText('Search')
+      const control = name === 'Search' ? search : screen.getByRole('button', { name: new RegExp(name, 'i') })
+      if (name === 'Search') fireEvent.change(search, { target: { value: ip } })
+      act(() => control.focus())
+
+      await advance(15_000)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(control).toHaveFocus()
+      if (name === 'Search') expect(search).toHaveValue(ip)
+
+      await advance(45_000)
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      expect(screen.getByRole('status')).toHaveTextContent(/^Updated /)
+      expect(control).toHaveFocus()
+      if (name === 'Search') expect(search).toHaveValue(ip)
+    } finally {
+      cleanup()
+      vi.useRealTimers()
+    }
+  })
+
   it.each([
     ['Online', onlineUrl, onlineResponse],
     ['SCMS', scmsUrl, scmsResponse],
@@ -64,7 +97,7 @@ describe('RSU status retry requests', () => {
     })
 
     render(<ThemeProvider theme={testTheme}><Provider store={store}><DisplayRsuErrors /></Provider></ThemeProvider>)
-    const alert = (await screen.findByText(`${name} status unavailable.`)).closest<HTMLElement>('[role="alert"]')!
+    const alert = (await screen.findByText(`${name} update failed`)).closest<HTMLElement>('[role="alert"]')!
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     const retry = within(alert).getByRole('button', { name: 'Retry' })
     act(() => {
@@ -73,7 +106,7 @@ describe('RSU status retry requests', () => {
     })
     await waitFor(() => expect(attempts).toBe(2))
     expect(fetchMock).toHaveBeenCalledTimes(3)
-    expect(screen.queryByText(`${name} status unavailable.`)).not.toBeInTheDocument()
+    expect(screen.queryByText(`${name} update failed`)).not.toBeInTheDocument()
     await act(async () => { finishRetry(JSON.stringify(response)) })
     await waitFor(() => expect(screen.queryByText('Loading')).not.toBeInTheDocument())
     expect(screen.getAllByText(name === 'Online' ? 'Online' : 'Healthy').length).toBeGreaterThan(0)
@@ -90,9 +123,9 @@ describe('RSU status retry requests', () => {
       throw new Error(`Unexpected request: ${request.url}`)
     })
     render(<ThemeProvider theme={testTheme}><Provider store={store}><DisplayRsuErrors /></Provider></ThemeProvider>)
-    const alert = (await screen.findByText('Online status unavailable.')).closest<HTMLElement>('[role="alert"]')!
+    const alert = (await screen.findByText('Online update failed')).closest<HTMLElement>('[role="alert"]')!
     fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }))
-    expect(await screen.findByText('Online status unavailable.')).toBeInTheDocument()
+    expect(await screen.findByText('Online update failed')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(screen.queryByText('Offline')).not.toBeInTheDocument()
   })

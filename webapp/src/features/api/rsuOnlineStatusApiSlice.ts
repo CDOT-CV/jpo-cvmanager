@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
+import { RSU_HEALTH_REFRESH } from '../rsu-health/refresh-policy'
 import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 
@@ -26,6 +27,7 @@ const RSU_ONLINE_STATUS_LIST_ID = 'LIST' as const
 export const rsuOnlineStatusApiSlice = createApi({
   reducerPath: 'rsuOnlineStatusApi',
   baseQuery: fetchBaseQuery({
+    timeout: RSU_HEALTH_REFRESH.requestTimeout,
     baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/devices/rsus/online-status`,
     prepareHeaders: (headers, { getState }) => {
       const token = selectToken(getState() as RootState)

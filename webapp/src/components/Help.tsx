@@ -157,8 +157,9 @@ const Help = () => {
         <h3 id="map-layers">Map Layers</h3>
 
         <p>
-          The menu on the left contains three sections:<strong> Map Layers</strong>,<strong> RSU Filters</strong>, and
-          <strong> RSU Configuration</strong>. The Map Layers section allows users to visualize various data types.
+          The menu on the left contains<strong> Map Layers</strong>,<strong> RSU Health</strong>, and
+          <strong> RSU Configuration</strong> (for Operators/Admins). The Map Layers section allows users to visualize
+          various data types.
           Available layers include:
         </p>
 
@@ -190,7 +191,11 @@ const Help = () => {
         </ul>
 
         <p>
-          The RSU Filters section allows filtering RSUs by vendor and status. The RSU Configuration section allows
+          RSU Health contains data fetch times, the Online/SCMS status view, and the vendor filter. Health data updates
+          automatically. RSU Health and RSU Configuration are available while the RSU Viewer layer is enabled; hiding the
+          layer preserves their selections and configuration points.
+          The status view changes RSU marker colors; the vendor filter limits which RSUs are shown.
+          The RSU Configuration section allows
           Operators/Admins to select RSUs on the map and configure them in bulk.
         </p>
 

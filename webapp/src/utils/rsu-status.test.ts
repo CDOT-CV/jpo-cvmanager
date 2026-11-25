@@ -50,11 +50,11 @@ describe('RSU status interpretation', () => {
     expect(getOnlineStatus(ip, query)).toBe('loading')
   })
 
-  it('shows unavailable after a failed request even when a cached value exists', () => {
+  it('preserves last-known health after a failed refresh of the current query', () => {
     expect(getOnlineStatus(ip, { isError: true, currentData: { [ip]: { current_status: 'offline' } } }))
-      .toBe('unavailable')
+      .toBe('offline')
     expect(getScmsStatus(ip, { isError: true, currentData: { [ip]: { health: false, expiration: null } } }))
-      .toBe('unavailable')
+      .toBe('unhealthy')
   })
 
   it('keeps the current result while a request is in progress', () => {

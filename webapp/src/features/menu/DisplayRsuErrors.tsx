@@ -7,8 +7,8 @@ import '../../components/css/SnmpwalkMenu.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import MaterialTable, { Action } from '@material-table/core'
 import { RootState } from '../../store'
-import { useGetScmsStatusQuery } from '../api/scmsApiSlice'
-import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../api/rsuOnlineStatusApiSlice'
+import { useRsuHealth } from '../rsu-health/useRsuHealth'
+import { RsuHealthSummary } from '../rsu-health/RsuHealthSummary'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
 
 import GpsFixedSharp from '@mui/icons-material/GpsFixedSharp'
@@ -43,16 +43,10 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const rsuData = useSelector(selectRsuData)
   const organization = useSelector(selectOrganizationName)
-  const onlineStatusQuery = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
-  const scmsStatusQuery = useGetScmsStatusQuery(organization, { skip: !organization })
   const [selectedRSU, setSelectedRSU] = useState<RsuInfo | undefined>(initialSelectedRsu)
   const selectedRsuIp = selectedRSU?.properties.ipv4_address ?? ''
-  const lastOnlineQuery = useGetRsuLastOnlineQuery(selectedRsuIp, {
-    skip: !selectedRsuIp,
-  })
-  const isSummaryLoading = [onlineStatusQuery, scmsStatusQuery, lastOnlineQuery].some(
-    (query) => query.isLoading || query.isFetching || query.isUninitialized
-  )
+  const health = useRsuHealth(organization, selectedRsuIp)
+  const { onlineStatusQuery, scmsStatusQuery, lastOnlineQuery } = health
   const contentRef = useRef(null)
   const errorRef = useRef(null)
   const userEmail = useSelector(selectEmail)
@@ -99,6 +93,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
 
     const message = `
         <p>Below is the error summary for RSU ${rsu} at ${new Date().toISOString()} UTC:</p>
+        <p>${health.summary.join('<br />')}</p>
         ${messageTable}
     `
 
@@ -117,6 +112,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   // Create RSU Errors Table Data
   const rsuTableData = rsuData.map((rsu) => {
     return {
+      id: rsu.properties.ipv4_address,
       rsu: rsu.properties.ipv4_address,
       road: rsu.properties.primary_route,
       lat: rsu.geometry.coordinates[1],
@@ -156,6 +152,23 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
     },
   ]
 
+  const healthErrors = health.feeds.map(({ label, query }) => (
+    <StatusRetryAlert key={label} statusName={label} query={query} canRetry={health.canRetry} />
+  ))
+
+  const statusHeader = (
+    <SideBarHeader
+      mapHeading
+      onClick={() => {
+        if (selectedRSU) setSelectedRSU(undefined)
+        else dispatch(toggleMapMenuSelection('Display RSU Status'))
+      }}
+      title={selectedRSU ? `${selectedRSU.properties.ipv4_address} Status` : 'RSU Status'}
+    >
+      <RsuHealthSummary health={health} />
+    </SideBarHeader>
+  )
+
   const containerStyle = {
     display: 'flex',
     justifyContent: 'center',
@@ -170,16 +183,10 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
 
   return (
     <div style={containerStyle}>
-      <StatusRetryAlert statusName="Online" query={onlineStatusQuery} />
-      <StatusRetryAlert statusName="SCMS" query={scmsStatusQuery} />
       {selectedRSU !== undefined ? (
-        <Stack direction="column" spacing={2} sx={{ pl: 1, pr: 1, width: '100%' }}>
-          <SideBarHeader
-            onClick={() => {
-              setSelectedRSU(undefined)
-            }}
-            title={selectedRSU.properties.ipv4_address + ' Status'}
-          />
+        <Stack direction="column" spacing={1} sx={{ pl: 1, pr: 1, width: '100%' }}>
+          {statusHeader}
+          {healthErrors}
           <div className="accordion">
             <Accordion elevation={0}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -220,7 +227,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
             <Button
               variant="contained"
               style={{ margin: '1rem' }}
-              disabled={isSummaryLoading}
+              disabled={health.isPending}
               onClick={() => {
                 const lastOnlineStatus =
                   getStatusLabel(getRSUOnlineStatus(selectedRSU.properties.ipv4_address)) +
@@ -239,8 +246,9 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
           </div>
         </Stack>
       ) : (
-        <Stack direction="column" spacing={2} sx={{ pl: 1, pr: 1 }}>
-          <SideBarHeader onClick={() => dispatch(toggleMapMenuSelection('Display RSU Status'))} title="RSU Status" />
+        <Stack direction="column" spacing={1} sx={{ pl: 1, pr: 1, '& .MuiToolbar-root': { minHeight: 48 } }}>
+          {statusHeader}
+          {healthErrors}
           <AdminTable
             actions={tableActions}
             columns={[
@@ -337,6 +345,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
           }}
         >
           <h1 style={{ textAlign: 'center', marginBottom: '10px', color: 'black' }}>RSU Summary</h1>
+          <p style={{ color: 'black' }}>{health.summary.join(' | ')}</p>
           <br />
           <p style={{ color: 'black' }}>
             Below is the generated RSU summary report for all RSUs at {new Date().toISOString()} UTC:
@@ -425,6 +434,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
           }}
         >
           <h1 style={{ textAlign: 'center', marginBottom: '10px', color: 'black' }}>RSU Error Summary</h1>
+          <p style={{ color: 'black' }}>{health.summary.join(' | ')}</p>
           <br />
           <p style={{ color: 'black' }}>
             {`Below is the generated RSU Error summary report at ${new Date().toISOString()} UTC. ` +

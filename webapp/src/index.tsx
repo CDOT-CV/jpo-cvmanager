@@ -5,10 +5,14 @@ import { testTheme } from './styles'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { setupStore } from './store'
 import App from './App'
+import { setupListeners } from '@reduxjs/toolkit/query'
+
+const store = setupStore({})
+setupListeners(store.dispatch)
 
 ReactDOM.render(
   <ThemeProvider theme={testTheme}>
-    <Provider store={setupStore({})}>
+    <Provider store={store}>
       <App />
     </Provider>
   </ThemeProvider>,

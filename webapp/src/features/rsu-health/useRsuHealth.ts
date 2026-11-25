@@ -1,0 +1,107 @@
+import { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
+import EnvironmentVars from '../../EnvironmentVars'
+import { selectToken } from '../../generalSlices/userSlice'
+import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../api/rsuOnlineStatusApiSlice'
+import { useGetScmsStatusQuery } from '../api/scmsApiSlice'
+import { describeHealthFetch, RSU_HEALTH_REFRESH } from './refresh-policy'
+
+const readActivity = () => ({
+  visible: document.visibilityState !== 'hidden',
+  online: navigator.onLine !== false,
+  now: Date.now(),
+})
+
+// One policy for every health consumer. RTK Query shares requests by endpoint and argument.
+export const useRsuHealth = (organization: string, ip = '') => {
+  const token = useSelector(selectToken)
+  const enabled = Boolean(organization && token && EnvironmentVars.ENABLE_RSU_FEATURES)
+  const [activity, setActivity] = useState(readActivity)
+
+  useEffect(() => {
+    const update = () => setActivity(readActivity())
+
+    document.addEventListener('visibilitychange', update)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+
+    const timer = enabled ? window.setInterval(() => {
+      if (document.visibilityState !== 'hidden') update()
+    }, RSU_HEALTH_REFRESH.clockTick) : undefined
+
+    return () => {
+      document.removeEventListener('visibilitychange', update)
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+      window.clearInterval(timer)
+    }
+  }, [enabled])
+
+  const options = (interval: number) => ({
+    skip: !enabled,
+    pollingInterval: enabled && activity.visible && activity.online ? interval : 0,
+    refetchOnMountOrArgChange: interval / 1000,
+  })
+
+  const onlineStatusQuery = useGetRsuOnlineStatusesQuery(organization, options(RSU_HEALTH_REFRESH.online))
+  const scmsStatusQuery = useGetScmsStatusQuery(organization, options(RSU_HEALTH_REFRESH.scms))
+  const lastOnlineQuery = useGetRsuLastOnlineQuery(ip, {
+    ...options(RSU_HEALTH_REFRESH.lastOnline),
+    skip: !enabled || !ip,
+  })
+
+  const feeds = [
+    { label: 'Online', query: onlineStatusQuery, interval: RSU_HEALTH_REFRESH.online },
+    { label: 'SCMS', query: scmsStatusQuery, interval: RSU_HEALTH_REFRESH.scms },
+    ...(ip ? [{ label: 'Last online', query: lastOnlineQuery, interval: RSU_HEALTH_REFRESH.lastOnline }] : []),
+  ]
+
+  useEffect(() => {
+    if (!enabled) return
+
+    const refreshOnReturn = (event: Event) => {
+      const { visible, online, now } = readActivity()
+      if (!visible || !online) return
+
+      for (const { query, interval } of feeds) {
+        if (query.isUninitialized || query.isFetching) continue
+
+        // A failed request still counts toward the focus refresh interval.
+        const lastFetch = query.isError ? query.startedTimeStamp : query.fulfilledTimeStamp
+        if (event.type === 'online' || lastFetch === undefined || now - lastFetch >= interval) {
+          query.refetch()
+        }
+      }
+    }
+
+    window.addEventListener('focus', refreshOnReturn)
+    window.addEventListener('online', refreshOnReturn)
+    document.addEventListener('visibilitychange', refreshOnReturn)
+
+    return () => {
+      window.removeEventListener('focus', refreshOnReturn)
+      window.removeEventListener('online', refreshOnReturn)
+      document.removeEventListener('visibilitychange', refreshOnReturn)
+    }
+  })
+
+  const refreshing = feeds.some(({ query }) => query.isFetching)
+  const isPending = feeds.some(({ query }) =>
+    query.isUninitialized || (query.currentData === undefined && (query.isLoading || query.isFetching))
+  )
+
+  const summary = feeds.map(({ label, query, interval }) => describeHealthFetch(label, query, activity.now, interval))
+
+  return {
+    onlineStatusQuery,
+    scmsStatusQuery,
+    lastOnlineQuery,
+    feeds,
+    refreshing,
+    isPending,
+    summary,
+    canRetry: enabled && activity.online,
+    networkOnline: activity.online,
+    now: activity.now,
+  }
+}

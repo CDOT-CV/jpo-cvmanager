@@ -1,10 +1,17 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import { beforeEach, vi } from 'vitest'
+import RsuApi from '../apis/rsu-api'
 import Map from './Map'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from '@mui/material'
 import { testTheme } from '../styles'
 import { setupStore } from '../store'
 import { replaceChaoticIds } from '../utils/test-utils'
+
+beforeEach(() => {
+  vi.spyOn(RsuApi, 'getRsuInfo').mockResolvedValue({ rsuList: [] })
+  vi.spyOn(RsuApi, 'getWzdxData').mockResolvedValue({ features: [] } as any)
+})
 
 it('snapshot bsmCoordinates wzdx', () => {
   const initialState = {
