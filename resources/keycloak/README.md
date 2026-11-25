@@ -130,3 +130,31 @@ Several CV-Manager services utilize the Intersection API to generate emails. Thi
    - Under the "Settings" tab, scroll down to the "Capability Config" section and ensure that "Service accounts roles" is checked
    - Under the new "Service accounts roles" tab, select "Assign role"
      - Assign the following roles: `manage-users`, `view-users`
+
+## Upgrading
+
+### Keycloak 26.8.2
+
+Keep both Dockerfile image tags and the custom provider's `keycloak.version`
+aligned at 26.8.2. This resolves the five Keycloak-related CVEs identified in the
+Trivy baseline without replacing individual server libraries.
+
+For existing deployments:
+
+1. Stop Keycloak and back up its database, configuration, and themes before
+   deploying the rebuilt image. Startup migrates the database; rollback requires
+   restoring the backup and previous image. Preserve the Postgres volume.
+2. In **Clients > cvmanager-api > Client scopes**, add `kc-admin-api` as a
+   **Default** scope. Keep the service account's `manage-users` and `view-users`
+   roles, then restart the Intersection API to obtain a new token. Fresh installs
+   include this scope; `--import-realm` skips existing realms.
+3. Verify local and Google login, token refresh, organization/role claims, and
+   user management before restoring traffic. Check custom theme compatibility.
+
+The updated Kubernetes manifest uses `KC_BOOTSTRAP_ADMIN_USERNAME` /
+`KC_BOOTSTRAP_ADMIN_PASSWORD` and `--proxy-headers=xforwarded`. Ensure the ingress
+sets trusted `X-Forwarded-*` headers. Health checks use
+`http://localhost:9000/health/ready` with `KC_HEALTH_ENABLED=true`.
+
+See the [Keycloak upgrade guide](https://www.keycloak.org/docs/latest/upgrading/index.html)
+for complete migration notes.

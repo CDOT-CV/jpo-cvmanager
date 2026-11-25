@@ -4,6 +4,7 @@ import CloseIcon from '@mui/icons-material/Close'
 type SideBarHeaderProps = {
   onClick: () => void
   title: string
+  closeButtonLabel?: string
 }
 
 export const SideBarHeader = (props: SideBarHeaderProps) => {
@@ -13,7 +14,7 @@ export const SideBarHeader = (props: SideBarHeaderProps) => {
       <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
         {props.title}
       </Typography>
-      <IconButton onClick={props.onClick} sx={{ color: theme.palette.text.primary }}>
+      <IconButton onClick={props.onClick} aria-label={props.closeButtonLabel} sx={{ color: theme.palette.text.primary }}>
         <CloseIcon />
       </IconButton>
     </Stack>

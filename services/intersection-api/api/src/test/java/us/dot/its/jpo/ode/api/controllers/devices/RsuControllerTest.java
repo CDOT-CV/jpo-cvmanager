@@ -92,6 +92,7 @@ class RsuControllerTest {
             Pageable pageable = PageRequest.of(0, 100);
 
             RsuInfoDto rsu1 = new RsuInfoDto(
+                    null,
                     "192.168.1.100",
                     new SimplePosition(39.7392, -105.0844),
                     123.4,
@@ -107,6 +108,7 @@ class RsuControllerTest {
                     Boolean.TRUE);
 
             RsuInfoDto rsu2 = new RsuInfoDto(
+                    null,
                     "192.168.1.101",
                     new SimplePosition(39.7400, -105.0850),
                     124.5,
@@ -200,6 +202,7 @@ class RsuControllerTest {
             Pageable pageable = PageRequest.of(0, 50);
 
             RsuInfoDto rsu1 = new RsuInfoDto(
+                    null,
                     "192.168.1.100",
                     new SimplePosition(39.7392, -105.0844),
                     123.4,
@@ -237,6 +240,7 @@ class RsuControllerTest {
             String rsuIp = "192.168.1.100";
 
             RsuInfoDto rsuInfo = new RsuInfoDto(
+                    null,
                     rsuIp,
                     new SimplePosition(39.7392, -105.0844),
                     123.4,
@@ -610,6 +614,7 @@ class RsuControllerTest {
                 List<Integer> orgsToAdd = Arrays.asList(1);
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                        5,
                         "192.168.1.100",
                         new SimplePosition(39.7392, -105.0844),
                         123.4,
@@ -644,6 +649,7 @@ class RsuControllerTest {
                 List<Integer> orgsToAdd = Arrays.asList(1);
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                        5,
                         "192.168.1.100",
                         new SimplePosition(39.7392, -105.0844),
                         123.4,
@@ -678,6 +684,7 @@ class RsuControllerTest {
             List<Integer> orgsToAdd = Arrays.asList(1);
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                    5,
                     "192.168.1.100",
                     new SimplePosition(39.7392, -105.0844),
                     123.4,
@@ -696,5 +703,66 @@ class RsuControllerTest {
                     RuntimeException.class,
                     () -> rsuController.createRsu(rsuInfoDto));
         }
+
+        @Test
+        void testCreateRsu_OrgRelationshipCreationFails() {
+            List<Integer> orgsToAdd = Arrays.asList(1);
+
+            RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                    5,
+                    "192.168.1.100",
+                    new SimplePosition(39.7392, -105.0844),
+                    123.4,
+                    "I-25",
+                    "RSU123",
+                    "SCMS123",
+                    "Commsignia ITS-RS4-M",
+                    "ssh-group-1",
+                    "snmp-group-1",
+                    "v3",
+                    orgsToAdd,
+                    true,
+                    true);
+
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
+            doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Relationship creation failed"))
+                    .when(rsuManagementService).createRsu(rsuInfoDto, List.of(sampleOrganization));
+
+            assertThrows(
+                    ResponseStatusException.class,
+                    () -> rsuController.createRsu(rsuInfoDto));
+
+            verify(rsuManagementService).createRsu(rsuInfoDto, List.of(sampleOrganization));
+        }
+
+        @Test
+        void testCreateRsu_NullOrganizationsList() {
+            RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                    5,
+                    "192.168.1.100",
+                    new SimplePosition(39.7392, -105.0844),
+                    123.4,
+                    "I-25",
+                    "RSU123",
+                    "SCMS123",
+                    "Commsignia ITS-RS4-M",
+                    "ssh-group-1",
+                    "snmp-group-1",
+                    "v3",
+                    null,
+                    true,
+                    true);
+
+            ResponseStatusException exception = assertThrows(
+                    ResponseStatusException.class,
+                    () -> rsuController.createRsu(rsuInfoDto));
+
+            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+            assertEquals("At least one organization is required", exception.getReason());
+
+            verify(rsuManagementService, never()).createRsu(any(), anyList());
+        }
     }
+
 }

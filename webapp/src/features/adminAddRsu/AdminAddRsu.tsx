@@ -16,12 +16,17 @@ import {
   MenuItem,
   Select,
   TextField,
+  Typography,
   CircularProgress,
   Box,
 } from '@mui/material'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import { useGetRsuAllowedSelectionsQuery, useCreateRsuMutation } from '../api/rsuApiSlice'
+import {
+  useGetRsuAllowedSelectionsQuery,
+  useCreateRsuMutation,
+  useGetRsuFirmwareOptionsQuery,
+} from '../api/rsuApiSlice'
 
 import '../adminRsuTab/Admin.css'
 import '../../styles/fonts/museo-slab.css'
@@ -47,6 +52,7 @@ export type AdminAddRsuForm = {
 }
 
 export type AdminRsuCreationBody = {
+  firmware_id: number
   ip: string
   milepost: number
   serial_number: string
@@ -73,6 +79,7 @@ const AdminAddRsu = () => {
   const [selectedRoute, setSelectedRoute] = useState('Select Route (Required)')
   const [otherRouteDisabled, setOtherRouteDisabled] = useState(true)
   const [selectedModel, setSelectedModel] = useState('Select RSU Model (Required)')
+  const [selectedFirmware, setSelectedFirmware] = useState<number | ''>('')
   const [selectedSshGroup, setSelectedSshGroup] = useState('Select SSH Group (Required)')
   const [selectedSnmpGroup, setSelectedSnmpGroup] = useState('Select SNMP Group (Required)')
   const [selectedSnmpVersion, setSelectedSnmpVersion] = useState('Select SNMP Protocol (Required)')
@@ -85,6 +92,15 @@ const AdminAddRsu = () => {
   const allowedOrganizations = useSelector((state: RootState) =>
     selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
   )
+  const {
+    currentData: firmwareOptions,
+    isFetching: isFetchingFirmware,
+    isError: firmwareError,
+    refetch: refetchFirmware,
+  } = useGetRsuFirmwareOptionsQuery(selectedModel, {
+    skip: selectedModel === 'Select RSU Model (Required)',
+    refetchOnMountOrArgChange: true,
+  })
 
   const {
     register,
@@ -102,6 +118,12 @@ const AdminAddRsu = () => {
   const checkForm = (): boolean => {
     if (selectedRoute === 'Select Route (Required)') return false
     if (selectedModel === 'Select RSU Model (Required)') return false
+    if (
+      isFetchingFirmware ||
+      firmwareError ||
+      !firmwareOptions?.some((option) => option.firmware_id === selectedFirmware)
+    )
+      return false
     if (selectedSshGroup === 'Select SSH Group (Required)') return false
     if (selectedSnmpGroup === 'Select SNMP Group (Required)') return false
     if (selectedSnmpVersion === 'Select SNMP Protocol (Required)') return false
@@ -111,6 +133,7 @@ const AdminAddRsu = () => {
 
   const buildRequestBody = (data: AdminAddRsuForm): AdminRsuCreationBody => {
     return {
+      firmware_id: Number(selectedFirmware),
       ip: data.ip,
       milepost: Number(data.milepost),
       serial_number: data.serial_number,
@@ -148,6 +171,7 @@ const AdminAddRsu = () => {
       reset()
       setSelectedRoute('Select Route (Required)')
       setOtherRouteDisabled(true)
+      setSelectedFirmware('')
       setSelectedModel('Select RSU Model (Required)')
       setSelectedSshGroup('Select SSH Group (Required)')
       setSelectedSnmpGroup('Select SNMP Group (Required)')
@@ -379,7 +403,10 @@ const AdminAddRsu = () => {
                     label="RSU Model"
                     value={selectedModel}
                     required
-                    onChange={(event) => setSelectedModel(event.target.value)}
+                    onChange={(event) => {
+                      setSelectedFirmware('')
+                      setSelectedModel(event.target.value)
+                    }}
                   >
                     <MenuItem value="Select RSU Model (Required)">Select RSU Model (Required)</MenuItem>
                     {rsuModels.map((model, index) => (
@@ -395,6 +422,47 @@ const AdminAddRsu = () => {
               </Form.Group>
             </Grid2>
           </Grid2>
+
+          <Form.Group controlId="firmware_id">
+            <FormControl
+              fullWidth
+              margin="normal"
+              disabled={selectedModel === 'Select RSU Model (Required)' || isFetchingFirmware || firmwareError}
+            >
+              <InputLabel id="installed-firmware-label" required>
+                Installed Firmware
+              </InputLabel>
+              <Select
+                id="firmware_id"
+                labelId="installed-firmware-label"
+                label="Installed Firmware"
+                value={selectedFirmware}
+                required
+                onChange={(event) => setSelectedFirmware(Number(event.target.value))}
+              >
+                {firmwareOptions?.map((option) => (
+                  <MenuItem key={option.firmware_id} value={option.firmware_id}>
+                    {option.version}
+                    {option.legacy ? ' (Legacy)' : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+              {selectedFirmware === '' && submitAttempt && (
+                <ErrorMessageText role="alert">Must select installed firmware</ErrorMessageText>
+              )}
+            </FormControl>
+            {isFetchingFirmware && <Typography variant="body2">Loading firmware versions...</Typography>}
+            {firmwareError && (
+              <ErrorMessageText role="alert">
+                Unable to load firmware versions <Button onClick={() => void refetchFirmware()}>Retry</Button>
+              </ErrorMessageText>
+            )}
+            {!isFetchingFirmware && !firmwareError && firmwareOptions?.length === 0 && (
+              <ErrorMessageText role="alert">
+                Register eligible firmware for this model before adding the RSU
+              </ErrorMessageText>
+            )}
+          </Form.Group>
 
           <Form.Group controlId="scms_id">
             <FormControl fullWidth margin="normal">
@@ -500,11 +568,12 @@ const AdminAddRsu = () => {
             <Grid2 size={6}>
               <Form.Group controlId="snmp_version_group">
                 <FormControl fullWidth margin="normal">
-                  <InputLabel htmlFor="snmp_version_group" required>
+                  <InputLabel id="snmp-protocol-label" htmlFor="snmp_version_group" required>
                     SNMP Protocol
                   </InputLabel>
                   <Select
                     id="snmp_version_group"
+                    labelId="snmp-protocol-label"
                     label="SNMP Protocol"
                     value={selectedSnmpVersion}
                     required
@@ -517,6 +586,7 @@ const AdminAddRsu = () => {
                       </MenuItem>
                     ))}
                   </Select>
+                  <Typography variant="caption">New RSUs require NTCIP 1218.</Typography>
                   {selectedSnmpVersion === 'Select SNMP Protocol (Required)' && submitAttempt && (
                     <ErrorMessageText role="alert">Must select a SNMP protocol</ErrorMessageText>
                   )}
