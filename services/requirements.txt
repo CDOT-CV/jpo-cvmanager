@@ -17,7 +17,7 @@ pg8000==1.31.5
 python-dateutil==2.9.0
 flask==3.0.0
 flask_restful==0.3.10
-marshmallow==3.20.1
+marshmallow==3.26.2
 gunicorn==22.0.0
 pytz==2023.3.post1
 Werkzeug==3.1.9
