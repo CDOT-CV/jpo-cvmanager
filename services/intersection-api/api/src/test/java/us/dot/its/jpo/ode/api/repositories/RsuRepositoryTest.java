@@ -4,14 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import jakarta.persistence.EntityManager;
-import org.hibernate.SessionFactory;
-import us.dot.its.jpo.ode.api.mappers.RsuGeoInfoMapper;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.persistence.EntityManager;
+
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.fixtures.TestFixtures;
+import us.dot.its.jpo.ode.api.mappers.RsuGeoInfoMapper;
 import us.dot.its.jpo.ode.api.models.postgres.projections.RsuOnlineStatusProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
@@ -33,6 +36,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
+import us.dot.its.jpo.ode.api.services.RsuOnlineStatusService;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
@@ -123,6 +127,7 @@ class RsuRepositoryTest {
 
         assertEquals(inWindowNewer, results.get(0).getTimestamp());
         assertEquals(Boolean.TRUE, results.get(0).getResult());
+        assertEquals(Boolean.TRUE, results.get(0).getHasPingHistory());
 
         assertEquals(inWindowNewer, results.get(1).getTimestamp());
         assertEquals(Boolean.FALSE, results.get(1).getResult());
@@ -132,9 +137,26 @@ class RsuRepositoryTest {
         assertEquals(neverPinged.getIpv4Address(), results.get(3).getIpv4Address());
         assertNull(results.get(3).getTimestamp());
         assertNull(results.get(3).getResult());
+        assertEquals(Boolean.FALSE, results.get(3).getHasPingHistory());
         assertEquals(staleOnly.getIpv4Address(), results.get(4).getIpv4Address());
         assertNull(results.get(4).getTimestamp());
         assertNull(results.get(4).getResult());
+        assertEquals(Boolean.TRUE, results.get(4).getHasPingHistory());
+
+        RsuOnlineStatusService service = new RsuOnlineStatusService(rsuRepository, Clock.fixed(now, ZoneOffset.UTC));
+        var statuses = service.getOnlineStatuses("TestOrg");
+        assertEquals("online", statuses.get("10.0.0.1").getCurrentStatus());
+        assertEquals("unstable", statuses.get("10.0.0.2").getCurrentStatus());
+        assertEquals("unknown", statuses.get("10.0.0.3").getCurrentStatus());
+        assertEquals("offline", statuses.get("10.0.0.4").getCurrentStatus());
+
+        // An old failed ping is still history, even when Last Online would be null.
+        savePing(neverPinged, beforeCutoff, false);
+        results = rsuRepository.findOnlineStatusPingsByOrganization("TestOrg", cutoff);
+        assertEquals(Boolean.TRUE, results.get(3).getHasPingHistory());
+        assertNull(results.get(3).getTimestamp());
+        assertNull(results.get(3).getResult());
+        assertEquals("offline", service.getOnlineStatuses("TestOrg").get("10.0.0.3").getCurrentStatus());
     }
 
     @Test

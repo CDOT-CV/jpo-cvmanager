@@ -34,6 +34,15 @@ describe('rsuOnlineStatusApiSlice', () => {
     expect(request.headers.get('Organization')).toBe('test-org')
   })
 
+  it('preserves unknown status for an RSU without ping history', async () => {
+    const store = setupStore(mockUserState)
+    fetchMock.mockResponseOnce(JSON.stringify({ onlineStatusByIp: { '10.0.0.1': { current_status: 'unknown' } } }))
+
+    const result = await store.dispatch(rsuOnlineStatusApiSlice.endpoints.getRsuOnlineStatuses.initiate('test-org'))
+
+    expect(result.data?.['10.0.0.1'].current_status).toBe('unknown')
+  })
+
   it('gets last-online status by encoded IP and preserves a null timestamp', async () => {
     const store = setupStore(mockUserState)
     fetchMock.mockResponseOnce(JSON.stringify({ ip: '10.0.0.1', last_online: null }))

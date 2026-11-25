@@ -10,6 +10,7 @@ import lombok.Getter;
 @Schema(description = "The current rolling online status of an RSU")
 public class OnlineStatusDto {
     @JsonProperty("current_status")
-    @Schema(allowableValues = { "online", "offline", "unstable" })
+    @Schema(description = "Unknown when no ping records exist; offline when records exist but no ping succeeded within the status window",
+            allowableValues = { "online", "offline", "unstable", "unknown" })
     private final String currentStatus;
 }

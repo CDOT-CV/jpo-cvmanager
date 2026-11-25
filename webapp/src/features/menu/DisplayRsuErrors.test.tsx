@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from '@mui/material'
 import { testTheme } from '../../styles'
@@ -25,6 +25,13 @@ vi.mock('../api/rsuOnlineStatusApiSlice', async (importOriginal) => {
     useGetRsuLastOnlineQuery: vi.fn(),
   }
 })
+
+import { useSendRsuErrorSummaryEmailMutation } from '../api/emailApiSlice'
+
+vi.mock('../api/emailApiSlice', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../api/emailApiSlice')>(),
+  useSendRsuErrorSummaryEmailMutation: vi.fn(() => [vi.fn()]),
+}))
 
 import { useGetScmsStatusQuery } from '../api/scmsApiSlice'
 import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../api/rsuOnlineStatusApiSlice'
@@ -85,15 +92,15 @@ const rsuPreloadedState = {
 }
 
 const mockRsuOnline = () => {
-  mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ data: { [TEST_IP]: { current_status: 'online' } } } as any)
-  mockUseGetRsuLastOnlineQuery.mockReturnValue({ data: { ip: TEST_IP, last_online: '2026-04-10T10:00:00Z' } } as any)
+  mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ currentData: { [TEST_IP]: { current_status: 'online' } } } as any)
+  mockUseGetRsuLastOnlineQuery.mockReturnValue({ currentData: { ip: TEST_IP, last_online: '2026-04-10T10:00:00Z' } } as any)
 }
 
-function renderComponent(preloadedState = rsuPreloadedState) {
+function renderComponent(preloadedState = rsuPreloadedState, initialSelectedRsu?: RsuInfo) {
   return render(
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore(preloadedState)}>
-        <DisplayRsuErrors />
+        <DisplayRsuErrors initialSelectedRsu={initialSelectedRsu} />
       </Provider>
     </ThemeProvider>
   )
@@ -108,7 +115,7 @@ describe('DisplayRsuErrors table view (no RSU selected)', () => {
 
   it('shows Healthy status when health === true', () => {
     mockUseGetScmsStatusQuery.mockReturnValue({
-      data: { [TEST_IP]: { health: true, expiration: VALID_EXPIRATION_ISO } },
+      currentData: { [TEST_IP]: { health: true, expiration: VALID_EXPIRATION_ISO } },
     } as any)
 
     renderComponent()
@@ -118,7 +125,7 @@ describe('DisplayRsuErrors table view (no RSU selected)', () => {
 
   it('shows Unhealthy status when health === false', () => {
     mockUseGetScmsStatusQuery.mockReturnValue({
-      data: { [TEST_IP]: { health: false, expiration: '2025-01-01T00:00:00Z' } },
+      currentData: { [TEST_IP]: { health: false, expiration: '2025-01-01T00:00:00Z' } },
     } as any)
 
     renderComponent()
@@ -126,26 +133,27 @@ describe('DisplayRsuErrors table view (no RSU selected)', () => {
     expect(screen.getAllByText('Unhealthy').length).toBeGreaterThan(0)
   })
 
-  it('shows Unhealthy status when health === null', () => {
+  it('shows Unknown status when the SCMS record is null', () => {
     mockUseGetScmsStatusQuery.mockReturnValue({
-      data: { [TEST_IP]: null },
+      currentData: { [TEST_IP]: null },
     } as any)
 
     renderComponent()
 
-    expect(screen.getAllByText('Unhealthy').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Unhealthy')).not.toBeInTheDocument()
   })
 
-  it('shows Never downloaded certificates when expiration is absent (no SCMS record)', () => {
-    mockUseGetScmsStatusQuery.mockReturnValue({ data: {} } as any)
+  it('shows Unknown expiration when no SCMS record exists', () => {
+    mockUseGetScmsStatusQuery.mockReturnValue({ currentData: {} } as any)
 
     renderComponent()
 
-    expect(screen.getAllByText('Never downloaded certificates').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
   })
 
   it('calls useGetScmsStatusQuery with skip:true when no organization is selected', () => {
-    mockUseGetScmsStatusQuery.mockReturnValue({ data: {} } as any)
+    mockUseGetScmsStatusQuery.mockReturnValue({ currentData: {} } as any)
 
     const stateWithoutOrg = {
       ...rsuPreloadedState,
@@ -182,7 +190,7 @@ describe('DisplayRsuErrors detail view (RSU selected)', () => {
 
   it('renders Healthy in SCMS status accordion when health === true', () => {
     mockUseGetScmsStatusQuery.mockReturnValue({
-      data: { [TEST_IP]: { health: true, expiration: VALID_EXPIRATION_ISO } },
+      currentData: { [TEST_IP]: { health: true, expiration: VALID_EXPIRATION_ISO } },
     } as any)
 
     renderDetail()
@@ -192,7 +200,7 @@ describe('DisplayRsuErrors detail view (RSU selected)', () => {
 
   it('renders Unhealthy in SCMS status accordion when health === false', () => {
     mockUseGetScmsStatusQuery.mockReturnValue({
-      data: { [TEST_IP]: { health: false, expiration: '2025-01-01T00:00:00Z' } },
+      currentData: { [TEST_IP]: { health: false, expiration: '2025-01-01T00:00:00Z' } },
     } as any)
 
     renderDetail()
@@ -200,12 +208,12 @@ describe('DisplayRsuErrors detail view (RSU selected)', () => {
     expect(screen.getAllByText('Unhealthy').length).toBeGreaterThan(0)
   })
 
-  it('renders Never downloaded certificates when no SCMS record exists', () => {
-    mockUseGetScmsStatusQuery.mockReturnValue({ data: {} } as any)
+  it('renders Unknown expiration when no SCMS record exists', () => {
+    mockUseGetScmsStatusQuery.mockReturnValue({ currentData: {} } as any)
 
     renderDetail()
 
-    expect(screen.getAllByText('Never downloaded certificates').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
   })
 })
 
@@ -224,10 +232,139 @@ describe('DisplayRsuErrors snapshot', () => {
 
   it('should match snapshot', () => {
     mockUseGetScmsStatusQuery.mockReturnValue({
-      data: { [TEST_IP]: { health: true, expiration: VALID_EXPIRATION_ISO } },
+      currentData: { [TEST_IP]: { health: true, expiration: VALID_EXPIRATION_ISO } },
     } as any)
 
     const { container } = renderComponent()
     expect(replaceChaoticIds(container)).toMatchSnapshot()
   })
+})
+
+describe('DisplayRsuErrors email readiness', () => {
+  beforeEach(() => {
+    mockRsuOnline()
+    mockUseGetScmsStatusQuery.mockReturnValue({ currentData: {} } as any)
+  })
+
+  describe.each([
+    ['online', mockUseGetRsuOnlineStatusesQuery],
+    ['SCMS', mockUseGetScmsStatusQuery],
+    ['last-online', mockUseGetRsuLastOnlineQuery],
+  ] as const)('%s query', (_name, queryHook) => {
+    it.each(['isLoading', 'isFetching', 'isUninitialized'])('disables email while %s', (flag) => {
+      const sendSummary = vi.fn()
+      vi.mocked(useSendRsuErrorSummaryEmailMutation).mockReturnValue([sendSummary] as any)
+      queryHook.mockReturnValue({ [flag]: true } as any)
+      renderComponent(rsuPreloadedState, testRsu)
+      const send = screen.getByRole('button', { name: 'Send Error Summary Email' })
+      expect(send).toBeDisabled()
+      fireEvent.click(send)
+      expect(sendSummary).not.toHaveBeenCalled()
+    })
+  })
+
+  it('enables email once all queries settle without requiring every device to have a record', () => {
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ isFetching: true } as any)
+    const store = setupStore(rsuPreloadedState)
+    const content = () => (
+      <ThemeProvider theme={testTheme}>
+        <Provider store={store}><DisplayRsuErrors initialSelectedRsu={testRsu} /></Provider>
+      </ThemeProvider>
+    )
+    const view = render(content())
+    expect(screen.getByRole('button', { name: 'Send Error Summary Email' })).toBeDisabled()
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ currentData: {} } as any)
+    mockUseGetRsuLastOnlineQuery.mockReturnValue({ currentData: { ip: TEST_IP, last_online: null } } as any)
+    view.rerender(content())
+    expect(screen.getByRole('button', { name: 'Send Error Summary Email' })).toBeEnabled()
+  })
+})
+
+describe('DisplayRsuErrors health-state regressions', () => {
+  beforeEach(() => {
+    mockRsuOnline()
+    mockUseGetScmsStatusQuery.mockReturnValue({ currentData: {} } as any)
+  })
+
+  it.each([
+    [{ isLoading: true, isFetching: true }, 'Loading'],
+    [{ isError: true }, 'Unavailable'],
+    [{ currentData: {} }, 'Unknown'],
+    [{ currentData: { [TEST_IP]: { current_status: 'unknown' } } }, 'Unknown'],
+    [{ isUninitialized: true }, 'Unknown'],
+  ])('does not report unconfirmed online data as Offline (%j)', (query, label) => {
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue(query as any)
+    renderComponent()
+    expect(screen.getAllByText(label).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Offline')).not.toBeInTheDocument()
+  })
+
+  it('offers a retry for failed status requests', () => {
+    const retryOnline = vi.fn()
+    const retryScms = vi.fn()
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ isError: true, refetch: retryOnline } as any)
+    mockUseGetScmsStatusQuery.mockReturnValue({ isError: true, refetch: retryScms } as any)
+    renderComponent()
+    fireEvent.click(within(screen.getByText('Online status unavailable.').closest('[role="alert"]')!).getByText('Retry'))
+    fireEvent.click(within(screen.getByText('SCMS status unavailable.').closest('[role="alert"]')!).getByText('Retry'))
+    expect(retryOnline).toHaveBeenCalledOnce()
+    expect(retryScms).toHaveBeenCalledOnce()
+    expect(screen.queryByText('Offline')).not.toBeInTheDocument()
+    expect(screen.queryByText('Unhealthy')).not.toBeInTheDocument()
+  })
+
+  it('does not turn failed or missing history into failure claims in email summaries', async () => {
+    const sendSummary = vi.fn<(contents: RsuErrorSummaryEmailContents) => { unwrap: () => Promise<void> }>()
+    sendSummary.mockReturnValue({ unwrap: () => Promise.resolve() })
+    vi.mocked(useSendRsuErrorSummaryEmailMutation).mockReturnValue([sendSummary] as any)
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ isError: true } as any)
+    mockUseGetRsuLastOnlineQuery.mockReturnValue({ isError: true } as any)
+    renderComponent(rsuPreloadedState, testRsu)
+    fireEvent.click(screen.getByRole('button', { name: 'Send Error Summary Email' }))
+    await waitFor(() => expect(sendSummary).toHaveBeenCalledOnce())
+    const message = sendSummary.mock.calls[0][0].message
+    expect(message).toContain('RSU Unavailable (Last Online: Unavailable)')
+    expect(message).toContain('SCMS Unknown (Certificate expiration: Unknown)')
+    expect(message).not.toMatch(/Never Online|Never downloaded|Unhealthy|expired/)
+  })
+
+  it('prints confirmed problems and unknown health while excluding healthy devices', () => {
+    const ips = ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5', '10.0.0.6', '10.0.0.7']
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ currentData: {
+      [ips[0]]: { current_status: 'offline' },
+      [ips[1]]: { current_status: 'unstable' },
+      [ips[2]]: { current_status: 'online' },
+      [ips[3]]: { current_status: 'online' },
+      [ips[4]]: { current_status: 'unknown' },
+      [ips[5]]: { current_status: 'unknown' },
+      [ips[6]]: { current_status: 'online' },
+    } } as any)
+    mockUseGetScmsStatusQuery.mockReturnValue({ currentData: {
+      [ips[0]]: { health: true, expiration: VALID_EXPIRATION_ISO },
+      [ips[1]]: { health: true, expiration: VALID_EXPIRATION_ISO },
+      [ips[2]]: { health: false, expiration: null },
+      [ips[3]]: { health: true, expiration: VALID_EXPIRATION_ISO },
+      [ips[4]]: null,
+      [ips[5]]: { health: true, expiration: VALID_EXPIRATION_ISO },
+      [ips[6]]: null,
+    } } as any)
+    renderComponent({ ...rsuPreloadedState, rsu: { value: {
+      ...rsuPreloadedState.rsu.value,
+      rsuData: ips.map((ip, index) => ({ ...testRsu, id: index, properties: { ...testRsu.properties, ipv4_address: ip } })),
+    } } })
+    const errorReport = within(screen.getByText('RSU Error Summary').parentElement!)
+    const fullReport = within(screen.getByText('RSU Summary').parentElement!)
+    for (const ip of ips.filter((_ip, index) => index !== 3)) expect(errorReport.getByText(ip)).toBeInTheDocument()
+    expect(errorReport.queryByText(ips[3])).not.toBeInTheDocument()
+    for (const ip of ips) expect(fullReport.getByText(ip)).toBeInTheDocument()
+    expect(errorReport.getByText(/Unknown indicates missing health information/)).toBeInTheDocument()
+  })
+  it.each([{ isLoading: true, isFetching: true }, { isError: true }])('excludes request-level states alone from the error report (%j)', (query) => {
+    mockUseGetRsuOnlineStatusesQuery.mockReturnValue(query as any)
+    mockUseGetScmsStatusQuery.mockReturnValue(query as any)
+    renderComponent()
+    const errorReport = within(screen.getByText('RSU Error Summary').parentElement!)
+    expect(errorReport.queryByText(TEST_IP)).not.toBeInTheDocument()
+  })
+
 })
