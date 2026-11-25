@@ -26,6 +26,8 @@ import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 
+import java.util.Set;
+
 @Slf4j
 @Service("PermissionService")
 @RequiredArgsConstructor
@@ -100,11 +102,16 @@ public class PermissionService {
             return true;
         }
 
-        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
+        var qualifiedOrgs = scopedOrganizations(authToken, UserRole.fromString(role));
+        return !qualifiedOrgs.isEmpty() && qualifiedOrgCheck.test(qualifiedOrgs);
+    }
+
+    private List<Organization> scopedOrganizations(CvManagerAuthToken authToken, UserRole role) {
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(role);
 
         if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
             // No qualified organizations: deny access without hitting the repository
-            return false;
+            return List.of();
         }
 
         // Verify that organization header matches qualified orgs, if specified
@@ -118,9 +125,9 @@ public class PermissionService {
             if (matchingOrg == null) {
                 // If an organization is specified in the header, ensure it's in the qualified
                 // orgs list
-                return false;
+                return List.of();
             } else {
-                return qualifiedOrgCheck.test(List.of(matchingOrg));
+                return List.of(matchingOrg);
             }
         } else if (organization != null) {
             Organization matchingOrg = qualifiedOrgs.stream()
@@ -130,13 +137,25 @@ public class PermissionService {
             if (matchingOrg == null) {
                 // If an organization is specified in the header, ensure it's in the qualified
                 // orgs list
-                return false;
+                return List.of();
             } else {
-                return qualifiedOrgCheck.test(List.of(matchingOrg));
+                return List.of(matchingOrg);
             }
         } else {
-            return qualifiedOrgCheck.test(qualifiedOrgs);
+            return qualifiedOrgs;
         }
+    }
+
+    public Set<String> visibleRsuIps(Set<String> ips, UserRole role) {
+        var token = getCvManagerAuthToken();
+        if (token.isSuperUser()) return ips;
+        var organizations = scopedOrganizations(token, role);
+        if (organizations.isEmpty() || ips.isEmpty()) return Set.of();
+        var addresses = ips.stream().map(RsuManagementService::toIpv4Address).toList();
+        return rsuRepository.findOwnedRsuIpsInOrganizations(organizations, addresses).stream()
+                .map(InetAddress::getHostAddress)
+                .filter(ips::contains)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -314,8 +333,15 @@ public class PermissionService {
                 .containsAll(ipv4Addresses));
     }
 
-
-    // Allow Connection if the user's organization owns the specified RSU unit
+    /**
+     * Checks the minimum role in the owning organization. Ownership currently means
+     * ownership of the RSU's SSH credential, not membership in its viewing
+     * organizations. Controllers should use these shared ownership helpers rather
+     * than query credentials.
+     *
+     * @see #findUnauthorizedRsus(List, String)
+     */
+    // TODO: Use direct RSU ownership when that data model is available.
     public boolean isRsuOwner(String rsuIP, String role) {
         InetAddress ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
 
@@ -328,7 +354,9 @@ public class PermissionService {
      * Computes which of the given RSU IPs the current user's organization does
      * NOT own. Used by multi-RSU operations that need to report every
      * inaccessible RSU (not just a blanket 403) and stop the whole request if any
-     * RSU is not owned.
+     * RSU is not owned. Uses the same SSH-credential ownership rule as
+     * {@link #isRsuOwner(String, String)}; a viewing association alone is
+     * insufficient.
      *
      * @param rsuIPs the RSU IP addresses to check
      * @param role   required minimum role

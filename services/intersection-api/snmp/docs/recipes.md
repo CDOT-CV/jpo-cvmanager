@@ -44,6 +44,9 @@ public SnmpTask status(SnmpTarget target, List<SnmpOid> measurementOids) {
 
 [`Ntcip1218ForwardingTasks.create`](../src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218ForwardingTasks.java) and `delete` run one step:
 `configure-forwarding` locates/allocates a row, changes it, and verifies readback.
+Creation returns `changed=false` without a SET when an active equivalent row is within its schedule.
+The live-table check includes all non-schedule settings and runs under the same endpoint lock as creation.
+Inactive, expired, future-dated or differently configured rows remain unchanged.
 Preset deletes match PSID, destination and preset port. Explicit-port overloads
 of `delete` and `deleteWithSnapshot` match custom-port configurations.
 
@@ -56,8 +59,8 @@ Use `changed(result)` to read the outcome. A later snapshot or callback failure
 preserves the verified device change. `SnapshotAction` is specific to forwarding;
 other recipes should use callbacks suited to their own data.
 
-The table/index overload of `deleteWithSnapshot` deletes a specific row, including unknown PSIDs,
-IPv6 destinations and incomplete rows. It checks the raw destination and port before writing,
+The table/index overload of `deleteWithSnapshot` deletes a specific row, including unknown PSIDs and message types stored in a different table
+(for example, MAP in the receive table), IPv6 destinations and incomplete rows. It checks the raw destination and port before writing,
 then requires every column to report absence. An out-of-range stored port can be deleted
 when it matches exactly; unreadable destination/port fields block deletion.
 A malformed row elsewhere can still fail the snapshot; inspect `changed(result)` before retrying.

@@ -23,6 +23,14 @@ public interface ObuFirmwareImageRepository extends JpaRepository<ObuFirmwareIma
     @Query("select image from ObuFirmwareImage image where image.id = :id")
     Optional<ObuFirmwareImage> findByIdForUpdate(@Param("id") Integer id);
 
+    @Query("select image.manufacturer.id from ObuFirmwareImage image where image.id = :id")
+    Optional<Integer> findManufacturerIdById(@Param("id") Integer id);
+
+    /** Locks a manufacturer's images in id order so publications of its builds serialize. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select image from ObuFirmwareImage image where image.manufacturer.id = :manufacturerId order by image.id")
+    List<ObuFirmwareImage> findManufacturerForUpdate(@Param("manufacturerId") Integer manufacturerId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select image from ObuFirmwareImage image

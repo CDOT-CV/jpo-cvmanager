@@ -132,6 +132,15 @@ public class RsuUpgradeService {
             return new UpgradeExecutionResult(responseBody, response.getStatusCode().value());
         } catch (HttpStatusCodeException ex) {
             String errorMessage = ex.getResponseBodyAsString();
+            try {
+                // Scheduler errors are JSON objects. Forward the reason instead of JSON text.
+                var body = ex.getResponseBodyAs(Map.class);
+                if (body != null && body.get("error") instanceof String reason && !reason.isBlank()) {
+                    errorMessage = reason;
+                }
+            } catch (RestClientException conversionFailure) {
+                log.debug("Firmware manager error response was not a JSON object", conversionFailure);
+            }
             if (errorMessage == null || errorMessage.isBlank()) {
                 errorMessage = "Firmware manager returned " + ex.getStatusCode().value();
             }
