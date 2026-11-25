@@ -2,6 +2,8 @@ package us.dot.its.jpo.ode.api.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Optional;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
@@ -27,6 +29,14 @@ class ObuFirmwareStorageLayoutTest {
             "Commsignia/ota/a,false", "'',false" })
     void recognizesObjectsBeneathTheRoot(String objectName, boolean expected) {
         assertThat(ObuFirmwareStorageLayout.isObuObjectName(objectName)).isEqualTo(expected);
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "ota/Commsignia/a.tar.sig,Commsignia", "OTA/Commsignia/a.tar.sig,Commsignia",
+            "ota/firmwares/a.tar.sig,firmwares", "ota/a.tar.sig,", "ota/Commsignia/nested/a.tar.sig,",
+            "ota/Commsignia/,", "ota//a.tar.sig,", "Commsignia/ITS/a.tar.sig," })
+    void findsTheManufacturerFolderOfUploadPaths(String objectName, String expected) {
+        assertThat(ObuFirmwareStorageLayout.manufacturerFolder(objectName)).isEqualTo(Optional.ofNullable(expected));
     }
 
     @Test

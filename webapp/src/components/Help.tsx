@@ -198,8 +198,8 @@ const Help = () => {
 
         <p>
           Selecting an RSU opens a popup and configuration menu. It displays IP address, online status, last report
-          time, milepost, serial number, and message count. Depending on access, users can retrieve configurations,
-          modify them, check/apply firmware updates, or reboot the RSU.
+          time, milepost, serial number, installed firmware version, and message count. Depending on access, users can
+          retrieve configurations, modify them, check/apply firmware updates, or reboot the RSU.
         </p>
 
         <BorderedImage src={popup} alt="RSU Popup and Configuration Panel" />

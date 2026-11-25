@@ -125,8 +125,22 @@ The cvmanager intersection-api is built off of the [conflictvisualizer api](http
 ## Contents
 
 - /api: Intersection API application
+- /snmp: Standalone `jpo-snmp` library (SNMP4J transport, execution and NTCIP 1218 helpers)
+- /pom.xml: Maven reactor for the separate `snmp` and `api` modules
 - /asn1_codec: Submodule of [asn1_codec](https://github.com/usdot-jpo-ode/asn1_codec) repo
   - Used to decode ASN.1 into MAP, SPaT, and BSM messages
+
+### Build Java modules
+
+From `services/intersection-api`, build both modules together:
+
+```sh
+mvn verify
+```
+
+The root POM is an aggregator, not a shared parent. The SNMP library remains
+independently buildable with `mvn -f snmp/pom.xml verify`; see its
+[README](snmp/README.md) for execution, testing and usage details.
 
 ## Installation
 

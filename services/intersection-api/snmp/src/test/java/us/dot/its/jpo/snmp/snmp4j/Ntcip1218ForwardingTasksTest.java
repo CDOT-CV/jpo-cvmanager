@@ -53,26 +53,28 @@ class Ntcip1218ForwardingTasksTest {
             var second = run(executor, task);
             assertNotEquals(first.taskId(), second.taskId());
             assertEquals(SnmpTaskResult.WriteState.VERIFIED, first.writeState());
-            assertEquals(SnmpTaskResult.WriteState.VERIFIED, second.writeState());
+            assertEquals(SnmpTaskResult.WriteState.NOT_SUBMITTED, second.writeState());
+            assertEquals(false, Ntcip1218ForwardingTasks.changed(second));
             assertEquals(true, Ntcip1218ForwardingTasks.changed(first));
             var firstSnapshot = snapshots.remove();
             assertEquals(1, firstSnapshot.size());
             assertEquals(44920, firstSnapshot.getFirst().port());
             assertTrue(firstSnapshot.getFirst().includeSecurity());
             assertThrows(UnsupportedOperationException.class, firstSnapshot::clear);
-            assertEquals(2, snapshots.remove().size());
+            assertEquals(1, snapshots.remove().size());
+            assertEquals(List.of("WALK"), second.steps().getFirst().commands().stream()
+                    .map(SnmpCommandResult::operation).toList());
             assertEquals(List.of("WALK", "SET", "GET"), first.steps().getFirst().commands().stream()
                     .map(SnmpCommandResult::operation).toList());
             assertEquals(List.of("configure-forwarding", "read-current-forwarding", "save-snapshot"),
                     first.steps().stream().map(SnmpStepResult::name).toList());
 
             assertEquals(true, Ntcip1218ForwardingTasks.changed(run(executor, tasks.delete(device, MessageType.MAP, request.destination()))));
-            assertEquals(true, Ntcip1218ForwardingTasks.changed(run(executor, tasks.delete(device, MessageType.MAP, request.destination()))));
             var noOp = run(executor, tasks.delete(device, MessageType.MAP, request.destination()));
             assertEquals(false, Ntcip1218ForwardingTasks.changed(noOp));
             assertEquals(SnmpTaskResult.Status.SUCCEEDED, noOp.status());
             assertEquals(SnmpTaskResult.WriteState.NOT_SUBMITTED, noOp.writeState());
-            assertEquals(4, agent.writes.get());
+            assertEquals(2, agent.writes.get());
             assertEquals(0, client.diagnostics().pendingRequests());
         }
     }
@@ -166,7 +168,9 @@ class Ntcip1218ForwardingTasksTest {
                 () -> tasks.delete(device, MessageType.MAP, "2001:db8::1"));
     }
 
-    @Test void defaultProcedureDoesNotReadUnrelatedTablesButExplicitSnapshotRequiresThem() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void defaultProcedureDoesNotReadUnrelatedTablesButExplicitSnapshotRequiresThem(boolean duplicate) throws Exception {
         try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client)) {
             // An incomplete receive row must not affect a verified MAP transmit change.
             agent.integer(ForwardingTable.RECEIVE.cell(4, 1).value(), 46800);
@@ -178,11 +182,13 @@ class Ntcip1218ForwardingTasksTest {
             assertEquals(List.of("WALK", "SET", "GET"), change.steps().getFirst().commands().stream()
                     .map(SnmpCommandResult::operation).toList());
             var callbacks = new AtomicInteger();
-            var snapshot = run(executor, tasks.createWithSnapshot(device, request,
+            var next = duplicate ? request : new ForwardingRequest(MessageType.MAP, "198.51.100.4", true);
+            var snapshot = run(executor, tasks.createWithSnapshot(device, next,
                     new SnapshotAction("save-snapshot", rows -> callbacks.incrementAndGet())));
             assertEquals(SnmpTaskResult.Status.FAILED, snapshot.status());
-            assertEquals(SnmpTaskResult.WriteState.VERIFIED, snapshot.writeState());
-            assertEquals(true, Ntcip1218ForwardingTasks.changed(snapshot));
+            assertEquals(duplicate ? SnmpTaskResult.WriteState.NOT_SUBMITTED : SnmpTaskResult.WriteState.VERIFIED,
+                    snapshot.writeState());
+            assertEquals(!duplicate, Ntcip1218ForwardingTasks.changed(snapshot));
             assertEquals(SnmpStepResult.Status.FAILED, snapshot.steps().get(1).status());
             assertEquals(SnmpStepResult.Status.NOT_STARTED, snapshot.steps().getLast().status());
             assertEquals(0, callbacks.get());

@@ -18,6 +18,9 @@ vi.mock('../api/firmwareApiSlice', () => ({
   useListFirmwareRulesQuery: vi.fn(),
 }))
 vi.mock('./FirmwareRulesDialog', () => ({ default: () => <div>Upgrade path editor</div> }))
+vi.mock('./FirmwareUpgradeStatusDialog', () => ({
+  default: ({ onClose }: { onClose: () => void }) => <div>Scheduler status<button onClick={onClose}>Close status</button></div>,
+}))
 
 // Keep feature tests focused on firmware queries and actions. AdminTable owns
 // Material Table rendering and debounce behavior, which are tested separately.
@@ -193,6 +196,14 @@ describe('Firmware object browser', () => {
       },
       isFetching: false,
     } as any)
+  })
+
+  it('opens and closes the read-only upgrade status from the toolbar', async () => {
+    renderFirmware()
+    fireEvent.click(await screen.findByRole('button', { name: 'Upgrade Status' }))
+    expect(screen.getByText('Scheduler status')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Close status' }))
+    expect(screen.queryByText('Scheduler status')).not.toBeInTheDocument()
   })
 
   it('provides firmware columns and controls through the admin table', async () => {

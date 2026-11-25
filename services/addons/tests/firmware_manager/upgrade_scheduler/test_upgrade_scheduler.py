@@ -288,7 +288,7 @@ def test_init_firmware_upgrade_rsu_not_reachable(
 
             mock_flask_jsonify.assert_called_with(
                 {
-                    "error": "Firmware upgrade failed to start for '8.8.8.8': device is unreachable"
+                    "error": "Device unreachable"
                 }
             )
             assert code == 500
@@ -353,7 +353,7 @@ def test_init_firmware_upgrade_already_running(mock_logging):
 
             mock_flask_jsonify.assert_called_with(
                 {
-                    "error": "Firmware upgrade failed to start for '8.8.8.8': an upgrade is already underway or queued for the target device"
+                    "error": "Upgrade already running or queued"
                 }
             )
             assert code == 500
@@ -396,7 +396,7 @@ def test_init_firmware_upgrade_no_eligible_upgrade(
 
             mock_flask_jsonify.assert_called_with(
                 {
-                    "error": "Firmware upgrade failed to start for '8.8.8.8': the target firmware is already installed or is an invalid upgrade from the current firmware"
+                    "error": "Target already installed or upgrade not allowed"
                 }
             )
             assert code == 500
