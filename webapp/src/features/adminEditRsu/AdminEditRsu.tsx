@@ -26,9 +26,7 @@ import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
 import '../adminRsuTab/Admin.css'
 import { useGetRsuAllowedSelectionsQuery, useGetRsuQuery, usePatchRsuMutation } from '../api/rsuApiSlice'
-import { useSelector } from 'react-redux'
-import { selectFilteredOrganizationNameObjects } from '../../generalSlices/userSlice'
-import { RootState } from '../../store'
+import { useOrganizationNameOptions } from '../../hooks/useOrganizationNameOptions'
 
 export type AdminEditRsuFormType = {
   orig_ip: string
@@ -58,9 +56,7 @@ const AdminEditRsu = () => {
   const { data: rsuInfo, isLoading: isLoadingRsu } = useGetRsuQuery(rsuIp!)
   const { data: rsuAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetRsuAllowedSelectionsQuery()
   const [patchRsu, { isLoading: isPatchingRsu }] = usePatchRsuMutation()
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, rsuAllowedSelections?.organizations ?? [])
-  )
+  const allowedOrganizations = useOrganizationNameOptions(rsuAllowedSelections?.organizations ?? [])
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)

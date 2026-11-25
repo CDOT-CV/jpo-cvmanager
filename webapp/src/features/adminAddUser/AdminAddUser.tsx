@@ -24,8 +24,8 @@ import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import 'react-widgets/styles.css'
-import { selectFilteredOrganizationNameObjects, selectSuperUser } from '../../generalSlices/userSlice'
-import { RootState } from '../../store'
+import { selectSuperUser } from '../../generalSlices/userSlice'
+import { useOrganizationNameOptions } from '../../hooks/useOrganizationNameOptions'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import '../../styles/fonts/museo-slab.css'
@@ -43,9 +43,7 @@ const AdminAddUser = () => {
   // RTK Query hooks
   const { data: allowedSelections, isLoading: isLoadingData } = useGetUserAllowedSelectionsQuery()
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation()
-  const allowedOrganizations = useSelector((state: RootState) =>
-    selectFilteredOrganizationNameObjects(state, allowedSelections?.organizations ?? [])
-  )
+  const allowedOrganizations = useOrganizationNameOptions(allowedSelections?.organizations ?? [])
 
   const {
     register,

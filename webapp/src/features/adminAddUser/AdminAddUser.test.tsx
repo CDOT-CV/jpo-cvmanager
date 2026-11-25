@@ -39,6 +39,14 @@ vi.mock('../api/userApiSlice', async (importOriginal) => ({
   useCreateUserMutation: () => [mocks.createUser, { isLoading: false }],
 }))
 
+vi.mock('../../hooks/useOrganizationNameOptions', () => ({
+  useOrganizationNameOptions: () => [
+    { id: 101, name: 'Org One' },
+    { id: 202, name: 'Org Two' },
+    { id: 303, name: 'Org Three' },
+  ],
+}))
+
 const renderComponent = () =>
   render(
     <ThemeProvider theme={testTheme}>
