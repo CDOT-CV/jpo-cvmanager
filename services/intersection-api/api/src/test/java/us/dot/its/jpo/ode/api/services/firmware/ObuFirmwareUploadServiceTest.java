@@ -170,6 +170,35 @@ class ObuFirmwareUploadServiceTest {
         verify(uploads, never()).save(any());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = { "ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig",
+            "ob4-generic-rw-secureboot-y20.48.2-b228647.tar.sig", "ob4-generic-rw-y20.48.2-b228647.tar.sig" })
+    void acceptsEachSupportedObuBuild(String fileName) {
+        stubSignedUrl("ota/Commsignia/" + fileName);
+
+        assertThat(service.createSignedUploadUrl(request("Commsignia", fileName), "admin").objectName())
+                .isEqualTo("ota/Commsignia/" + fileName);
+    }
+
+    @Test
+    void rejectsRsuFirmware() {
+        assertThatThrownBy(() -> service.createSignedUploadUrl(
+                request("Commsignia", "rs4-generic-ro-y20.48.2-b228647.tar.sig"), "admin"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Only OBU firmware");
+        verifyNoInteractions(objectStorageService);
+        verify(uploads, never()).save(any());
+    }
+
+    @Test
+    void rejectsAReadOnlyBuildWithoutSecureBoot() {
+        assertThatThrownBy(() -> service.createSignedUploadUrl(
+                request("Commsignia", "ob4-generic-ro-y20.48.2-b228647.tar.sig"), "admin"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("must use secure boot")
+                .hasMessageContaining("Supported OBU builds");
+        verifyNoInteractions(objectStorageService);
+        verify(uploads, never()).save(any());
+    }
+
     @Test
     void namingConventionErrorsIncludeAnExample() {
         assertThatThrownBy(() -> service.createSignedUploadUrl(request("Commsignia", "firmware.tar.sig"), "admin"))

@@ -44,10 +44,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
 import us.dot.its.jpo.ode.api.services.OrganizationManagementService;
@@ -61,8 +57,9 @@ import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService.FirmwareRule
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
-import us.dot.its.jpo.ode.api.storage.ObjectStorageConflictException;
+import us.dot.its.jpo.ode.api.services.firmware.ObuFirmwareConflictException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageConflictException;
 
 /**
  * Global exception handler for REST API endpoints.
@@ -128,10 +125,12 @@ public class GlobalExceptionHandler {
             return;
         }
 
-        MediaType contentType = accepted.isEmpty() || accepts(accepted, MediaType.APPLICATION_PROBLEM_JSON)
-                ? MediaType.APPLICATION_PROBLEM_JSON
-                : (accepts(accepted, MediaType.APPLICATION_JSON) ? MediaType.APPLICATION_JSON : null);
-        if (contentType == null) {
+        MediaType contentType;
+        if (accepted.isEmpty() || accepts(accepted, MediaType.APPLICATION_PROBLEM_JSON)) {
+            contentType = MediaType.APPLICATION_PROBLEM_JSON;
+        } else if (accepts(accepted, MediaType.APPLICATION_JSON)) {
+            contentType = MediaType.APPLICATION_JSON;
+        } else {
             return;
         }
         Map<String, Object> problem = new HashMap<>();
@@ -241,9 +240,10 @@ public class GlobalExceptionHandler {
     }
 
     @ResponseStatus(HttpStatus.CONFLICT)
-    @ExceptionHandler({FirmwareDeletionConflictException.class, ObjectStorageConflictException.class})
+    @ExceptionHandler({FirmwareDeletionConflictException.class, ObjectStorageConflictException.class,
+            ObuFirmwareConflictException.class})
     public ProblemDetail handleFirmwareDeletionConflict(RuntimeException ex) {
-        log.warn("Firmware deletion conflict: {}", ex.getMessage());
+        log.warn("Firmware conflict: {}", ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 

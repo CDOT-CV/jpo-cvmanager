@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,9 +25,14 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.client.MockRestServiceServer;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -204,5 +211,40 @@ class RsuUpgradeServiceTest {
                 () -> rsuUpgradeService.markRsuForUpgrade(rsuIp));
 
         assertTrue(exception.getMessage().contains("already up to date"));
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "{\"error\":\"Device unreachable\"}|Device unreachable",
+            "Scheduler temporarily unavailable|Scheduler temporarily unavailable",
+            "{malformed JSON|{malformed JSON",
+            "{\"unexpected\":\"value\"}|{\"unexpected\":\"value\"}",
+            "''|Firmware manager returned 500"
+    })
+    void forwardsReadableSchedulerErrorsWithoutLosingUnknownResponses(String body, String expected) {
+        var client = new RestTemplate();
+        var server = MockRestServiceServer.createServer(client);
+        ReflectionTestUtils.setField(rsuUpgradeService, "firmwareManagerEndpoint", "http://firmware-manager");
+        ReflectionTestUtils.setField(rsuUpgradeService, "restTemplate", client);
+        var current = new FirmwareImage();
+        current.setId(1);
+        var target = new FirmwareImage();
+        target.setId(2);
+        var rule = new FirmwareUpgradeRule();
+        rule.setTo(target);
+        var rsu = new Rsu();
+        rsu.setFirmwareVersion(current);
+        when(rsuUpgradeContextService.hasCompleteRsuData("192.0.2.10")).thenReturn(true);
+        when(rsuUpgradeContextService.findRsuByIp("192.0.2.10")).thenReturn(rsu);
+        when(firmwareUpgradeRuleRepository.findFirstByFrom_Id(1)).thenReturn(Optional.of(rule));
+        server.expect(requestTo("http://firmware-manager/init_firmware_upgrade"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).body(body));
+
+        var result = rsuUpgradeService.startFirmwareUpgradeForRsus(List.of("192.0.2.10")).get("192.0.2.10");
+
+        assertEquals(500, result.getCode());
+        assertEquals(expected, result.getData());
+        server.verify();
     }
 }

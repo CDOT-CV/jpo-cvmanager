@@ -86,6 +86,10 @@ public class ObuFirmwareUploadService {
                 .orElseThrow(() -> new IllegalArgumentException("file_name must follow the "
                         + manufacturer.getName() + " OBU firmware naming convention, for example "
                         + parser.exampleFileName()));
+        // Publishing applies the same rule, so entries that predate it cannot be offered
+        parsers.unsupportedFirmware(manufacturer.getName(), metadata).ifPresent(reason -> {
+            throw new IllegalArgumentException(reason);
+        });
 
         if (request.contentLength() == null || request.contentLength() <= 0) {
             throw new IllegalArgumentException("content_length must be greater than zero");

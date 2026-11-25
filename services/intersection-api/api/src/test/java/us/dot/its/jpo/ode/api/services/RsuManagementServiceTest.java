@@ -43,6 +43,11 @@ import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelectio
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
+import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
@@ -66,6 +71,93 @@ import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 @ExtendWith(MockitoExtension.class)
 class RsuManagementServiceTest {
+    @Mock
+    private FirmwareImageRepository firmwareImages;
+
+    @Test
+    void installedFirmwareIsRequiredForCreation() {
+        assertThrows(IllegalArgumentException.class,
+                () -> rsuManagementService.createRsu(new RsuInfoDto(), List.of()));
+        verify(rsuRepository, never()).save(any());
+    }
+
+    @Test
+    void createsRsuWithLegacyOrOriginallyVerifiedFirmwareWithoutSettingATarget() {
+        for (boolean legacy : List.of(true, false)) {
+            var image = installedImage(1, legacy);
+            var request = new RsuInfoDto();
+            request.setFirmwareId(5);
+            var rsu = new Rsu();
+            rsu.setModel(image.getModel());
+            when(rsuMapper.toEntity(request)).thenReturn(rsu);
+            when(firmwareImages.findById(5)).thenReturn(Optional.of(image));
+            when(rsuRepository.save(rsu)).thenReturn(rsu);
+
+            var result = rsuManagementService.createRsu(request, List.of());
+
+            assertEquals(image, result.getFirmwareVersion());
+            assertNull(result.getTargetFirmwareVersion());
+        }
+    }
+
+    @Test
+    void rejectsMissingWrongModelAndUnverifiedInstalledFirmware() {
+        var request = new RsuInfoDto();
+        request.setFirmwareId(5);
+        var rsu = new Rsu();
+        rsu.setModel(installedImage(1, true).getModel());
+        when(rsuMapper.toEntity(request)).thenReturn(rsu);
+        when(firmwareImages.findById(5)).thenReturn(Optional.empty());
+        assertThrows(IllegalArgumentException.class, () -> rsuManagementService.createRsu(request, List.of()));
+        when(firmwareImages.findById(5)).thenReturn(Optional.of(installedImage(2, true)));
+        assertThrows(IllegalArgumentException.class, () -> rsuManagementService.createRsu(request, List.of()));
+        for (var status : List.of(FirmwareUploadStatus.PENDING, FirmwareUploadStatus.FAILED, FirmwareUploadStatus.EXPIRED)) {
+            var image = installedImage(1, false);
+            image.getVerifiedUpload().setStatus(status);
+            when(firmwareImages.findById(5)).thenReturn(Optional.of(image));
+            assertThrows(IllegalArgumentException.class, () -> rsuManagementService.createRsu(request, List.of()));
+        }
+        verify(rsuRepository, never()).save(any());
+    }
+
+    @Test
+    void firmwareOptionsContainOnlyLegacyAndVerifiedImagesOfTheRequestedModel() {
+        var legacy = installedImage(1, true);
+        var verified = installedImage(1, false);
+        verified.setId(6);
+        verified.setVersion("v2");
+        var failed = installedImage(1, false);
+        failed.getVerifiedUpload().setStatus(FirmwareUploadStatus.FAILED);
+        when(rsuModelRepository.findByNameAndManufacturerName("ITS-RS4-M", "Commsignia"))
+                .thenReturn(Optional.of(legacy.getModel()));
+        when(firmwareImages.findModelImages(1)).thenReturn(List.of(legacy, verified, failed));
+
+        var result = rsuManagementService.getFirmwareOptions("Commsignia ITS-RS4-M");
+
+        assertEquals(2, result.size());
+        assertEquals(5, result.get(0).firmwareId());
+        assertTrue(result.get(0).legacy());
+        assertEquals("v2", result.get(1).version());
+        assertEquals(false, result.get(1).legacy());
+    }
+
+    private FirmwareImage installedImage(int modelId, boolean legacy) {
+        var manufacturer = new Manufacturer();
+        manufacturer.setName("Commsignia");
+        var model = new RsuModel();
+        model.setId(modelId);
+        model.setManufacturer(manufacturer);
+        var image = new FirmwareImage();
+        image.setId(5);
+        image.setModel(model);
+        image.setVersion("v1");
+        if (!legacy) {
+            var upload = new FirmwareUpload();
+            upload.setStatus(FirmwareUploadStatus.VERIFIED);
+            image.setVerifiedUpload(upload);
+        }
+        return image;
+    }
 
     @Mock
     private ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
@@ -144,6 +236,7 @@ class RsuManagementServiceTest {
 
         Rsu mockRsu = new Rsu();
         RsuInfoDto mockDto = new RsuInfoDto(
+                null,
                 ipAddress,
                 new SimplePosition(39.7392, -105.0844),
                 123.4,
@@ -199,6 +292,65 @@ class RsuManagementServiceTest {
     }
 
     @Test
+    void createRsuRejectsLegacyProtocol() {
+        var dto = new RsuInfoDto();
+        dto.setFirmwareId(5);
+        dto.setSnmpVersionGroup("RSU 4.1");
+        var legacy = new SnmpProtocol();
+        legacy.setProtocolCode("41");
+        legacy.setNickname("RSU 4.1");
+        when(rsuMapper.toEntity(dto)).thenReturn(new Rsu());
+        when(snmpProtocolRepository.findByNickname("RSU 4.1")).thenReturn(Optional.of(legacy));
+
+        var failure = assertThrows(ResponseStatusException.class,
+                () -> rsuManagementService.createRsu(dto, List.of()));
+
+        assertEquals(400, failure.getStatusCode().value());
+        assertEquals("New SNMP protocol assignments require NTCIP 1218. Existing legacy assignments may be retained.",
+                failure.getReason());
+        verify(rsuRepository, never()).save(any());
+    }
+
+    @Test
+    void modifyRsuRejectsSwitchToLegacyProtocol() throws Exception {
+        var rsu = new Rsu();
+        var legacy = new SnmpProtocol();
+        legacy.setProtocolCode("41");
+        legacy.setNickname("RSU 4.1");
+        var patch = new RsuPatch();
+        patch.setSnmpVersionGroup("RSU 4.1");
+        when(rsuRepository.findByIpv4Address(InetAddress.getByName("192.0.2.1"))).thenReturn(rsu);
+        when(snmpProtocolRepository.findByNickname("RSU 4.1")).thenReturn(Optional.of(legacy));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
+
+        var failure = assertThrows(ResponseStatusException.class,
+                () -> rsuManagementService.modifyRsu("192.0.2.1", patch, authToken));
+
+        assertEquals(400, failure.getStatusCode().value());
+        verify(rsuRepository, never()).save(any());
+    }
+
+    @Test
+    void modifyRsuRetainsExistingLegacyProtocol() throws Exception {
+        var rsu = new Rsu();
+        var legacy = new SnmpProtocol();
+        legacy.setProtocolCode("41");
+        legacy.setNickname("RSU 4.1");
+        rsu.setSnmpProtocol(legacy);
+        var patch = new RsuPatch();
+        patch.setSnmpVersionGroup("RSU 4.1");
+        when(rsuRepository.findByIpv4Address(InetAddress.getByName("192.0.2.1"))).thenReturn(rsu);
+        when(snmpProtocolRepository.findByNickname("RSU 4.1")).thenReturn(Optional.of(legacy));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
+        when(rsuRepository.save(rsu)).thenReturn(rsu);
+
+        rsuManagementService.modifyRsu("192.0.2.1", patch, authToken);
+
+        verify(rsuRepository).save(rsu);
+        assertEquals(legacy, rsu.getSnmpProtocol());
+    }
+
+    @Test
     void testToIpv4Address_NullIpAddress() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
@@ -232,6 +384,7 @@ class RsuManagementServiceTest {
         Page<Rsu> rsuPage = new PageImpl<>(rsuList, pageable, 2);
 
         RsuInfoDto dto1 = new RsuInfoDto(
+                null,
                 "192.168.1.100",
                 new SimplePosition(39.7392, -105.0844),
                 123.4,
@@ -246,6 +399,7 @@ class RsuManagementServiceTest {
                 Boolean.TRUE,
                 Boolean.TRUE);
         RsuInfoDto dto2 = new RsuInfoDto(
+                null,
                 "192.168.1.101",
                 new SimplePosition(39.7400, -105.0850),
                 124.5,
@@ -306,13 +460,13 @@ class RsuManagementServiceTest {
 
         List<String> sshCredentials = Arrays.asList("ssh-group-1", "ssh-group-2");
         List<String> snmpCredentials = Arrays.asList("snmp-group-1", "snmp-group-2");
-        List<String> snmpVersions = Arrays.asList("v2c", "v3");
+        List<String> snmpVersions = List.of("NTCIP 1218");
 
         when(rsuRepository.findAllPrimaryRoutes()).thenReturn(primaryRoutes);
         when(rsuRepository.findAllRsuModels()).thenReturn(rsuModels);
         when(rsuCredentialRepository.findAllNicknames()).thenReturn(sshCredentials);
         when(snmpCredentialRepository.findAllNicknames()).thenReturn(snmpCredentials);
-        when(snmpProtocolRepository.findAllNicknames()).thenReturn(snmpVersions);
+        when(snmpProtocolRepository.findNtcip1218Nicknames()).thenReturn(snmpVersions);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(Arrays.asList(testOrg, testOrg2));
 
         ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(authToken);
@@ -332,8 +486,7 @@ class RsuManagementServiceTest {
         assertEquals(2, result.getSnmpCredentialGroups().size());
         assertTrue(result.getSnmpCredentialGroups().contains("snmp-group-1"));
 
-        assertEquals(2, result.getSnmpVersionGroups().size());
-        assertTrue(result.getSnmpVersionGroups().contains("v2c"));
+        assertEquals(List.of("NTCIP 1218"), result.getSnmpVersionGroups());
 
         assertEquals(2, result.getOrganizations().size());
         assertTrue(result.getOrganizations().contains("Org1"));
@@ -343,7 +496,7 @@ class RsuManagementServiceTest {
         verify(rsuRepository).findAllRsuModels();
         verify(rsuCredentialRepository).findAllNicknames();
         verify(snmpCredentialRepository).findAllNicknames();
-        verify(snmpProtocolRepository).findAllNicknames();
+        verify(snmpProtocolRepository).findNtcip1218Nicknames();
     }
 
     @Test
@@ -353,7 +506,7 @@ class RsuManagementServiceTest {
         when(rsuRepository.findAllRsuModels()).thenReturn(List.of());
         when(rsuCredentialRepository.findAllNicknames()).thenReturn(List.of());
         when(snmpCredentialRepository.findAllNicknames()).thenReturn(List.of());
-        when(snmpProtocolRepository.findAllNicknames()).thenReturn(List.of());
+        when(snmpProtocolRepository.findNtcip1218Nicknames()).thenReturn(List.of());
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
 
         ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(authToken);
@@ -385,6 +538,7 @@ class RsuManagementServiceTest {
         existingRsu.setRsuOrganizations(new HashSet<>());
 
         RsuInfoDto expectedDto = new RsuInfoDto(
+                null,
                 rsuIp,
                 new SimplePosition(39.7392, -105.0844),
                 150.0,
@@ -461,6 +615,7 @@ class RsuManagementServiceTest {
         RsuCredential sshCred = new RsuCredential();
         SnmpCredential snmpCred = new SnmpCredential();
         SnmpProtocol snmpProtocol = new SnmpProtocol();
+        snmpProtocol.setProtocolCode("1218");
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(rsuCredentialRepository.findByNickname("ssh-group-new")).thenReturn(Optional.of(sshCred));

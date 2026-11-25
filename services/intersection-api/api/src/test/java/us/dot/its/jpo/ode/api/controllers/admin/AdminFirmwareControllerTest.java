@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -44,6 +45,10 @@ import us.dot.its.jpo.ode.api.services.firmware.FirmwareObjectService;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService.FirmwareRuleConflictException;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareRuleModels.*;
+import us.dot.its.jpo.ode.api.services.FirmwareUpgradeStatusService;
+import us.dot.its.jpo.ode.api.models.devices.management.FirmwareUpgradeStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareDeletionService;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareDeletionService.FirmwareDeletionConflictException;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadOptionsService;
@@ -79,6 +84,37 @@ class AdminFirmwareControllerTest {
 
     @MockitoBean(name = "PermissionService")
     private PermissionService permissionService;
+
+    @MockitoBean
+    private FirmwareUpgradeStatusService firmwareUpgradeStatusService;
+
+    @Test
+    @WithMockUser
+    void forbidsNonAdminsFromReadingUpgradeStatus() throws Exception {
+        mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isForbidden());
+        verifyNoInteractions(firmwareUpgradeStatusService);
+    }
+
+    @Test
+    @WithMockUser
+    void returnsUpgradeStatusForAdmins() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        when(firmwareUpgradeStatusService.getVisibleStatus()).thenReturn(
+                new FirmwareUpgradeStatus.VisibleStatus(Map.of(), List.of(new FirmwareUpgradeStatus.QueuedUpgrade("192.0.2.1", 2))));
+        mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.active_upgrades").isMap())
+                .andExpect(jsonPath("$.upgrade_queue[0].ip").value("192.0.2.1"))
+                .andExpect(jsonPath("$.upgrade_queue[0].position").value(2));
+    }
+
+    @Test
+    @WithMockUser
+    void returnsBadGatewayWhenUpgradeStatusIsUnavailable() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        when(firmwareUpgradeStatusService.getVisibleStatus()).thenThrow(new ResponseStatusException(
+                HttpStatus.BAD_GATEWAY, "Unable to retrieve firmware upgrade status"));
+        mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isBadGateway());
+    }
 
     @MockitoBean
     private FirmwareUploadService firmwareUploadService;

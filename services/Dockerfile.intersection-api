@@ -2,6 +2,10 @@ FROM maven:3.9.6-eclipse-temurin-22-jammy AS builder
 
 WORKDIR /home/intersection-api
 
+COPY ./intersection-api/snmp/pom.xml /home/snmp/pom.xml
+COPY ./intersection-api/snmp/src/main /home/snmp/src/main
+RUN mvn -f /home/snmp/pom.xml install -Dmaven.test.skip=true
+
 COPY ./intersection-api/api/pom.xml .
 COPY ./intersection-api/api/settings.xml .
 

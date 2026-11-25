@@ -32,6 +32,28 @@ class ObjectIdsTest {
     }
 
     @Test
+    void roundTripsTheContainerSoSameNamedObjectsInDifferentContainersDiffer() {
+        String active = ObjectIds.encode("gcp", "bucket", "ota/Commsignia/a.tar.sig");
+        String previous = ObjectIds.encode("gcp", "old-bucket", "ota/Commsignia/a.tar.sig");
+
+        assertThat(active).isNotEqualTo(previous);
+        assertThat(ObjectIds.decodeContained(previous))
+                .isEqualTo(new ObjectIds.ContainedIdentity("gcp", "old-bucket", "ota/Commsignia/a.tar.sig"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "gcp\nota/Commsignia/a.tar.sig", "gcp\n \nota/a.tar.sig", "gcp\nbucket\n",
+            "gcp\nbucket\nota/folder/", "gcp\nbucket\nota/a\nb" })
+    void rejectsContainedIdentifiersThatDoNotNameOneObject(String identity) {
+        String id = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(identity.getBytes(StandardCharsets.UTF_8));
+
+        assertThatThrownBy(() -> ObjectIds.decodeContained(id))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid firmware object ID");
+    }
+
+    @Test
     void rejectsMalformedBase64() {
         assertThatThrownBy(() -> ObjectIds.decode("not base64!"))
                 .isInstanceOf(IllegalArgumentException.class)
