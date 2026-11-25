@@ -379,7 +379,7 @@ class UserControllerTest {
 
         userController.createUser(newUser);
 
-        assertTrue(newUser.getSuperUser());
+        assertTrue(newUser.isSuperUser());
         verify(userManagementService).createUser(newUser);
     }
 
