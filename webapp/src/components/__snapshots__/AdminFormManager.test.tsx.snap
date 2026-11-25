@@ -964,7 +964,7 @@ exports[`snapshot rsu 1`] = `
                       >
                         <tr
                           class="MuiTableRow-root css-mocked-MuiTableRow-root"
-                          style="height: 1225px;"
+                          style="height: 49px;"
                         >
                           <td
                             class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
@@ -1597,7 +1597,7 @@ exports[`snapshot user 1`] = `
                       >
                         <tr
                           class="MuiTableRow-root css-mocked-MuiTableRow-root"
-                          style="height: 1225px;"
+                          style="height: 49px;"
                         >
                           <td
                             class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"

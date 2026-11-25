@@ -32,6 +32,7 @@ import { scmsApiSlice } from './features/api/scmsApiSlice'
 import { userApiSlice } from './features/api/userApiSlice'
 import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
 import { firmwareApiSlice } from './features/api/firmwareApiSlice'
+import { obuFirmwareApiSlice } from './features/api/obuFirmwareApiSlice'
 import mapSliceReducer from './pages/mapSlice'
 import timeSyncReducer from './generalSlices/timeSyncSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
@@ -74,6 +75,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       [userApiSlice.reducerPath]: userApiSlice.reducer,
       [adminIntersectionApiSlice.reducerPath]: adminIntersectionApiSlice.reducer,
       [firmwareApiSlice.reducerPath]: firmwareApiSlice.reducer,
+      [obuFirmwareApiSlice.reducerPath]: obuFirmwareApiSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -96,7 +98,8 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(scmsApiSlice.middleware)
         .concat(userApiSlice.middleware)
         .concat(adminIntersectionApiSlice.middleware)
-        .concat(firmwareApiSlice.middleware),
+        .concat(firmwareApiSlice.middleware)
+        .concat(obuFirmwareApiSlice.middleware),
     devTools: true,
   })
 }

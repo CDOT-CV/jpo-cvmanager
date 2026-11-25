@@ -93,6 +93,9 @@ public final class ObuFirmwareModels {
     /**
      * An OBU firmware file in storage, its catalog entry, or both. Parsed metadata
      * comes from the catalog, the upload, or for untracked files the file name.
+     * {@code unsupportedReason} says why the API would refuse to publish the firmware,
+     * such as RSU firmware or an unsupported OBU build, and is null when its build is
+     * supported.
      */
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Item(String objectId, String objectName, String storageProvider, String providerObjectVersion,
@@ -102,7 +105,7 @@ public final class ObuFirmwareModels {
             @JsonFormat(shape = JsonFormat.Shape.STRING) Instant registeredAt,
             UUID uploadId, String uploadStatus, Integer obuFirmwareId, boolean published,
             @JsonFormat(shape = JsonFormat.Shape.STRING) Instant publishedAt, String publishedBy,
-            String verificationStatus) {}
+            String verificationStatus, String unsupportedReason) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     @Schema(description = "Whether the OBU OTA server should offer this firmware to OBUs")

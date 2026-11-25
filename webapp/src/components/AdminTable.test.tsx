@@ -15,6 +15,27 @@ it('should take a snapshot', () => {
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
+it('shows an empty table as a single row rather than a page of blank rows', async () => {
+  const handleQueryChange = vi.fn().mockResolvedValue({ data: [], page: 0, totalCount: 0 })
+
+  render(
+    <ThemeProvider theme={testTheme}>
+      <AdminTable
+        actions={[]}
+        columns={[{ title: 'Name', field: 'name' }]}
+        defaultPageSize={25}
+        handleQueryChange={handleQueryChange}
+        title=""
+      />
+    </ThemeProvider>
+  )
+
+  const message = await screen.findByText('No records to display')
+  const emptyRow = message.closest('tr') as HTMLElement
+  expect(emptyRow.style.height).not.toBe('')
+  expect(parseFloat(emptyRow.style.height)).toBeLessThan(100)
+})
+
 it('debounces server-side search and submits only the final value', async () => {
   const handleQueryChange = vi.fn().mockResolvedValue({ data: [], page: 0, totalCount: 0 })
 
