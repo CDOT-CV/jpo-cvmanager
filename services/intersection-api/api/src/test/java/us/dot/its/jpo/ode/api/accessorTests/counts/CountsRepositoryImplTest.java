@@ -12,12 +12,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
@@ -27,7 +29,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.accessors.counts.CountsRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.MessageCount;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.PrometheusService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
@@ -41,11 +45,18 @@ public class CountsRepositoryImplTest {
     @Mock
     private RsuRepository rsuRepository;
 
+    @Mock
+    private OrganizationRepository organizationRepository;
+
+    @InjectMocks
     private CountsRepositoryImpl repository;
+
+    private Organization testOrganization = new Organization();
 
     @BeforeEach
     void setUp() {
-        repository = new CountsRepositoryImpl(prometheusService, rsuRepository);
+        testOrganization.setId(1);
+        testOrganization.setName("TestOrg");
     }
 
     private Rsu mockRsu(String ip, String route) throws Exception {
@@ -229,12 +240,12 @@ public class CountsRepositoryImplTest {
 
     @Test
     void testGetOrganizationMessageCounts() throws Exception {
-        String organization = "TestOrg";
         String messageType = "BSM";
         Long startTime = 1640995200000L;
         Long endTime = 1641081600000L;
 
-        when(rsuRepository.findAllByOrganization(eq(organization), isNull(), any(Pageable.class)))
+        when(organizationRepository.findByName(testOrganization.getName())).thenReturn(Optional.of(testOrganization));
+        when(rsuRepository.findAllByOrganization(eq(testOrganization), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(
                         mockRsu("10.11.81.13", "I-25"),
                         mockRsu("10.11.81.14", "I-70"))));
@@ -289,7 +300,7 @@ public class CountsRepositoryImplTest {
                 .thenReturn(mockResponse);
 
         List<MessageCount> result = repository.getRsuOrganizationMessageCounts(
-                organization, messageType, startTime, endTime);
+                testOrganization.getName(), messageType, startTime, endTime);
 
         ArgumentCaptor<String> topicRegexCaptor = ArgumentCaptor.forClass(String.class);
         verify(prometheusService).getOrganizationRsuCounts(any(), topicRegexCaptor.capture(),
@@ -325,16 +336,16 @@ public class CountsRepositoryImplTest {
 
     @Test
     void testGetOrganizationMessageCounts_EmptyOrganization() {
-        String organization = "EmptyOrg";
         String messageType = "BSM";
         Long startTime = 1640995200000L;
         Long endTime = 1641081600000L;
 
-        when(rsuRepository.findAllByOrganization(eq(organization), isNull(), any(Pageable.class)))
+        when(organizationRepository.findByName(testOrganization.getName())).thenReturn(Optional.of(testOrganization));
+        when(rsuRepository.findAllByOrganization(eq(testOrganization), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
 
         List<MessageCount> result = repository.getRsuOrganizationMessageCounts(
-                organization, messageType, startTime, endTime);
+                testOrganization.getName(), messageType, startTime, endTime);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
@@ -364,12 +375,12 @@ public class CountsRepositoryImplTest {
 
     @Test
     void testGetOrganizationMessageCounts_PrometheusError() throws Exception {
-        String organization = "TestOrg";
         String messageType = "BSM";
         Long startTime = 1640995200000L;
         Long endTime = 1641081600000L;
 
-        when(rsuRepository.findAllByOrganization(eq(organization), isNull(), any(Pageable.class)))
+        when(organizationRepository.findByName(testOrganization.getName())).thenReturn(Optional.of(testOrganization));
+        when(rsuRepository.findAllByOrganization(eq(testOrganization), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(
                         mockRsu("10.11.81.13", "I-25"),
                         mockRsu("10.11.81.14", "I-70"))));
@@ -378,7 +389,7 @@ public class CountsRepositoryImplTest {
                 .thenThrow(new RuntimeException("Prometheus error"));
 
         List<MessageCount> result = repository.getRsuOrganizationMessageCounts(
-                organization, messageType, startTime, endTime);
+                testOrganization.getName(), messageType, startTime, endTime);
 
         assertNotNull(result);
         assertEquals(2, result.size());
@@ -407,21 +418,22 @@ public class CountsRepositoryImplTest {
 
     @Test
     void testGetOrganizationMessageCounts_PrometheusOomPropagatesAsBadRequest() throws Exception {
-        String organization = "TestOrg";
         String messageType = "BSM";
         Long startTime = 1640995200000L;
         Long endTime = 1641081600000L;
         ResponseStatusException oom = new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 PrometheusService.OOM_USER_MESSAGE);
 
-        when(rsuRepository.findAllByOrganization(eq(organization), isNull(), any(Pageable.class)))
+        when(organizationRepository.findByName(testOrganization.getName())).thenReturn(Optional.of(testOrganization));
+        when(rsuRepository.findAllByOrganization(eq(testOrganization), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(mockRsu("10.11.81.13", "I-25"))));
         when(prometheusService.getOrganizationRsuCounts(any(), any(), eq(startTime.longValue()),
                 eq(endTime.longValue())))
                 .thenThrow(oom);
 
         ResponseStatusException thrown = assertThrows(ResponseStatusException.class,
-                () -> repository.getRsuOrganizationMessageCounts(organization, messageType, startTime, endTime));
+                () -> repository.getRsuOrganizationMessageCounts(testOrganization.getName(), messageType, startTime,
+                        endTime));
 
         assertEquals(HttpStatus.BAD_REQUEST, thrown.getStatusCode());
         assertEquals(PrometheusService.OOM_USER_MESSAGE, thrown.getReason());

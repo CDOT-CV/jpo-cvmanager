@@ -49,7 +49,7 @@ public class User {
     @Column(name = "super_user", nullable = false)
     private Boolean superUser;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private List<UserOrganization> userOrganizations;
 
 }

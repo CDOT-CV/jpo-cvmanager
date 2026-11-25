@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.controllers.devices;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -21,6 +22,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuFirmwareOption;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
@@ -48,12 +51,18 @@ class RsuFirmwareSelectionControllerTest {
 
     @Test
     void creationRequiresAPositiveFirmwareIdAndBindsItToTheRequest() throws Exception {
+        Organization testOrg = new Organization();
+        testOrg.setId(1);
+        testOrg.setName("Org");
         when(permissions.hasRole(UserRole.OPERATOR)).thenReturn(true);
-        when(permissions.hasRoleInOrgNames(eq(UserRole.OPERATOR), anyList())).thenReturn(true);
+        when(permissions.hasRoleInOrgIds(eq("ADMIN"), anyList())).thenReturn(true);
+        CvManagerAuthToken authToken = mock(CvManagerAuthToken.class);
+        when(permissions.getCvManagerAuthToken()).thenReturn(authToken);
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         String body = """
                 {"ip":"192.0.2.1","geo_position":{"latitude":39.7,"longitude":-104.9},
                  "milepost":1,"primary_route":"I-25","serial_number":"SN-1","scms_id":"id",
-                 "model":"Commsignia ITS-RS4-M","organizations":["Org"],"tim_deposit":false,"snmp_monitoring":false
+                 "model":"Commsignia ITS-RS4-M","organizations":[1],"tim_deposit":false,"snmp_monitoring":false
                 """;
         for (String suffix : List.of("}", ",\"firmware_id\":null}", ",\"firmware_id\":0}", ",\"firmware_id\":-1}")) {
             mvc.perform(post("/devices/rsus").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(body + suffix))
@@ -66,6 +75,22 @@ class RsuFirmwareSelectionControllerTest {
         mvc.perform(post("/devices/rsus").with(jwt()).contentType(MediaType.APPLICATION_JSON)
                 .content(body + ",\"firmware_id\":5}"))
                 .andExpect(status().isCreated());
-        verify(rsus).createRsu(argThat(request -> request.getFirmwareId() == 5), eq(List.of("Org")));
+        verify(rsus).createRsu(argThat(request -> request.getFirmwareId() == 5), eq(List.of(testOrg)));
+    }
+
+    @Test
+    void creationRejectsOrganizationsTheOperatorCannotManage() throws Exception {
+        when(permissions.hasRole(UserRole.OPERATOR)).thenReturn(true);
+        when(permissions.hasRoleInOrgIds(eq("ADMIN"), anyList())).thenReturn(false);
+        String body = """
+                {"firmware_id":5,"ip":"192.0.2.1","geo_position":{"latitude":39.7,"longitude":-104.9},
+                 "milepost":1,"primary_route":"I-25","serial_number":"SN-1","scms_id":"id",
+                 "model":"Commsignia ITS-RS4-M","organizations":[1],"tim_deposit":false,"snmp_monitoring":false}
+                """;
+
+        mvc.perform(post("/devices/rsus").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+
+        verify(rsus, never()).createRsu(any(), anyList());
     }
 }

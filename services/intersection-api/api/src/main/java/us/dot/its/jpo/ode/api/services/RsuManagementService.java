@@ -3,6 +3,7 @@ package us.dot.its.jpo.ode.api.services;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,11 +13,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
-import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
@@ -24,7 +25,6 @@ import us.dot.its.jpo.ode.api.models.devices.management.RsuFirmwareOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
-import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
@@ -33,20 +33,15 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
-import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
-import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
-import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuHealthRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
-import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 @Service
@@ -55,19 +50,14 @@ import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 public class RsuManagementService {
     private final FirmwareImageRepository firmwareImages;
 
-    private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
-    private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
-    private final OrganizationRepository organizationRepository;
     private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
-    private final RsuIntersectionRepository rsuIntersectionRepository;
     private final RsuOrganizationRepository rsuOrganizationRepository;
     private final RsuModelRepository rsuModelRepository;
     private final RsuRepository rsuRepository;
     private final RsuOptionRepository rsuOptionRepository;
     private final ScmsHealthRepository scmsHealthRepository;
     private final SnmpCredentialRepository snmpCredentialRepository;
-    private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
     private final SnmpProtocolRepository snmpProtocolRepository;
     private final RsuInfoMapper rsuMapper;
     private final RsuPatchMapper rsuPatchMapper;
@@ -79,12 +69,12 @@ public class RsuManagementService {
         return rsu != null ? rsuMapper.toDto(rsu) : null;
     }
 
-    public Page<RsuInfoDto> getAllRsuInfo(String orgName, String search, Pageable pageable) {
-        Page<Rsu> rsus = rsuRepository.findAllByOrganization(orgName, search, pageable);
+    public Page<RsuInfoDto> getAllRsuInfo(Organization organization, String search, Pageable pageable) {
+        Page<Rsu> rsus = rsuRepository.findAllByOrganization(organization, search, pageable);
         return rsus.map(rsuMapper::toDto);
     }
 
-    public ModifyRsuAllowedSelections getAllowedSelections(CvManagerAuthToken userToken) {
+    public ModifyRsuAllowedSelections getAllowedSelections(List<Organization> qualifiedOrgs) {
         ModifyRsuAllowedSelections allowed = new ModifyRsuAllowedSelections();
 
         allowed.setPrimaryRoutes(rsuRepository.findAllPrimaryRoutes());
@@ -94,19 +84,17 @@ public class RsuManagementService {
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
         allowed.setSnmpVersionGroups(snmpProtocolRepository.findNtcip1218Nicknames());
-
-        if (userToken.isSuperUser()) {
-            allowed.setOrganizations(organizationRepository.findAll().stream().map(o -> o.getName()).toList());
-        } else {
-            allowed.setOrganizations(userToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(o -> o.getName()).toList());
-        }
+        allowed.setOrganizations(qualifiedOrgs.stream().map(Organization::getId).toList());
         return allowed;
     }
 
     @Transactional
-    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) {
+    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<Organization> qualifiedOrgs) {
         if (rsuInfoDto.getFirmwareId() == null) {
             throw new IllegalArgumentException("Installed firmware is required");
+        }
+        if (rsuInfoDto.getOrganizations() == null || rsuInfoDto.getOrganizations().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one organization is required");
         }
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
@@ -133,9 +121,24 @@ public class RsuManagementService {
         rsuOption.setSnmpMonitoring(rsuInfoDto.getSnmpMonitoring());
         rsuOptionRepository.save(rsuOption);
 
-        var toCreate = orgsToAdd.stream()
-                .map(orgName -> createRsuOrgRelationship(orgName, rsu))
-                .toList();
+        List<Organization> orgsToCreate = qualifiedOrgs.stream()
+                .filter(org -> rsuInfoDto.getOrganizations().contains(org.getId()))
+                .collect(Collectors.toList());
+
+        if (orgsToCreate.size() != rsuInfoDto.getOrganizations().size()) {
+            List<Integer> missingOrgIds = rsuInfoDto.getOrganizations().stream()
+                    .filter(orgId -> orgsToCreate.stream().noneMatch(org -> org.getId().equals(orgId)))
+                    .collect(Collectors.toList());
+            throw new EntityNotFoundException("Organization(s) not found: " + missingOrgIds);
+        }
+
+        var toCreate = orgsToCreate.stream().map(org -> {
+            RsuOrganization rsuOrg = new RsuOrganization();
+            rsuOrg.setOrganization(org);
+            rsuOrg.setRsu(createdRsu);
+            return rsuOrg;
+        }).toList();
+
         rsuOrganizationRepository.saveAll(toCreate);
 
         return rsu;
@@ -156,17 +159,6 @@ public class RsuManagementService {
         return !"ota".equalsIgnoreCase(image.getModel().getManufacturer().getName())
                 && (image.getVerifiedUpload() == null
                     || image.getVerifiedUpload().getStatus() == FirmwareUploadStatus.VERIFIED);
-    }
-
-    public RsuOrganization createRsuOrgRelationship(String orgName, Rsu rsu) {
-        Organization organization = organizationRepository.findByName(orgName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Organization not found: " + orgName));
-
-        RsuOrganization rsuOrg = new RsuOrganization();
-        rsuOrg.setOrganization(organization);
-        rsuOrg.setRsu(rsu);
-        return rsuOrg;
     }
 
     private void updateRelationships(Rsu rsu, RsuInfoDto rsuInfoDto) {
@@ -206,9 +198,7 @@ public class RsuManagementService {
     }
 
     @Transactional
-    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken) {
-        List<Organization> authorizedOrgs = userToken.getQualifiedOrgList(UserRole.ADMIN);
-
+    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, List<Organization> qualifiedOrgs) {
         // 1. Find existing RSU by original IP
         InetAddress inetAddress = toIpv4Address(rsuIp);
         Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
@@ -234,7 +224,7 @@ public class RsuManagementService {
         updateRelationships(existingRsu, rsuPatch);
 
         // 5. Handle organization additions/removals
-        handleOrganizationChanges(existingRsu, rsuPatch, authorizedOrgs);
+        handleOrganizationChanges(existingRsu, rsuPatch, qualifiedOrgs);
 
         // 6. Save updated entity (JPA handles UPDATE SQL)
         Rsu savedRsu = rsuRepository.save(existingRsu);
@@ -302,19 +292,19 @@ public class RsuManagementService {
     private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<Organization> authorizedOrgs) {
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
-            List<String> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org)))
+            List<Integer> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
+                    .filter(orgId -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(orgId)))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to add RSU to organization(s): "
-                        + String.join(", ", unqualifiedAdds));
+                        + unqualifiedAdds.stream().map(String::valueOf).collect(Collectors.joining(", ")));
             }
-            for (String orgName : patch.getOrganizationsToAdd()) {
+            for (Integer orgId : patch.getOrganizationsToAdd()) {
                 Organization org = authorizedOrgs.stream()
-                        .filter(o -> o.getName().equals(orgName))
+                        .filter(o -> o.getId().equals(orgId))
                         .findFirst()
                         .orElseThrow(() -> new IllegalArgumentException(
-                                "Organization not found or user not authorized for: " + orgName));
+                                "Organization not found or user not authorized for: " + orgId));
 
                 RsuOrganization rsuOrg = new RsuOrganization();
                 rsuOrg.setRsu(rsu);
@@ -326,23 +316,23 @@ public class RsuManagementService {
 
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            List<String> unqualifiedRemovals = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org)))
+            List<Integer> unqualifiedRemovals = patch.getOrganizationsToRemove().stream()
+                    .filter(orgId -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(orgId)))
                     .toList();
             if (!unqualifiedRemovals.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove RSU from organization(s): "
-                        + String.join(", ", unqualifiedRemovals));
+                        + unqualifiedRemovals.stream().map(String::valueOf).collect(Collectors.joining(", ")));
             }
-            for (String orgName : patch.getOrganizationsToRemove()) {
+            for (Integer orgId : patch.getOrganizationsToRemove()) {
                 Organization org = authorizedOrgs.stream()
-                        .filter(o -> o.getName().equals(orgName))
+                        .filter(o -> o.getId().equals(orgId))
                         .findFirst()
                         .orElseThrow(() -> new IllegalArgumentException(
-                                "Organization not found or user not authorized for: " + orgName));
+                                "Organization not found or user not authorized for: " + orgId));
                 // Find and delete the specific association
-                rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(
+                rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(
                         rsu.getIpv4Address(),
-                        org.getName()).ifPresent(rsuOrganizationRepository::delete);
+                        org).ifPresent(rsuOrganizationRepository::delete);
             }
         }
     }
@@ -415,13 +405,7 @@ public class RsuManagementService {
         pingRepository.removeMultiplePingsByIpv4Address(inetAddresses);
         rsuOrganizationRepository.removeMultipleRsuOrganizationsByIpv4Address(inetAddresses);
         scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(inetAddresses);
-        snmpMsgfwdConfigRepository.removeMultipleSnmpMsgfwdConfigByIpv4Address(inetAddresses);
-        rsuIntersectionRepository.removeMultipleRsuIntersectionsByIpv4Address(inetAddresses);
-        consecutiveFirmwareUpgradeFailureRepository
-                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(inetAddresses);
-        maxRetryLimitReachedInstanceRepository
-                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
-        rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(inetAddresses);
+        rsuHealthRepository.removeMultipleRsuHealthByIpv4Address(inetAddresses);
         rsuRepository.removeByIpv4AddressIn(inetAddresses);
     }
 

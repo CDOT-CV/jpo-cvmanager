@@ -77,27 +77,27 @@ public class Rsu {
     @JoinColumn(name = "target_firmware_version")
     private FirmwareImage targetFirmwareVersion;
 
-    @OneToOne(mappedBy = "rsu")
+    @OneToOne(mappedBy = "rsu", cascade = CascadeType.REMOVE)
     private ConsecutiveFirmwareUpgradeFailure consecutiveFirmwareUpgradeFailure;
 
-    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private Set<MaxRetryLimitReachedInstance> maxRetryLimitReachedInstances = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
     private Set<Ping> pings = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private Set<RsuIntersection> rsuIntersections = new LinkedHashSet<>();
 
-    @OneToOne(mappedBy = "rsu")
+    @OneToOne(mappedBy = "rsu", cascade = CascadeType.REMOVE)
     private RsuOption rsuOption;
 
-    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private Set<RsuOrganization> rsuOrganizations = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
     private Set<ScmsHealth> scmsHealths = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private Set<SnmpMsgfwdConfig> snmpMsgfwdConfigs = new LinkedHashSet<>();
 }
