@@ -15,6 +15,7 @@ import {
 } from '../api/obuFirmwareApiSlice'
 import { formatFileSize, getErrorMessage } from '../adminFirmwareTab/firmwareUpload'
 import '../adminRsuTab/Admin.css'
+import ObuFirmwareUploadForm from './ObuFirmwareUploadForm'
 
 const DEFAULT_PAGE_SIZE = 25
 const HEADER_STYLE = { textTransform: 'none' as const }
@@ -195,6 +196,7 @@ const AdminObuFirmwareTab = () => {
   const [storageAvailable, setStorageAvailable] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isChanging, setIsChanging] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
   const changing = useRef(false)
 
   const [listObuFirmwareObjects] = useLazyListObuFirmwareObjectsQuery()
@@ -421,6 +423,13 @@ const AdminObuFirmwareTab = () => {
       disabled: isRefreshing,
       onClick: refreshListing,
     },
+    {
+      position: 'toolbar',
+      icon: () => null,
+      tooltip: 'Add OBU firmware',
+      iconProps: { itemType: 'contained', title: 'New' },
+      onClick: () => setShowUpload(true),
+    },
   ]
 
   return (
@@ -457,6 +466,17 @@ const AdminObuFirmwareTab = () => {
         thirdSortClick={false}
         title=""
       />
+
+      {showUpload && (
+        <ObuFirmwareUploadForm
+          open
+          onClose={() => setShowUpload(false)}
+          onSuccess={() => {
+            setShowUpload(false)
+            refreshListing()
+          }}
+        />
+      )}
     </Box>
   )
 }
